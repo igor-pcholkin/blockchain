@@ -16,5 +16,15 @@ class BlockChain {
     Block(nextIndex, prevHash, nextTimestamp, data)
   }
 
+  def add(block: Block) = {
+    if (isValid(block))
+      chain.add(block)
+  }
+
+  def isValid(block: Block) = {
+    block.index == getLatestBlock.index + 1 && block.prevHash.toSeq == getLatestBlock.hash.toSeq &&
+      block.timestamp.compareTo(getLatestBlock.timestamp) > 0
+  }
+
   def getLatestBlock = chain.peekLast()
 }
