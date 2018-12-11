@@ -18,4 +18,13 @@ case class Block(index: Int, prevHash: Array[Byte], timestamp: LocalDateTime, da
   }
 
   def hash = SHA256.hash(this)
+
+  override def toString() = {
+    s"$index:${hexBytesStr(prevHash)}:$timestamp:${hexBytesStr(data)}"
+  }
+
+  def hexBytesStr(bytes: Array[Byte]) = {
+    val prefix = if (bytes.length > 0) "0x" else ""
+    bytes map (_.toHexString) mkString(prefix, "0x", "")
+  }
 }

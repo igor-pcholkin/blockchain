@@ -23,4 +23,9 @@ class BlockTest extends FlatSpec with Matchers {
     val block = Block(0, "1234".getBytes, LocalDateTime.of(2018, 1, 24, 15, 0, 0), "Hi".getBytes)
     block.hash shouldBe SHA256.hash(block)
   }
+
+  "toString method" should "convert block to string" in {
+    val block = Block(0, "1234".getBytes, LocalDateTime.of(2018, 1, 24, 15, 0, 0), "Hi".getBytes)
+    block.toString shouldBe "0:0x310x320x330x34:2018-01-24T15:00:0x480x69"
+  }
 }
