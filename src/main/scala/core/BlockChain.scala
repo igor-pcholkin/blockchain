@@ -27,4 +27,15 @@ class BlockChain {
   }
 
   def getLatestBlock = chain.peekLast()
+
+  def serialize = {
+    val sb = new StringBuilder
+    val it = chain.iterator
+    while (it.hasNext) {
+      sb.append(it.next)
+      if (it.hasNext)
+        sb.append(",")
+    }
+    sb.toString.getBytes
+  }
 }

@@ -25,6 +25,11 @@ case class Block(index: Int, prevHash: Array[Byte], timestamp: LocalDateTime, da
 
   def hexBytesStr(bytes: Array[Byte]) = {
     val prefix = if (bytes.length > 0) "0x" else ""
-    bytes map (_.toHexString) mkString(prefix, "0x", "")
+    bytes map (byteToHex(_)) mkString
+  }
+
+  def byteToHex(byte: Byte) = {
+    val hexArray: Array[Char] = "0123456789ABCDEF".toCharArray
+    "0x" + hexArray((byte.toInt & 0xFF) >>> 4) + hexArray(byte & 0xF)
   }
 }
