@@ -4,6 +4,9 @@ import java.time.LocalDateTime
 
 import com.sun.net.httpserver.{HttpExchange, HttpHandler, HttpServer}
 import core.{Block, BlockChain}
+import user.User
+
+import scala.io.Source
 
 object Main extends App {
   val server = HttpServer.create()
@@ -14,7 +17,8 @@ object Main extends App {
   import java.net.InetSocketAddress
 
   server.bind(new InetSocketAddress(8765), 0)
-  val context = server.createContext("/dumpchain", new GetChainHandler)
+  server.createContext("/dumpchain", new GetChainHandler)
+  server.createContext("/postid", new PostIdHandler)
   server.start()
 
   import java.io.IOException
@@ -22,12 +26,38 @@ object Main extends App {
   class GetChainHandler extends HttpHandler {
     @throws[IOException]
     def handle(exchange: HttpExchange): Unit = {
-      val bytes = bc.serialize
-      exchange.sendResponseHeaders(200, bytes.length)
-      val os = exchange.getResponseBody
-      os.write(bytes)
-      os.close
+      sendBytesToHttpResponse(exchange, bc.serialize)
     }
   }
 
+  class PostIdHandler extends HttpHandler {
+    @throws[IOException]
+    def handle(exchange: HttpExchange): Unit = {
+      val response = parseUserFromHttpRequest(exchange) match {
+        case Some(user) =>
+          s"User: ${user.id}, key: ${user.keyPair}"
+        case None =>
+          "Invalid user, expected: <user id>:<keyPair>"
+      }
+      sendBytesToHttpResponse(exchange, response.getBytes)
+    }
+
+    def parseUserFromHttpRequest(exchange: HttpExchange) = {
+      if (exchange.getRequestMethod == "POST") {
+        val s = Source.fromInputStream(exchange.getRequestBody).getLines.mkString
+        val parts = s.split(":")
+        val userId = parts(0)
+        val key = parts(1)
+        Some(User(userId, key))
+      } else
+        None
+    }
+  }
+
+  def sendBytesToHttpResponse(exchange: HttpExchange, bytes: Array[Byte]) = {
+    exchange.sendResponseHeaders(200, bytes.length)
+    val os = exchange.getResponseBody
+    os.write(bytes)
+    os.close
+  }
 }
