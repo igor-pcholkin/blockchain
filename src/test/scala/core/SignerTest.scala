@@ -1,9 +1,9 @@
-import java.security.SecureRandom
+package core
 
-import core.Signer
+import keys.KeysGenerator
 import org.scalatest._
 
-class SignerTest extends FlatSpec with Matchers {
+class SignerTest extends FlatSpec with Matchers with KeysGenerator {
   "Signer" should "verify signature with corresponding public key" in {
     val privateKey = pair.getPrivate
     val publicKey = pair.getPublic
@@ -21,17 +21,11 @@ class SignerTest extends FlatSpec with Matchers {
   }
 
   import java.security.KeyPair
-  import java.security.KeyPairGenerator
-
-  val keyGen: KeyPairGenerator = KeyPairGenerator.getInstance("EC")
-  keyGen.initialize(256, new SecureRandom())
-  val pair: KeyPair = keyGen.generateKeyPair
+  val pair: KeyPair = generateKeyPair()
 
   println(s"Keys1: Private: ${pair.getPrivate}, public: ${pair.getPublic}")
 
-  val keyGen2: KeyPairGenerator = KeyPairGenerator.getInstance("EC")
-  keyGen2.initialize(256, new SecureRandom())
-  val pair2: KeyPair = keyGen.generateKeyPair
+  val pair2: KeyPair = generateKeyPair()
 
   println(s"Keys2: Private: ${pair2.getPrivate}, public: ${pair2.getPublic}")
 }

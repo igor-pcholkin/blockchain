@@ -2,7 +2,9 @@ package core
 
 import java.time.LocalDateTime
 
-case class Block(index: Int, prevHash: Array[Byte], timestamp: LocalDateTime, data: Array[Byte]) {
+import util.Convert
+
+case class Block(index: Int, prevHash: Array[Byte], timestamp: LocalDateTime, data: Array[Byte]) extends Convert {
   override def equals(other: Any) = {
     if (!other.isInstanceOf[Block])
       false
@@ -23,13 +25,4 @@ case class Block(index: Int, prevHash: Array[Byte], timestamp: LocalDateTime, da
     s"$index:${hexBytesStr(prevHash)}:$timestamp:${hexBytesStr(data)}"
   }
 
-  def hexBytesStr(bytes: Array[Byte]) = {
-    val prefix = if (bytes.length > 0) "0x" else ""
-    bytes map (byteToHex(_)) mkString
-  }
-
-  def byteToHex(byte: Byte) = {
-    val hexArray: Array[Char] = "0123456789ABCDEF".toCharArray
-    "0x" + hexArray((byte.toInt & 0xFF) >>> 4) + hexArray(byte & 0xF)
-  }
 }

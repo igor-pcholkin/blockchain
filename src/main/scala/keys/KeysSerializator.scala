@@ -3,7 +3,7 @@ package keys
 import java.security.spec.{PKCS8EncodedKeySpec, X509EncodedKeySpec}
 import java.security.{KeyFactory, PrivateKey, PublicKey}
 
-object Serialization {
+trait KeysSerializator {
   def serialize(privateKey: PrivateKey): Array[Byte] = privateKey.getEncoded
   def serialize(publicKey: PublicKey): Array[Byte] = publicKey.getEncoded
 
