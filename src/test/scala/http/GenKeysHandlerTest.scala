@@ -28,7 +28,7 @@ class GenKeysHandlerTest extends FlatSpec with org.scalatest.Matchers with Mocki
     verify(mockKeysFileOps, times(1)).writeKey(Matchers.eq("Riga/publicKey"), any[String])
     verify(mockBcHttpServer, times(1)).setKeys(any[KeyPair])
     verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange), Matchers.eq(201),
-      Matchers.eq("New keys have been created".getBytes))
+      Matchers.eq("New keys have been created"))
   }
 
   "GenKeysHandler" should "not create new key pair if it already exists" in {
@@ -45,7 +45,7 @@ class GenKeysHandlerTest extends FlatSpec with org.scalatest.Matchers with Mocki
     verify(mockKeysFileOps, never).writeKey(Matchers.eq("Riga/publicKey"), any[String])
     verify(mockBcHttpServer, never).setKeys(any[KeyPair])
     verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange), Matchers.eq(400),
-      Matchers.eq("Public or private key already exists, use overwrite=true to overwrite".getBytes))
+      Matchers.eq("Public or private key already exists, use overwrite=true to overwrite"))
   }
 
   "GenKeysHandler" should """create new key pair, store it in local file system and attach to running http node
@@ -66,7 +66,7 @@ class GenKeysHandlerTest extends FlatSpec with org.scalatest.Matchers with Mocki
     verify(mockKeysFileOps, times(1)).writeKey(Matchers.eq("Riga/publicKey"), any[String])
     verify(mockBcHttpServer, times(1)).setKeys(any[KeyPair])
     verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange), Matchers.eq(201),
-      Matchers.eq("New keys have been created".getBytes))
+      Matchers.eq("New keys have been created"))
   }
 
 }

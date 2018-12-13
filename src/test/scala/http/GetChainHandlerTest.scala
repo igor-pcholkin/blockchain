@@ -3,7 +3,7 @@ package http
 import com.sun.net.httpserver.HttpExchange
 import core.BlockChain
 import org.mockito.Matchers
-import org.mockito.Mockito.{times, verify, when}
+import org.mockito.Mockito.{times, verify}
 import org.scalatest.FlatSpec
 import org.scalatest.mockito.MockitoSugar
 
@@ -16,7 +16,7 @@ class GetChainHandlerTest extends FlatSpec with org.scalatest.Matchers with Mock
     val serialized = bc.serialize
     new GetChainHandler(mockBcHttpServer, bc).handle(mockExchange)
 
-    verify(mockBcHttpServer, times(1)).sendBytesToHttpResponse(Matchers.eq(mockExchange), Matchers.eq(serialized))
+    verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange), Matchers.eq(serialized))
 
   }
 }

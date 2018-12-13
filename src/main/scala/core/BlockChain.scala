@@ -36,6 +36,6 @@ class BlockChain {
       if (it.hasNext)
         sb.append(",")
     }
-    sb.toString.getBytes
+    sb.toString
   }
 }

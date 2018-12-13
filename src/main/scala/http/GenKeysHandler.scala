@@ -11,7 +11,7 @@ class GenKeysHandler(nodeName: String, keysFileOps: KeysFileOps, bcHttpServer: B
   def handle(exchange: HttpExchange): Unit = {
     if (exchange.getRequestMethod == "PUT") {
       if (bcHttpServer.nonEmptyKeys && exchange.getRequestURI().getQuery != "overwrite=true") {
-        bcHttpServer.sendHttpResponse(exchange, 400, "Public or private key already exists, use overwrite=true to overwrite".getBytes)
+        bcHttpServer.sendHttpResponse(exchange, 400, "Public or private key already exists, use overwrite=true to overwrite")
       } else {
         val keyPair = generateKeyPair()
         if (!keysFileOps.isKeysDirExists(nodeName)) {
@@ -20,10 +20,10 @@ class GenKeysHandler(nodeName: String, keysFileOps: KeysFileOps, bcHttpServer: B
         keysFileOps.writeKey(s"$nodeName/privateKey", hexBytesStr(serialize(keyPair.getPrivate)))
         keysFileOps.writeKey(s"$nodeName/publicKey", hexBytesStr(serialize(keyPair.getPublic)))
         bcHttpServer.setKeys(keyPair)
-        bcHttpServer.sendHttpResponse(exchange, 201, "New keys have been created".getBytes)
+        bcHttpServer.sendHttpResponse(exchange, 201, "New keys have been created")
       }
     } else {
-      bcHttpServer.sendHttpResponse(exchange, 400, "Invalid method, use PUT".getBytes)
+      bcHttpServer.sendHttpResponse(exchange, 400, "Invalid method, use PUT")
     }
   }
 }

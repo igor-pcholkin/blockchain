@@ -1,6 +1,7 @@
 package http
 
-import core.{Block, BlockChain}
+import core.{BlockChain}
+import ws.WSPeers
 
 object Main extends App {
   val nodeName: String = if (args.length == 0) {
@@ -12,6 +13,7 @@ object Main extends App {
   }
 
   val bc = new BlockChain
+  val wsPeers = new WSPeers
 
-  new BCHttpServer(bc).start(nodeName)
+  new BCHttpServer(bc, wsPeers).start(nodeName)
 }
