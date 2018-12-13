@@ -3,12 +3,10 @@ package http
 import java.net.InetSocketAddress
 import java.security.KeyPair
 
-import com.sun.net.httpserver.{HttpExchange, HttpHandler, HttpServer}
-import http.Main.bc
-import keys.{KeysGenerator, KeysSerializator}
-import util.Convert
+import com.sun.net.httpserver.{HttpExchange, HttpServer}
+import core.BlockChain
 
-class BCHttpServer {
+class BCHttpServer(bc: BlockChain) {
 
   var mayBeKeyPair: Option[KeyPair] = None
 
@@ -19,19 +17,10 @@ class BCHttpServer {
   def start(nodeName: String) = {
     val server = HttpServer.create()
     server.bind(new InetSocketAddress(8765), 0)
-    server.createContext("/dumpchain", new GetChainHandler)
+    server.createContext("/dumpchain", new GetChainHandler(this, bc))
     server.createContext("/genkeys", new GenKeysHandler(nodeName, new ProdKeysFileOps, this))
     server.createContext("/nodeinfo", new NodeInfoHandler(nodeName, this))
     server.start()
-  }
-
-  import java.io.IOException
-
-  class GetChainHandler extends HttpHandler {
-    @throws[IOException]
-    def handle(exchange: HttpExchange): Unit = {
-      sendBytesToHttpResponse(exchange, bc.serialize)
-    }
   }
 
   def sendBytesToHttpResponse(exchange: HttpExchange, bytes: Array[Byte]) = {

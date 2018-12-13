@@ -13,5 +13,5 @@ object Main extends App {
 
   val bc = new BlockChain
 
-  new BCHttpServer().start(nodeName)
+  new BCHttpServer(bc).start(nodeName)
 }
