@@ -4,10 +4,10 @@ import java.net.InetSocketAddress
 import java.security.KeyPair
 
 import com.sun.net.httpserver.{HttpExchange, HttpServer}
-import core.BlockChain
+import core.{BlockChain, Invoices}
 import ws.WSPeers
 
-class BCHttpServer(bc: BlockChain, wsPeers: WSPeers) {
+class BCHttpServer(bc: BlockChain, wsPeers: WSPeers, invoices: Invoices) {
 
   var mayBeKeyPair: Option[KeyPair] = None
 
@@ -21,7 +21,8 @@ class BCHttpServer(bc: BlockChain, wsPeers: WSPeers) {
     server.createContext("/dumpchain", new GetChainHandler(this, bc))
     server.createContext("/genkeys", new GenKeysHandler(nodeName, new ProdKeysFileOps, this))
     server.createContext("/nodeinfo", new NodeInfoHandler(nodeName, this, wsPeers))
-    server.createContext("/addwspeers", new AddPeersHandler(this, wsPeers))
+    server.createContext("/addwspeers", new AddSeedsHandler(this, wsPeers))
+    server.createContext("/addinvoice", new AddInvoiceHandler(nodeName, this, invoices))
     server.start()
   }
 

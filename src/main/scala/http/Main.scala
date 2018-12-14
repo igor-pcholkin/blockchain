@@ -1,6 +1,6 @@
 package http
 
-import core.{BlockChain}
+import core.{BlockChain, Invoices}
 import ws.WSPeers
 
 object Main extends App {
@@ -14,6 +14,7 @@ object Main extends App {
 
   val bc = new BlockChain
   val wsPeers = new WSPeers
+  val invoices = new Invoices
 
-  new BCHttpServer(bc, wsPeers).start(nodeName)
+  new BCHttpServer(bc, wsPeers, invoices).start(nodeName)
 }

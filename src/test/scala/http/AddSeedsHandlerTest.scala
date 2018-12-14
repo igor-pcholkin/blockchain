@@ -9,7 +9,7 @@ import org.scalatest.FlatSpec
 import org.scalatest.mockito.MockitoSugar
 import ws.WSPeers
 
-class AddPeersHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSugar {
+class AddSeedsHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSugar {
   "AddPeersHandler" should "add peers to blockchain" in {
     val mockBcHttpServer = mock[BCHttpServer]
     val mockExchange = mock[HttpExchange]
@@ -22,7 +22,7 @@ class AddPeersHandlerTest extends FlatSpec with org.scalatest.Matchers with Mock
     when(mockExchange.getRequestBody).thenReturn(is)
 
     val wsPeers = new WSPeers
-    new AddPeersHandler(mockBcHttpServer, wsPeers).handle(mockExchange)
+    new AddSeedsHandler(mockBcHttpServer, wsPeers).handle(mockExchange)
 
     wsPeers.peers.toArray shouldBe(Seq("blabla.com:6001", "lala.com:6002", "localhost:6001", "localhost:6002").toArray)
 

@@ -7,7 +7,7 @@ import ws.WSPeers
 
 import scala.io.Source
 
-class AddPeersHandler(bcHttpServer: BCHttpServer, wsPeers: WSPeers) extends HttpHandler {
+class AddSeedsHandler(bcHttpServer: BCHttpServer, wsPeers: WSPeers) extends HttpHandler {
   @throws[IOException]
   def handle(exchange: HttpExchange): Unit = {
     if (exchange.getRequestMethod == "PUT") {

@@ -1,3 +1,3 @@
 package user
 
-case class User(id: String, keyPair: String)
+case class User(publicKey: String, name: String)
