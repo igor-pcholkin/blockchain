@@ -24,8 +24,8 @@ class GenKeysHandlerTest extends FlatSpec with org.scalatest.Matchers with Mocki
 
     verify(mockKeysFileOps, times(1)).isKeysDirExists(any[String])
     verify(mockKeysFileOps, times(1)).createKeysDir(any[String])
-    verify(mockKeysFileOps, times(1)).writeKey(Matchers.eq("Riga/privateKey"), any[String])
-    verify(mockKeysFileOps, times(1)).writeKey(Matchers.eq("Riga/publicKey"), any[String])
+    verify(mockKeysFileOps, times(1)).writeKey(Matchers.eq("Riga/privateKey"), any[Array[Byte]])
+    verify(mockKeysFileOps, times(1)).writeKey(Matchers.eq("Riga/publicKey"), any[Array[Byte]])
     verify(mockBcHttpServer, times(1)).setKeys(any[KeyPair])
     verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange), Matchers.eq(201),
       Matchers.eq("New keys have been created"))
@@ -41,8 +41,8 @@ class GenKeysHandlerTest extends FlatSpec with org.scalatest.Matchers with Mocki
 
     new GenKeysHandler("Riga", mockKeysFileOps, mockBcHttpServer).handle(mockExchange)
 
-    verify(mockKeysFileOps, never).writeKey(Matchers.eq("Riga/privateKey"), any[String])
-    verify(mockKeysFileOps, never).writeKey(Matchers.eq("Riga/publicKey"), any[String])
+    verify(mockKeysFileOps, never).writeKey(Matchers.eq("Riga/privateKey"), any[Array[Byte]])
+    verify(mockKeysFileOps, never).writeKey(Matchers.eq("Riga/publicKey"), any[Array[Byte]])
     verify(mockBcHttpServer, never).setKeys(any[KeyPair])
     verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange), Matchers.eq(400),
       Matchers.eq("Public or private key already exists, use overwrite=true to overwrite"))
@@ -62,8 +62,8 @@ class GenKeysHandlerTest extends FlatSpec with org.scalatest.Matchers with Mocki
 
     verify(mockKeysFileOps, times(1)).isKeysDirExists(any[String])
     verify(mockKeysFileOps, times(1)).createKeysDir(any[String])
-    verify(mockKeysFileOps, times(1)).writeKey(Matchers.eq("Riga/privateKey"), any[String])
-    verify(mockKeysFileOps, times(1)).writeKey(Matchers.eq("Riga/publicKey"), any[String])
+    verify(mockKeysFileOps, times(1)).writeKey(Matchers.eq("Riga/privateKey"), any[Array[Byte]])
+    verify(mockKeysFileOps, times(1)).writeKey(Matchers.eq("Riga/publicKey"), any[Array[Byte]])
     verify(mockBcHttpServer, times(1)).setKeys(any[KeyPair])
     verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange), Matchers.eq(201),
       Matchers.eq("New keys have been created"))

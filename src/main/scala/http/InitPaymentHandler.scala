@@ -5,11 +5,11 @@ import java.time.LocalDateTime
 import java.util.Currency
 
 import com.sun.net.httpserver.{HttpExchange, HttpHandler}
-import core.{Invoice, Invoices, Money}
+import core.{InitPayment, InitPayments, Money, Signer}
 
 import scala.io.Source
 
-class AddInvoiceHandler(nodeName: String, bcHttpServer: BCHttpServer, invoices: Invoices) extends HttpHandler {
+class InitPaymentHandler(nodeName: String, bcHttpServer: BCHttpServer, initPayments: InitPayments) extends HttpHandler {
   @throws[IOException]
   def handle(exchange: HttpExchange): Unit = {
     if (exchange.getRequestMethod == "POST") {
@@ -38,9 +38,10 @@ class AddInvoiceHandler(nodeName: String, bcHttpServer: BCHttpServer, invoices: 
       checkNonEmpty(amount, "Amount", exchange)
       if (from.nonEmpty && to.nonEmpty && currencyCode.nonEmpty && amount.nonEmpty) {
         val asset = Money(Currency.getInstance(currencyCode), (BigDecimal(amount) * 100).toLong)
-        val invoice = Invoice(nodeName, from, to, asset, LocalDateTime.now )
-        invoices.add(invoice)
-        bcHttpServer.sendHttpResponse(exchange, 201, "New invoice has been added.")
+        val notSigned = InitPayment(nodeName, from, to, asset, LocalDateTime.now )
+        val initPaymentSigned = notSigned.copy( fromSignature = Some(Signer.sign(nodeName, notSigned)))
+        initPayments.add(initPaymentSigned)
+        bcHttpServer.sendHttpResponse(exchange, 201, "New Payment has been initiated.")
       }
     } else {
       bcHttpServer.sendHttpResponse(exchange, 400, "Invalid method, use POST")

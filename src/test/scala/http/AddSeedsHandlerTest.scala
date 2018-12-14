@@ -27,7 +27,7 @@ class AddSeedsHandlerTest extends FlatSpec with org.scalatest.Matchers with Mock
     wsPeers.peers.toArray shouldBe(Seq("blabla.com:6001", "lala.com:6002", "localhost:6001", "localhost:6002").toArray)
 
     verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange), Matchers.eq(201),
-      Matchers.eq("New WS peers have been added."))
+      Matchers.eq("New WS seeds have been added."))
 
   }
 }

@@ -17,8 +17,8 @@ class GenKeysHandler(nodeName: String, keysFileOps: KeysFileOps, bcHttpServer: B
         if (!keysFileOps.isKeysDirExists(nodeName)) {
           keysFileOps.createKeysDir(nodeName)
         }
-        keysFileOps.writeKey(s"$nodeName/privateKey", hexBytesStr(serialize(keyPair.getPrivate)))
-        keysFileOps.writeKey(s"$nodeName/publicKey", hexBytesStr(serialize(keyPair.getPublic)))
+        keysFileOps.writeKey(s"$nodeName/privateKey", serialize(keyPair.getPrivate))
+        keysFileOps.writeKey(s"$nodeName/publicKey", serialize(keyPair.getPublic))
         bcHttpServer.setKeys(keyPair)
         bcHttpServer.sendHttpResponse(exchange, 201, "New keys have been created")
       }
@@ -29,16 +29,16 @@ class GenKeysHandler(nodeName: String, keysFileOps: KeysFileOps, bcHttpServer: B
 }
 
 trait KeysFileOps {
-  def writeKey(path: String, key: String)
+  def writeKey(path: String, key: Array[Byte])
   def isKeysDirExists(nodeName: String): Boolean
   def createKeysDir(nodeName: String): Unit
 }
 
 class ProdKeysFileOps extends KeysFileOps {
-  override def writeKey(path: String, key: String) = {
-    val writer = new PrintWriter(new FileOutputStream(path))
-    writer.println(key)
-    writer.close()
+  override def writeKey(path: String, key: Array[Byte]) = {
+    val fos = new FileOutputStream(path)
+    fos.write(key)
+    fos.close()
   }
 
   override def isKeysDirExists(nodeName: String): Boolean = {

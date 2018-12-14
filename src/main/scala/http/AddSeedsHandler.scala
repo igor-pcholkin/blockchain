@@ -15,7 +15,7 @@ class AddSeedsHandler(bcHttpServer: BCHttpServer, wsPeers: WSPeers) extends Http
       val peers = s.getLines.mkString(",").split(",").map(_.trim)
       wsPeers.addAll(peers)
       s.close()
-      bcHttpServer.sendHttpResponse(exchange, 201, "New WS peers have been added.")
+      bcHttpServer.sendHttpResponse(exchange, 201, "New WS seeds have been added.")
     } else {
       bcHttpServer.sendHttpResponse(exchange, 400, "Invalid method, use PUT")
     }
