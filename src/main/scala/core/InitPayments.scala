@@ -5,14 +5,14 @@ import java.util.concurrent.ConcurrentLinkedQueue
 class InitPayments {
   val initPayments = new ConcurrentLinkedQueue[InitPayment]()
 
-  def add(invoice: InitPayment) = {
-    if (!initPayments.contains(invoice)) {
-      initPayments.add(invoice)
+  def add(initPayment: InitPayment) = {
+    if (!initPayments.contains(initPayment)) {
+      initPayments.add(initPayment)
     }
   }
 
-  def addAll(invoices: Seq[InitPayment]) = {
-    invoices foreach (add(_))
+  def addAll(initPayments: Seq[InitPayment]) = {
+    initPayments foreach (add(_))
   }
 
 }

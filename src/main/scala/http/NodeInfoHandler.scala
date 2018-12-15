@@ -5,9 +5,9 @@ import java.io.IOException
 import com.sun.net.httpserver.{HttpExchange, HttpHandler}
 import keys.{KeysGenerator}
 import util.Convert
-import ws.WSPeers
+import peers.PeerAccess
 
-class NodeInfoHandler(nodeName: String, bcHttpServer: BCHttpServer, wsPeers: WSPeers) extends HttpHandler with KeysGenerator with Convert {
+class NodeInfoHandler(nodeName: String, bcHttpServer: BCHttpServer, peerAccess: PeerAccess) extends HttpHandler with KeysGenerator with Convert {
   @throws[IOException]
   def handle(exchange: HttpExchange): Unit = {
     val publicKey = bcHttpServer.getKeys match {
@@ -16,7 +16,7 @@ class NodeInfoHandler(nodeName: String, bcHttpServer: BCHttpServer, wsPeers: WSP
     }
     val response = s"""Node name: $nodeName
                       |Public key: ${publicKey}
-                      |WebSocket peers: ${wsPeers.peers}""".stripMargin
+                      |WebSocket peers: ${peerAccess.peers}""".stripMargin
     bcHttpServer.sendHttpResponse(exchange, response)
   }
 }

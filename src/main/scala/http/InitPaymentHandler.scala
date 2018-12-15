@@ -7,10 +7,12 @@ import java.util.Currency
 import com.sun.net.httpserver.{HttpExchange, HttpHandler}
 import core.{InitPayment, InitPayments, Money, Signer}
 import keys.KeysFileOps
+import peers.PeerAccess
 
 import scala.io.Source
 
-class InitPaymentHandler(nodeName: String, bcHttpServer: BCHttpServer, initPayments: InitPayments, val keysFileOps: KeysFileOps) extends HttpHandler {
+class InitPaymentHandler(nodeName: String, bcHttpServer: BCHttpServer, initPayments: InitPayments, val keysFileOps: KeysFileOps,
+                         peerAccess: PeerAccess) extends HttpHandler {
   @throws[IOException]
   def handle(exchange: HttpExchange): Unit = {
     if (exchange.getRequestMethod == "POST") {
@@ -43,6 +45,7 @@ class InitPaymentHandler(nodeName: String, bcHttpServer: BCHttpServer, initPayme
         val signer = new Signer(keysFileOps)
         val initPaymentSigned = notSigned.copy( fromSignature = Some(signer.sign(nodeName, notSigned)))
         initPayments.add(initPaymentSigned)
+        peerAccess.sendMsg(initPaymentSigned)
         bcHttpServer.sendHttpResponse(exchange, 201, "New Payment has been initiated.")
       }
     } else {

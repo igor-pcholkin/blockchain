@@ -6,17 +6,17 @@ import org.mockito.Matchers
 import org.mockito.Mockito._
 import org.scalatest.FlatSpec
 import org.scalatest.mockito.MockitoSugar
-import ws.WSPeers
+import peers.PeerAccess
 
 class NodeInfoHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSugar with KeysGenerator {
   "NodeInfoHandler" should "respond with rudimentary node info" in {
     val mockExchange = mock[HttpExchange]
     val mockBcHttpServer = mock[BCHttpServer]
-    val wsPeers = new WSPeers
+    val peerAccess = PeerAccess()
 
     when(mockBcHttpServer.getKeys).thenReturn(None)
 
-    new NodeInfoHandler("Riga", mockBcHttpServer, wsPeers).handle(mockExchange)
+    new NodeInfoHandler("Riga", mockBcHttpServer, peerAccess).handle(mockExchange)
 
     verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange),
       Matchers.eq(s"""Node name: Riga
@@ -27,13 +27,13 @@ class NodeInfoHandlerTest extends FlatSpec with org.scalatest.Matchers with Mock
   "NodeInfoHandler" should "respond with enhanced node info" in {
     val mockExchange = mock[HttpExchange]
     val mockBcHttpServer = mock[BCHttpServer]
-    val wsPeers = new WSPeers
-    wsPeers.add("localhost:9001,localhost:9002")
+    val peerAccess = PeerAccess()
+    peerAccess.add("localhost:9001,localhost:9002")
 
     val keysPair = generateKeyPair()
     when(mockBcHttpServer.getKeys).thenReturn(Some(keysPair))
 
-    new NodeInfoHandler("Riga", mockBcHttpServer, wsPeers).handle(mockExchange)
+    new NodeInfoHandler("Riga", mockBcHttpServer, peerAccess).handle(mockExchange)
 
     verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange),
       Matchers.eq(s"""Node name: Riga

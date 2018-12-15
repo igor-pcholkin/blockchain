@@ -7,7 +7,7 @@ import org.mockito.Matchers
 import org.mockito.Mockito.{times, verify, when}
 import org.scalatest.FlatSpec
 import org.scalatest.mockito.MockitoSugar
-import ws.WSPeers
+import peers.PeerAccess
 
 class AddSeedsHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSugar {
   "AddPeersHandler" should "add peers to blockchain" in {
@@ -21,10 +21,10 @@ class AddSeedsHandlerTest extends FlatSpec with org.scalatest.Matchers with Mock
     when(mockExchange.getRequestMethod).thenReturn("PUT")
     when(mockExchange.getRequestBody).thenReturn(is)
 
-    val wsPeers = new WSPeers
-    new AddSeedsHandler(mockBcHttpServer, wsPeers).handle(mockExchange)
+    val peerAccess = PeerAccess()
+    new AddSeedsHandler(mockBcHttpServer, peerAccess).handle(mockExchange)
 
-    wsPeers.peers.toArray shouldBe(Seq("blabla.com:6001", "lala.com:6002", "localhost:6001", "localhost:6002").toArray)
+    peerAccess.peers.toArray shouldBe(Seq("blabla.com:6001", "lala.com:6002", "localhost:6001", "localhost:6002").toArray)
 
     verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange), Matchers.eq(201),
       Matchers.eq("New WS seeds have been added."))

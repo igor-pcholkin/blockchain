@@ -1,20 +1,20 @@
 package http
 
 import core.{BlockChain, InitPayments}
-import ws.WSPeers
+import peers.{HttpPeerTransport, PeerAccess}
 
 object Main extends App {
-  val nodeName: String = if (args.length == 0) {
-    System.err.println("Node name should be provided")
+  val (nodeName, port) = if (args.length < 2) {
+    System.err.println("Node name and port should be provided")
     System.exit(1)
-    ""
+    ("", 2)
   } else {
-    args(0)
+    (args(0), args(1).toInt)
   }
 
   val bc = new BlockChain
-  val wsPeers = new WSPeers
+  val peerAccess = new PeerAccess(new HttpPeerTransport)
   val initPayments = new InitPayments
 
-  new BCHttpServer(bc, wsPeers, initPayments).start(nodeName)
+  new BCHttpServer(port, bc, peerAccess, initPayments).start(nodeName)
 }

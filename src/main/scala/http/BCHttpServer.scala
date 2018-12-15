@@ -6,9 +6,9 @@ import java.security.KeyPair
 import com.sun.net.httpserver.{HttpExchange, HttpServer}
 import core.{BlockChain, InitPayments}
 import keys.ProdKeysFileOps
-import ws.WSPeers
+import peers.PeerAccess
 
-class BCHttpServer(bc: BlockChain, wsPeers: WSPeers, invoices: InitPayments) {
+class BCHttpServer(port: Int, bc: BlockChain, peerAccess: PeerAccess, initPayments: InitPayments) {
 
   var mayBeKeyPair: Option[KeyPair] = None
 
@@ -18,12 +18,13 @@ class BCHttpServer(bc: BlockChain, wsPeers: WSPeers, invoices: InitPayments) {
 
   def start(nodeName: String) = {
     val server = HttpServer.create()
-    server.bind(new InetSocketAddress(8765), 0)
+    server.bind(new InetSocketAddress(port), 0)
     server.createContext("/dumpchain", new GetChainHandler(this, bc))
     server.createContext("/genkeys", new GenKeysHandler(nodeName, ProdKeysFileOps, this))
-    server.createContext("/nodeinfo", new NodeInfoHandler(nodeName, this, wsPeers))
-    server.createContext("/addwspeers", new AddSeedsHandler(this, wsPeers))
-    server.createContext("/initpayment", new InitPaymentHandler(nodeName, this, invoices, ProdKeysFileOps))
+    server.createContext("/nodeinfo", new NodeInfoHandler(nodeName, this, peerAccess))
+    server.createContext("/addwspeers", new AddSeedsHandler(this, peerAccess))
+    server.createContext("/initpayment", new InitPaymentHandler(nodeName, this, initPayments, ProdKeysFileOps, peerAccess))
+    server.createContext("/msgHandler", new MsgHandler(this, initPayments))
     server.start()
   }
 

@@ -3,11 +3,11 @@ package http
 import java.io.IOException
 
 import com.sun.net.httpserver.{HttpExchange, HttpHandler}
-import ws.WSPeers
+import peers.PeerAccess
 
 import scala.io.Source
 
-class AddSeedsHandler(bcHttpServer: BCHttpServer, wsPeers: WSPeers) extends HttpHandler {
+class AddSeedsHandler(bcHttpServer: BCHttpServer, wsPeers: PeerAccess) extends HttpHandler {
   @throws[IOException]
   def handle(exchange: HttpExchange): Unit = {
     if (exchange.getRequestMethod == "PUT") {

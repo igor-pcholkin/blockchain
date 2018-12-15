@@ -11,6 +11,7 @@ import org.mockito.Matchers
 import org.mockito.Mockito.{times, verify, when}
 import org.scalatest.FlatSpec
 import org.scalatest.mockito.MockitoSugar
+import peers.{PeerAccess, PeerTransport}
 import util.DateTimeUtil
 
 class InitPaymentHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSugar with DateTimeUtil with KeysGenerator with KeysSerializator {
@@ -19,6 +20,8 @@ class InitPaymentHandlerTest extends FlatSpec with org.scalatest.Matchers with M
   "InitPaymentHandler" should "initialize new payment to node and send it to another peers" in {
     val mockBcHttpServer = mock[BCHttpServer]
     val mockExchange = mock[HttpExchange]
+    val peerAccess = new PeerAccess(mock[PeerTransport])
+    peerAccess.addAll(Seq("blabla.com", "another.com"))
     val initPayments = new InitPayments
 
     val initPayment =
@@ -36,7 +39,7 @@ class InitPaymentHandlerTest extends FlatSpec with org.scalatest.Matchers with M
     val keyPair = generateKeyPair()
     when(keysFileOps.readKeyFromFile("Riga/privateKey")).thenReturn(serialize(keyPair.getPrivate))
     when(keysFileOps.readKeyFromFile("Riga/publicKey")).thenReturn(serialize(keyPair.getPublic))
-    new InitPaymentHandler(nodeName, mockBcHttpServer, initPayments, keysFileOps).handle(mockExchange)
+    new InitPaymentHandler(nodeName, mockBcHttpServer, initPayments, keysFileOps, peerAccess).handle(mockExchange)
 
     initPayments.initPayments.size shouldBe 1
     val createdInitPayment = initPayments.initPayments.peek()
@@ -49,5 +52,7 @@ class InitPaymentHandlerTest extends FlatSpec with org.scalatest.Matchers with M
 
     verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange), Matchers.eq(201),
       Matchers.eq("New Payment has been initiated."))
+    verify(peerAccess.peerTransport, times(1)).sendMsg(Matchers.eq(createdInitPayment), Matchers.eq("blabla.com"))
+    verify(peerAccess.peerTransport, times(1)).sendMsg(Matchers.eq(createdInitPayment), Matchers.eq("another.com"))
   }
 }
