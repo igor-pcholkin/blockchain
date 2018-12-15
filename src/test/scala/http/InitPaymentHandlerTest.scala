@@ -52,7 +52,6 @@ class InitPaymentHandlerTest extends FlatSpec with org.scalatest.Matchers with M
 
     verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange), Matchers.eq(201),
       Matchers.eq("New Payment has been initiated."))
-    verify(peerAccess.peerTransport, times(1)).sendMsg(Matchers.eq(createdInitPayment), Matchers.eq("blabla.com"))
-    verify(peerAccess.peerTransport, times(1)).sendMsg(Matchers.eq(createdInitPayment), Matchers.eq("another.com"))
+    verify(peerAccess.peerTransport, times(1)).sendMsg(Matchers.eq(createdInitPayment), Matchers.eq(Seq("blabla.com", "another.com")))
   }
 }

@@ -11,18 +11,23 @@ import util.FutureTimeout._
 import scala.concurrent.Future
 import scala.io.Source
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.collection.JavaConverters._
 
 case class Result(status: Int, replyMsg: String)
 
 abstract class PeerTransport {
-  def sendMsg(msg: Message, peer: String): Future[Result]
+  def sendMsg(msg: Message, peers: Seq[String]): Future[Result]
 }
 
 class HttpPeerTransport extends PeerTransport {
-  override def sendMsg(msg: Message, peer: String) = {
-    Future {
-      postRequest(msg.toString, peer)
-    } withTimeout
+  override def sendMsg(msg: Message, peers: Seq[String]) = {
+    val f = Future.sequence(
+      peers map { peer =>
+        Future {
+          postRequest(msg.toString, peer)
+        }
+      }).withTimeout
+    Future.successful(Result(200, "Msg sent to all peers."))
   }
 
   def postRequest(msg: String, peer: String) = {
@@ -60,9 +65,6 @@ class PeerAccess(val peerTransport: PeerTransport) {
   }
 
   def sendMsg(msg: Message): Future[Result] = {
-    peers.forEach { peer =>
-      peerTransport.sendMsg(msg, peer)
-    }
-    Future.successful(Result(200, "Msg sent to all peers."))
+    peerTransport.sendMsg(msg, peers.asScala.toSeq)
   }
 }
