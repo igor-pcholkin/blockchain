@@ -1,12 +1,11 @@
 package keys
 
-import java.io.{File, FileInputStream}
 import java.security.spec.{PKCS8EncodedKeySpec, X509EncodedKeySpec}
 import java.security.{KeyFactory, PrivateKey, PublicKey}
 
-import scala.io.Source
-
 trait KeysSerializator {
+  val keysFileOps: KeysFileOps
+
   def serialize(privateKey: PrivateKey): Array[Byte] = privateKey.getEncoded
   def serialize(publicKey: PublicKey): Array[Byte] = publicKey.getEncoded
 
@@ -24,25 +23,20 @@ trait KeysSerializator {
   }
 
   def readPrivateKey(userName: String) = {
-    val fileName = s"$userName/privateKey"
-    val fis = new FileInputStream(fileName)
-    val size = new File(fileName).length()
-    val buffer = Array.ofDim[Byte](size.toInt)
-    fis.read(buffer)
-    val key = deserializePrivate(buffer)
-    fis.close()
-    key
+    val buffer = keysFileOps.readKeyFromFile(s"$userName/privateKey")
+    deserializePrivate(buffer)
   }
 
   def readPublicKey(userName: String) = {
-    val fileName = s"$userName/publicKey"
-    val fis = new FileInputStream(fileName)
-    val size = new File(fileName).length()
-    val buffer = Array.ofDim[Byte](size.toInt)
-    fis.read(buffer)
-    val key = deserializePublic(buffer)
-    fis.close()
-    key
+    val buffer = keysFileOps.readKeyFromFile(s"$userName/publicKey")
+    deserializePublic(buffer)
   }
 
+  def writeKey(userName: String, privateKey: PrivateKey) = {
+    keysFileOps.writeKey(s"$userName/privateKey", serialize(privateKey))
+  }
+
+  def writeKey(userName: String, publicKey: PublicKey) = {
+    keysFileOps.writeKey(s"$userName/publicKey", serialize(publicKey))
+  }
 }

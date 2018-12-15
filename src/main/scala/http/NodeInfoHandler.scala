@@ -3,11 +3,11 @@ package http
 import java.io.IOException
 
 import com.sun.net.httpserver.{HttpExchange, HttpHandler}
-import keys.{KeysGenerator, KeysSerializator}
+import keys.{KeysGenerator}
 import util.Convert
 import ws.WSPeers
 
-class NodeInfoHandler(nodeName: String, bcHttpServer: BCHttpServer, wsPeers: WSPeers) extends HttpHandler with KeysGenerator with KeysSerializator with Convert {
+class NodeInfoHandler(nodeName: String, bcHttpServer: BCHttpServer, wsPeers: WSPeers) extends HttpHandler with KeysGenerator with Convert {
   @throws[IOException]
   def handle(exchange: HttpExchange): Unit = {
     val publicKey = bcHttpServer.getKeys match {

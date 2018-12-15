@@ -1,9 +1,10 @@
 package core
 
-import keys.KeysGenerator
+import keys.{KeysFileOps, KeysGenerator}
 import org.scalatest._
+import org.scalatest.mockito.MockitoSugar
 
-class SignerTest extends FlatSpec with Matchers with KeysGenerator {
+class SignerTest extends FlatSpec with Matchers with KeysGenerator with MockitoSugar {
   "Signer" should "verify signature with corresponding public key" in {
     val privateKey = pair.getPrivate
     val publicKey = pair.getPublic

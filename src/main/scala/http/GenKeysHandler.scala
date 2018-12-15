@@ -1,12 +1,12 @@
 package http
 
-import java.io.{File, FileOutputStream, IOException, PrintWriter}
+import java.io.{IOException}
 
 import com.sun.net.httpserver.{HttpExchange, HttpHandler}
-import keys.{KeysGenerator, KeysSerializator}
+import keys.{KeysFileOps, KeysGenerator, KeysSerializator}
 import util.Convert
 
-class GenKeysHandler(nodeName: String, keysFileOps: KeysFileOps, bcHttpServer: BCHttpServer) extends HttpHandler with KeysGenerator with KeysSerializator with Convert{
+class GenKeysHandler(nodeName: String, val keysFileOps: KeysFileOps, bcHttpServer: BCHttpServer) extends HttpHandler with KeysGenerator with KeysSerializator with Convert{
   @throws[IOException]
   def handle(exchange: HttpExchange): Unit = {
     if (exchange.getRequestMethod == "PUT") {
@@ -17,37 +17,14 @@ class GenKeysHandler(nodeName: String, keysFileOps: KeysFileOps, bcHttpServer: B
         if (!keysFileOps.isKeysDirExists(nodeName)) {
           keysFileOps.createKeysDir(nodeName)
         }
-        keysFileOps.writeKey(s"$nodeName/privateKey", serialize(keyPair.getPrivate))
-        keysFileOps.writeKey(s"$nodeName/publicKey", serialize(keyPair.getPublic))
+        writeKey(nodeName, keyPair.getPrivate)
+        writeKey(nodeName, keyPair.getPublic)
         bcHttpServer.setKeys(keyPair)
         bcHttpServer.sendHttpResponse(exchange, 201, "New keys have been created")
       }
     } else {
       bcHttpServer.sendHttpResponse(exchange, 400, "Invalid method, use PUT")
     }
-  }
-}
-
-trait KeysFileOps {
-  def writeKey(path: String, key: Array[Byte])
-  def isKeysDirExists(nodeName: String): Boolean
-  def createKeysDir(nodeName: String): Unit
-}
-
-class ProdKeysFileOps extends KeysFileOps {
-  override def writeKey(path: String, key: Array[Byte]) = {
-    val fos = new FileOutputStream(path)
-    fos.write(key)
-    fos.close()
-  }
-
-  override def isKeysDirExists(nodeName: String): Boolean = {
-    val keyDir = new File(nodeName)
-    keyDir.exists && keyDir.isDirectory
-  }
-
-  override def createKeysDir(nodeName: String) = {
-    new File(nodeName).mkdirs()
   }
 }
 

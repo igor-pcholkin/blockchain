@@ -4,6 +4,7 @@ import java.net.URI
 import java.security.KeyPair
 
 import com.sun.net.httpserver.HttpExchange
+import keys.KeysFileOps
 import org.scalatest.mockito.MockitoSugar
 import org.mockito.Mockito._
 import org.mockito.Matchers

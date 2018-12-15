@@ -2,9 +2,10 @@ package keys
 
 import java.security.{KeyPair, KeyPairGenerator, SecureRandom}
 
+import org.scalatest.mock.MockitoSugar
 import org.scalatest.{FlatSpec, Matchers}
 
-class KeysSerializatorTest extends FlatSpec with Matchers with KeysSerializator {
+class KeysSerializatorTest extends FlatSpec with Matchers with KeysSerializator with MockitoSugar {
   "private key serialization/deserialization" should "work correctly" in {
     val keyGen: KeyPairGenerator = KeyPairGenerator.getInstance("EC")
     keyGen.initialize(256, new SecureRandom())
@@ -20,4 +21,6 @@ class KeysSerializatorTest extends FlatSpec with Matchers with KeysSerializator 
     val publicKeyDeserialized = deserializePublic(publicKeySerialized)
     publicKey shouldBe publicKeyDeserialized
   }
+
+  val keysFileOps = mock[KeysFileOps]
 }

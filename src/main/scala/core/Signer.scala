@@ -2,9 +2,9 @@ package core
 
 import java.security.{PrivateKey, PublicKey, Signature}
 
-import keys.KeysSerializator
+import keys.{KeysFileOps, KeysSerializator}
 
-object Signer extends KeysSerializator {
+object Signer {
   val algorithm = "SHA1withECDSA"
 
   def sign(privateKey: PrivateKey, data: Array[Byte]): Array[Byte] = {
@@ -21,14 +21,16 @@ object Signer extends KeysSerializator {
     javaSecSignature.update(originalData)
     javaSecSignature.verify(signature)
   }
+}
 
+class Signer(val keysFileOps: KeysFileOps) extends KeysSerializator {
   def sign(userName: String, initPayment: InitPayment): Array[Byte] = {
     val privateKey = readPrivateKey(userName)
-    sign(privateKey, initPayment.dataToSign)
+    Signer.sign(privateKey, initPayment.dataToSign)
   }
 
   def verify(userName: String, initPayment: InitPayment, signature: Array[Byte]): Boolean = {
     val publicKey = readPublicKey(userName)
-    verify(signature, initPayment.dataToSign, publicKey)
+    Signer.verify(signature, initPayment.dataToSign, publicKey)
   }
 }
