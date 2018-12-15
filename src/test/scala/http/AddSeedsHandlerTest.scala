@@ -10,13 +10,13 @@ import org.scalatest.mockito.MockitoSugar
 import peers.PeerAccess
 
 class AddSeedsHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSugar {
-  "AddPeersHandler" should "add peers to blockchain" in {
+  "AddSeedsHandler" should "add seeds to blockchain" in {
     val mockBcHttpServer = mock[BCHttpServer]
     val mockExchange = mock[HttpExchange]
 
-    val peers = """blabla.com:6001, lala.com:6002, localhost:6001
+    val seeds = """blabla.com:6001, lala.com:6002, localhost:6001
       |localhost:6002,lala.com:6002""".stripMargin
-    val is = new ByteArrayInputStream(peers.getBytes)
+    val is = new ByteArrayInputStream(seeds.getBytes)
 
     when(mockExchange.getRequestMethod).thenReturn("PUT")
     when(mockExchange.getRequestBody).thenReturn(is)
@@ -27,7 +27,7 @@ class AddSeedsHandlerTest extends FlatSpec with org.scalatest.Matchers with Mock
     peerAccess.peers.toArray shouldBe(Seq("blabla.com:6001", "lala.com:6002", "localhost:6001", "localhost:6002").toArray)
 
     verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange), Matchers.eq(201),
-      Matchers.eq("New WS seeds have been added."))
+      Matchers.eq("New seeds have been added."))
 
   }
 }
