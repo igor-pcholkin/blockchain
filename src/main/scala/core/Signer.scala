@@ -24,12 +24,12 @@ object Signer {
 }
 
 class Signer(val keysFileOps: KeysFileOps) extends KeysSerializator {
-  def sign(userName: String, initPayment: InitPayment): Array[Byte] = {
+  def sign(userName: String, initPayment: InitPaymentMessage): Array[Byte] = {
     val privateKey = readPrivateKey(userName)
     Signer.sign(privateKey, initPayment.dataToSign)
   }
 
-  def verify(userName: String, initPayment: InitPayment, signature: Array[Byte]): Boolean = {
+  def verify(userName: String, initPayment: InitPaymentMessage, signature: Array[Byte]): Boolean = {
     val publicKey = readPublicKey(userName)
     Signer.verify(signature, initPayment.dataToSign, publicKey)
   }

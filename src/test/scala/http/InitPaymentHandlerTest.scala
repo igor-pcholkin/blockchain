@@ -25,10 +25,12 @@ class InitPaymentHandlerTest extends FlatSpec with org.scalatest.Matchers with M
     val initPayments = new InitPayments
 
     val initPayment =
-      """From: A
-        |To: B
-        |Currency: EUR
-        |Amount: 20.00
+      """{
+        | "from": "A",
+        | "to": "B",
+        | "currency": "EUR",
+        | "amount": 20.25
+        | }
       """.stripMargin
     val is = new ByteArrayInputStream(initPayment.getBytes)
 
@@ -46,7 +48,7 @@ class InitPaymentHandlerTest extends FlatSpec with org.scalatest.Matchers with M
     createdInitPayment.createdBy shouldBe "Riga"
     createdInitPayment.from shouldBe "A"
     createdInitPayment.to shouldBe "B"
-    createdInitPayment.asset shouldBe Money(Currency.getInstance("EUR"), 2000)
+    createdInitPayment.money shouldBe Money("EUR", 2025)
     timeStampsAreWithin(createdInitPayment.timestamp, LocalDateTime.now, 1000) shouldBe true
     new Signer(keysFileOps).verify(nodeName, createdInitPayment, createdInitPayment.fromSignature.getOrElse(Array[Byte]())) shouldBe true
 

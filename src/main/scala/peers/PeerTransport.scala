@@ -7,6 +7,7 @@ import org.apache.http.impl.client.HttpClients
 
 import scala.concurrent.Future
 import util.FutureTimeout._
+
 import scala.io.Source
 import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -19,7 +20,7 @@ class HttpPeerTransport extends PeerTransport {
     val f = Future.sequence(
       peers map { peer =>
         Future {
-          postRequest(msg.toString, peer)
+          postRequest(msg.serialize, peer)
         }
       }).withTimeout
     Future.successful(Result(200, "Msg sent to all peers."))
