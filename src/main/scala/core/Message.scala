@@ -20,6 +20,6 @@ case class InitPaymentMessage(createdBy: String, from: String, to: String, money
                               fromSignature: Option[Array[Byte]] = None) extends Message {
   def dataToSign = (createdBy + from + to + money + timestamp).getBytes
 
-  def serialize: String = this.asJson.toString
+  def serialize: String = this.asJson.noSpaces
 
 }
