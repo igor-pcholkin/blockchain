@@ -19,9 +19,9 @@ class InitPaymentMessageTest extends FlatSpec with Matchers with MockitoSugar wi
     val notSignedMessage = InitPaymentMessage("Igor", "Igor", "John", asset, LocalDateTime.now )
 
     val signer = new Signer(keysFileOps)
-    val initPaymentMessageSigned = notSignedMessage.copy( fromSignature = Some(signer.sign("Igor", notSignedMessage)))
-    initPaymentMessageSigned.fromSignature.nonEmpty shouldBe true
-    initPaymentMessageSigned.fromSignature.getOrElse(Array[Byte]()).length > 0 shouldBe true
+    val initPaymentMessageSigned = notSignedMessage.copy( signature = Some(signer.sign("Igor", notSignedMessage)))
+    initPaymentMessageSigned.signature.nonEmpty shouldBe true
+    initPaymentMessageSigned.signature.getOrElse(Array[Byte]()).length > 0 shouldBe true
     val jsonMessage = initPaymentMessageSigned.serialize
     println(jsonMessage)
     jsonMessage.startsWith("""{"createdBy":"Igor","from":"Igor","to":"John","money":{"currency":"EUR","amountInCents":2025},"timestamp":""") shouldBe true

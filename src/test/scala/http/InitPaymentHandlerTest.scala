@@ -50,7 +50,7 @@ class InitPaymentHandlerTest extends FlatSpec with org.scalatest.Matchers with M
     createdInitPayment.to shouldBe "B"
     createdInitPayment.money shouldBe Money("EUR", 2025)
     timeStampsAreWithin(createdInitPayment.timestamp, LocalDateTime.now, 1000) shouldBe true
-    new Signer(keysFileOps).verify(nodeName, createdInitPayment, createdInitPayment.fromSignature.getOrElse(Array[Byte]())) shouldBe true
+    new Signer(keysFileOps).verify(nodeName, createdInitPayment, createdInitPayment.signature.getOrElse(Array[Byte]())) shouldBe true
 
     verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange), Matchers.eq(201),
       Matchers.eq("New Payment has been initiated."))

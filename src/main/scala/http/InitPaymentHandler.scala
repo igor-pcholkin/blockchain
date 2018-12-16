@@ -28,7 +28,7 @@ class InitPaymentHandler(nodeName: String, bcHttpServer: BCHttpServer, initPayme
           val asset = Money (initPayment.currency, (BigDecimal (initPayment.amount) * 100).toLong)
           val notSignedMessage = InitPaymentMessage (nodeName, initPayment.from, initPayment.to, asset, LocalDateTime.now)
           val signer = new Signer (keysFileOps)
-          val initPaymentMessageSigned = notSignedMessage.copy (fromSignature = Some (signer.sign (nodeName, notSignedMessage) ) )
+          val initPaymentMessageSigned = notSignedMessage.copy (signature = Some (signer.sign (nodeName, notSignedMessage) ) )
           initPayments.add (initPaymentMessageSigned)
           peerAccess.sendMsg (initPaymentMessageSigned)
           bcHttpServer.sendHttpResponse (exchange, 201, "New Payment has been initiated.")
