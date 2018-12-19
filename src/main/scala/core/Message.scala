@@ -1,5 +1,6 @@
 package core
 
+import java.security.PublicKey
 import java.time.LocalDateTime
 
 import io.circe.Printer
@@ -20,9 +21,9 @@ object InitPaymentMessage {
     }
 }
 
-case class InitPaymentMessage(createdBy: String, from: String, to: String, money: Money, timestamp: LocalDateTime,
+case class InitPaymentMessage(createdBy: String, fromPublicKey: String, toPublicKey: String, money: Money, timestamp: LocalDateTime,
                               signature: Option[Array[Byte]] = None, encodedSignature: Option[String] = None) extends Message {
-  def dataToSign = (createdBy + from + to + money + timestamp).getBytes
+  def dataToSign = (createdBy + fromPublicKey + toPublicKey + money + timestamp).getBytes
 
   def serialize: String = {
     val base64SignEncoded = new String(Base64.encodeBase64(signature.getOrElse(Array[Byte]())))

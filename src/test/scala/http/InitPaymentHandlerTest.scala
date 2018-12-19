@@ -26,8 +26,8 @@ class InitPaymentHandlerTest extends FlatSpec with org.scalatest.Matchers with M
 
     val initPayment =
       """{
-        | "from": "A",
-        | "to": "B",
+        | "from": "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEDibd8O5I928ZnTU7RYTy6Od3K3SrGlC+V8lkMYrdJuzT9Ig/Iq8JciaukxCYmVSO1mZuC65xMkxSb5Q0rNZ8og==",
+        | "to": "(publicKeyTo)",
         | "currency": "EUR",
         | "amount": 20.25
         | }
@@ -38,16 +38,15 @@ class InitPaymentHandlerTest extends FlatSpec with org.scalatest.Matchers with M
     when(mockExchange.getRequestBody).thenReturn(is)
 
     val nodeName = "Riga"
-    val keyPair = generateKeyPair()
-    when(keysFileOps.readKeyFromFile("Riga/privateKey")).thenReturn(serialize(keyPair.getPrivate))
-    when(keysFileOps.readKeyFromFile("Riga/publicKey")).thenReturn(serialize(keyPair.getPublic))
+    when(keysFileOps.readKeyFromFile("Riga/privateKey")).thenReturn("MEECAQAwEwYHKoZIzj0CAQYIKoZIzj0DAQcEJzAlAgEBBCC94HoY839pqOB/m2D00X4+8vsM6kzUby8gk7Eq8XVsgw==")
+    when(keysFileOps.readKeyFromFile("Riga/publicKey")).thenReturn("MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEDibd8O5I928ZnTU7RYTy6Od3K3SrGlC+V8lkMYrdJuzT9Ig/Iq8JciaukxCYmVSO1mZuC65xMkxSb5Q0rNZ8og==")
     new InitPaymentHandler(nodeName, mockBcHttpServer, initPayments, keysFileOps, peerAccess).handle(mockExchange)
 
     initPayments.initPayments.size shouldBe 1
     val createdInitPayment = initPayments.initPayments.peek()
     createdInitPayment.createdBy shouldBe "Riga"
-    createdInitPayment.from shouldBe "A"
-    createdInitPayment.to shouldBe "B"
+    createdInitPayment.fromPublicKey shouldBe "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEDibd8O5I928ZnTU7RYTy6Od3K3SrGlC+V8lkMYrdJuzT9Ig/Iq8JciaukxCYmVSO1mZuC65xMkxSb5Q0rNZ8og=="
+    createdInitPayment.toPublicKey shouldBe "(publicKeyTo)"
     createdInitPayment.money shouldBe Money("EUR", 2025)
     timeStampsAreWithin(createdInitPayment.timestamp, LocalDateTime.now, 1000) shouldBe true
     new Signer(keysFileOps).verify(nodeName, createdInitPayment, createdInitPayment.signature.getOrElse(Array[Byte]())) shouldBe true

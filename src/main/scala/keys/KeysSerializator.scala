@@ -3,22 +3,25 @@ package keys
 import java.security.spec.{PKCS8EncodedKeySpec, X509EncodedKeySpec}
 import java.security.{KeyFactory, PrivateKey, PublicKey}
 
+import org.apache.commons.codec.binary.Base64
+
 trait KeysSerializator {
   val keysFileOps: KeysFileOps
 
-  def serialize(privateKey: PrivateKey): Array[Byte] = privateKey.getEncoded
-  def serialize(publicKey: PublicKey): Array[Byte] = publicKey.getEncoded
+  def serialize(privateKey: PrivateKey): String = new String(Base64.encodeBase64(privateKey.getEncoded))
+  def serialize(publicKey: PublicKey): String = new String(Base64.encodeBase64(publicKey.getEncoded))
 
-  def deserializePrivate(bytes: Array[Byte]): PrivateKey = {
+  def deserializePrivate(key: String): PrivateKey = {
     val ecKeyFac = KeyFactory.getInstance("EC")
-
-    val privateKeySpec = new PKCS8EncodedKeySpec(bytes)
+    val decodedKey = Base64.decodeBase64(key)
+    val privateKeySpec = new PKCS8EncodedKeySpec(decodedKey)
     ecKeyFac.generatePrivate(privateKeySpec)
   }
 
-  def deserializePublic(bytes: Array[Byte]): PublicKey = {
+  def deserializePublic(key: String): PublicKey = {
     val ecKeyFac = KeyFactory.getInstance("EC")
-    val x509EncodedKeySpec = new X509EncodedKeySpec(bytes)
+    val decodedKey = Base64.decodeBase64(key)
+    val x509EncodedKeySpec = new X509EncodedKeySpec(decodedKey)
     ecKeyFac.generatePublic(x509EncodedKeySpec)
   }
 

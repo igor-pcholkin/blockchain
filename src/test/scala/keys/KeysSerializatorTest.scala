@@ -28,10 +28,10 @@ class KeysSerializatorTest extends FlatSpec with org.scalatest.Matchers with Key
     val publicKey = pair.getPublic
 
     writeKey("Riga", privateKey)
-    verify(keysFileOps, times(1)).writeKey(Matchers.eq("Riga/privateKey"), Matchers.any[Array[Byte]])
+    verify(keysFileOps, times(1)).writeKey(Matchers.eq("Riga/privateKey"), Matchers.any[String])
 
     writeKey("Riga", publicKey)
-    verify(keysFileOps, times(1)).writeKey(Matchers.eq("Riga/publicKey"), Matchers.any[Array[Byte]])
+    verify(keysFileOps, times(1)).writeKey(Matchers.eq("Riga/publicKey"), Matchers.any[String])
   }
 
   "keys" should "be read using mock serializator" in {

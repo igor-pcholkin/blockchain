@@ -24,7 +24,11 @@ object Signer {
 }
 
 class Signer(val keysFileOps: KeysFileOps) extends KeysSerializator {
-  def sign(userName: String, initPayment: InitPaymentMessage): Array[Byte] = {
+  def sign(userName: String, encodedPublicKey: String, initPayment: InitPaymentMessage): Array[Byte] = {
+    val publicKey = readPublicKey(userName)
+    if (publicKey != deserializePublic(encodedPublicKey)) {
+      throw new RuntimeException("Specified public key should match that of specified user.")
+    }
     val privateKey = readPrivateKey(userName)
     Signer.sign(privateKey, initPayment.dataToSign)
   }

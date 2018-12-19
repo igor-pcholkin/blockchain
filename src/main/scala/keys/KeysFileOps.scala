@@ -1,22 +1,24 @@
 package keys
 
-import java.io.{File, FileInputStream, FileOutputStream}
+import java.io.{File, FileInputStream, FileOutputStream, PrintWriter}
+
+import scala.io.Source
 
 trait KeysFileOps {
-  def writeKey(path: String, key: Array[Byte])
+  def writeKey(path: String, key: String)
 
   def isKeysDirExists(nodeName: String): Boolean
 
   def createKeysDir(nodeName: String): Unit
 
-  def readKeyFromFile(fileName: String): Array[Byte]
+  def readKeyFromFile(fileName: String): String
 }
 
 object ProdKeysFileOps extends KeysFileOps {
-  override def writeKey(path: String, key: Array[Byte]) = {
-    val fos = new FileOutputStream(path)
-    fos.write(key)
-    fos.close()
+  override def writeKey(path: String, key: String) = {
+    val pw = new PrintWriter(new FileOutputStream(path))
+    pw.write(key)
+    pw.close()
   }
 
   override def isKeysDirExists(nodeName: String): Boolean = {
@@ -29,12 +31,10 @@ object ProdKeysFileOps extends KeysFileOps {
   }
 
   override def readKeyFromFile(fileName: String) = {
-    val fis = new FileInputStream(fileName)
-    val size = new File(fileName).length()
-    val buffer = Array.ofDim[Byte](size.toInt)
-    fis.read(buffer)
-    fis.close()
-    buffer
+    val s = Source.fromFile(fileName)
+    val key = s.getLines().mkString
+    s.close()
+    key
   }
 
 }
