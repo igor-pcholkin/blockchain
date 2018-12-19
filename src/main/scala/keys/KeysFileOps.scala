@@ -1,6 +1,6 @@
 package keys
 
-import java.io.{File, FileInputStream, FileOutputStream, PrintWriter}
+import java.io.{File, FileOutputStream, PrintWriter}
 
 import scala.io.Source
 

@@ -2,7 +2,6 @@ package http
 
 import java.io.IOException
 import java.time.LocalDateTime
-import java.util.Currency
 
 import com.sun.net.httpserver.{HttpExchange, HttpHandler}
 import core.{InitPaymentMessage, InitPayments, Money, Signer}
@@ -10,11 +9,8 @@ import keys.KeysFileOps
 import peers.PeerAccess
 
 import scala.io.Source
-import io.circe._
 import io.circe.generic.auto._
 import io.circe.parser._
-import io.circe.syntax._
-import org.apache.commons.codec.binary.Base64
 
 case class InitPayment(from: String, to: String, currency: String, amount: Double)
 

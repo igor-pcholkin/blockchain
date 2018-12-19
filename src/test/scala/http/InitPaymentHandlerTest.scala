@@ -2,10 +2,9 @@ package http
 
 import java.io.ByteArrayInputStream
 import java.time.LocalDateTime
-import java.util.Currency
 
 import com.sun.net.httpserver.HttpExchange
-import core.{InitPaymentMessage, InitPayments, Money, Signer}
+import core.{InitPayments, Money, Signer}
 import keys.{KeysFileOps, KeysGenerator, KeysSerializator}
 import org.apache.commons.codec.binary.Base64
 import org.mockito.Matchers
