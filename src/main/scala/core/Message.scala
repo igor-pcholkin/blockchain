@@ -1,12 +1,12 @@
 package core
 
-import java.security.PublicKey
 import java.time.LocalDateTime
 
 import io.circe.Printer
 import io.circe.generic.auto._
 import io.circe.parser._
 import io.circe.syntax._
+import keys.KeysFileOps
 import org.apache.commons.codec.binary.Base64
 
 abstract class Message {
@@ -14,22 +14,27 @@ abstract class Message {
 }
 
 object InitPaymentMessage {
-  def deserialize(s: String) =
-    decode[InitPaymentMessage](s) map { msg =>
-      val signatureDecoded = Base64.decodeBase64(msg.encodedSignature.getOrElse("").getBytes)
-      msg.copy(signature = Some(signatureDecoded), encodedSignature = None)
-    }
+  def deserialize(s: String) = decode[InitPaymentMessage](s)
+
+  def apply(createdBy: String, fromPublicKeyEncoded: String, toPublicKeyEncoded: String, money: Money, timestamp: LocalDateTime,
+            keysFileOps: KeysFileOps): InitPaymentMessage = {
+    val notSignedMessage = InitPaymentMessage(createdBy, fromPublicKeyEncoded, toPublicKeyEncoded, money, timestamp)
+    val signer = new Signer (keysFileOps)
+    val signature = signer.sign (createdBy, fromPublicKeyEncoded, notSignedMessage.dataToSign)
+    val encodedSignature = new String(Base64.encodeBase64(signature))
+    notSignedMessage.copy (encodedSignature = Some(encodedSignature) )
+  }
+
 }
 
-case class InitPaymentMessage(createdBy: String, fromPublicKey: String, toPublicKey: String, money: Money, timestamp: LocalDateTime,
-                              signature: Option[Array[Byte]] = None, encodedSignature: Option[String] = None) extends Message {
-  def dataToSign = (createdBy + fromPublicKey + toPublicKey + money + timestamp).getBytes
+case class InitPaymentMessage(val createdBy: String, val fromPublicKeyEncoded: String, val toPublicKeyEncoded: String, val money: Money,
+                         val timestamp: LocalDateTime, val encodedSignature: Option[String] = None) extends Message {
 
   def serialize: String = {
-    val base64SignEncoded = new String(Base64.encodeBase64(signature.getOrElse(Array[Byte]())))
     val printer = Printer.noSpaces.copy(dropNullValues = true)
-    val msgForJson = this.copy(signature = None, encodedSignature = Some(base64SignEncoded))
-    printer.pretty(msgForJson.asJson)
+    printer.pretty(this.asJson)
   }
+
+  def dataToSign: Array[Byte] = (createdBy + fromPublicKeyEncoded + toPublicKeyEncoded + money + timestamp).getBytes
 
 }

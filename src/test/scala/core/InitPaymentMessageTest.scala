@@ -17,15 +17,13 @@ class InitPaymentMessageTest extends FlatSpec with Matchers with MockitoSugar wi
     when(keysFileOps.readKeyFromFile("Igor/publicKey")).thenReturn(serializedPublicKey)
 
     val asset = Money("EUR", 2025)
-    val notSignedMessage = InitPaymentMessage("Igor", "1234", "5678", asset, LocalDateTime.now )
+    val message = InitPaymentMessage("Igor", serializedPublicKey, "5678", asset, LocalDateTime.now, keysFileOps )
 
-    val signer = new Signer(keysFileOps)
-    val initPaymentMessageSigned = notSignedMessage.copy( signature = Some(signer.sign("Igor", serializedPublicKey, notSignedMessage)))
-    initPaymentMessageSigned.signature.nonEmpty shouldBe true
-    initPaymentMessageSigned.signature.getOrElse(Array[Byte]()).length > 0 shouldBe true
-    val jsonMessage = initPaymentMessageSigned.serialize
+    message.encodedSignature.nonEmpty shouldBe true
+    message.encodedSignature.getOrElse("").length > 0 shouldBe true
+    val jsonMessage = message.serialize
     println(jsonMessage)
-    jsonMessage.startsWith("""{"createdBy":"Igor","fromPublicKey":"1234","toPublicKey":"5678","money":{"currency":"EUR","amountInCents":2025},"timestamp":""") shouldBe true
-    jsonMessage.contains("\"fromSignature\":{}") shouldBe false
+    jsonMessage.startsWith(s"""{"createdBy":"Igor","fromPublicKeyEncoded":"$serializedPublicKey","toPublicKeyEncoded":"5678","money":{"currency":"EUR","amountInCents":2025},"timestamp":""") shouldBe true
+    jsonMessage.contains("\"encodedSignature\":{}") shouldBe false
   }
 }

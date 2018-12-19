@@ -10,11 +10,15 @@ import keys.KeysFileOps
 import peers.PeerAccess
 
 import scala.io.Source
-import io.circe._, io.circe.generic.auto._, io.circe.parser._, io.circe.syntax._
+import io.circe._
+import io.circe.generic.auto._
+import io.circe.parser._
+import io.circe.syntax._
+import org.apache.commons.codec.binary.Base64
 
 case class InitPayment(from: String, to: String, currency: String, amount: Double)
 
-class InitPaymentHandler(nodeName: String, bcHttpServer: BCHttpServer, initPayments: InitPayments, val keysFileOps: KeysFileOps,
+class InitPaymentHandler(nodeName: String, bcHttpServer: BCHttpServer, initPayments: InitPayments, implicit val keysFileOps: KeysFileOps,
                          peerAccess: PeerAccess) extends HttpHandler {
   @throws[IOException]
   def handle(exchange: HttpExchange): Unit = {
@@ -26,12 +30,9 @@ class InitPaymentHandler(nodeName: String, bcHttpServer: BCHttpServer, initPayme
         case Right(initPayment) =>
           validateFields (initPayment, exchange)
           val asset = Money (initPayment.currency, (BigDecimal (initPayment.amount) * 100).toLong)
-          val notSignedMessage = InitPaymentMessage (nodeName, initPayment.from, initPayment.to, asset, LocalDateTime.now)
-          val signer = new Signer (keysFileOps)
-          val signature = signer.sign (nodeName, initPayment.from, notSignedMessage)
-          val initPaymentMessageSigned = notSignedMessage.copy (signature = Some ( signature ) )
-          initPayments.add (initPaymentMessageSigned)
-          peerAccess.sendMsg (initPaymentMessageSigned)
+          val signedMessage = InitPaymentMessage.apply(nodeName, initPayment.from, initPayment.to, asset, LocalDateTime.now, keysFileOps)
+          initPayments.add (signedMessage)
+          peerAccess.sendMsg (signedMessage)
           bcHttpServer.sendHttpResponse (exchange, 201, "New Payment has been initiated.")
         case Left(error) =>
           bcHttpServer.sendHttpResponse (exchange, 400, error.getMessage)
