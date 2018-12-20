@@ -7,13 +7,13 @@ import io.circe.generic.auto._
 import io.circe.parser._
 import io.circe.syntax._
 import keys.KeysFileOps
-import org.apache.commons.codec.binary.Base64
+import util.StringConverter
 
 abstract class Message {
   def serialize: String
 }
 
-object InitPaymentMessage {
+object InitPaymentMessage extends StringConverter {
   def deserialize(s: String) = decode[InitPaymentMessage](s)
 
   def apply(createdBy: String, fromPublicKeyEncoded: String, toPublicKeyEncoded: String, money: Money, timestamp: LocalDateTime,
@@ -21,7 +21,7 @@ object InitPaymentMessage {
     val notSignedMessage = InitPaymentMessage(createdBy, fromPublicKeyEncoded, toPublicKeyEncoded, money, timestamp)
     val signer = new Signer (keysFileOps)
     val signature = signer.sign (createdBy, fromPublicKeyEncoded, notSignedMessage.dataToSign)
-    val encodedSignature = new String(Base64.encodeBase64(signature))
+    val encodedSignature = bytesToBase64Str(signature)
     notSignedMessage.copy (encodedSignature = Some(encodedSignature) )
   }
 

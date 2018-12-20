@@ -4,9 +4,9 @@ import java.io.{IOException}
 
 import com.sun.net.httpserver.{HttpExchange, HttpHandler}
 import keys.{KeysFileOps, KeysGenerator, KeysSerializator}
-import util.Convert
+import util.StringConverter
 
-class GenKeysHandler(nodeName: String, val keysFileOps: KeysFileOps, bcHttpServer: BCHttpServer) extends HttpHandler with KeysGenerator with KeysSerializator with Convert{
+class GenKeysHandler(nodeName: String, val keysFileOps: KeysFileOps, bcHttpServer: BCHttpServer) extends HttpHandler with KeysGenerator with KeysSerializator with StringConverter{
   @throws[IOException]
   def handle(exchange: HttpExchange): Unit = {
     if (exchange.getRequestMethod == "PUT") {

@@ -3,7 +3,7 @@ package util
 import core.BlockChain
 import org.scalatest.{FlatSpec, Matchers}
 
-class ConvertTest extends FlatSpec with Matchers with Convert {
+class StringConverterTest extends FlatSpec with Matchers with StringConverter {
   "hexBytesStr method for origin block hash" should "produce correct hex representation of origin block hash" in {
     val bc = new BlockChain
     val origin = bc.origin

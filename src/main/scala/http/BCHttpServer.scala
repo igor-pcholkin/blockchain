@@ -24,7 +24,7 @@ class BCHttpServer(port: Int, bc: BlockChain, peerAccess: PeerAccess, initPaymen
     server.createContext("/nodeinfo", new NodeInfoHandler(nodeName, this, peerAccess))
     server.createContext("/addwspeers", new AddSeedsHandler(this, peerAccess))
     server.createContext("/initpayment", new InitPaymentHandler(nodeName, this, initPayments, ProdKeysFileOps, peerAccess))
-    server.createContext("/msgHandler", new MsgHandler(this, initPayments))
+    server.createContext("/msgHandler", new MsgHandler(this, initPayments, ProdKeysFileOps))
     server.start()
   }
 

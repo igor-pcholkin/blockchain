@@ -1,9 +1,9 @@
 package core
 
 import org.scalatest.{FlatSpec, Matchers}
-import util.Convert
+import util.StringConverter
 
-class SHA256Test extends FlatSpec with Matchers with Convert {
+class SHA256Test extends FlatSpec with Matchers with StringConverter {
   "SHA256" should "calculate hashes for two different messages and ensure those are different" in {
     println(SHA256.hash("123").length)
     println(SHA256.hash("1234").length)

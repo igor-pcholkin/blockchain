@@ -19,7 +19,6 @@ class InitPaymentMessageTest extends FlatSpec with Matchers with MockitoSugar wi
     val asset = Money("EUR", 2025)
     val message = InitPaymentMessage("Igor", serializedPublicKey, "5678", asset, LocalDateTime.now, keysFileOps )
 
-    message.encodedSignature.nonEmpty shouldBe true
     message.encodedSignature.getOrElse("").length > 0 shouldBe true
     val jsonMessage = message.serialize
     println(jsonMessage)

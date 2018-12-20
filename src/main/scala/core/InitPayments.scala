@@ -1,13 +1,14 @@
 package core
 
-import java.util.concurrent.ConcurrentLinkedQueue
+import java.util.concurrent.ConcurrentHashMap
 
 class InitPayments {
-  val initPayments = new ConcurrentLinkedQueue[InitPaymentMessage]()
+  val initPayments = new ConcurrentHashMap[Int, InitPaymentMessage]()
 
   def add(initPayment: InitPaymentMessage) = {
-    if (!initPayments.contains(initPayment)) {
-      initPayments.add(initPayment)
+    val initPaymentHashCode = initPayment.hashCode()
+    if (!initPayments.contains(initPaymentHashCode)) {
+      initPayments.put(initPaymentHashCode, initPayment)
     }
   }
 

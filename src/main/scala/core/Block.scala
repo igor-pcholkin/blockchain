@@ -2,9 +2,9 @@ package core
 
 import java.time.LocalDateTime
 
-import util.Convert
+import util.StringConverter
 
-case class Block(index: Int, prevHash: Array[Byte], timestamp: LocalDateTime, data: Array[Byte]) extends Convert {
+case class Block(index: Int, prevHash: Array[Byte], timestamp: LocalDateTime, data: Array[Byte]) extends StringConverter {
   override def equals(other: Any) = {
     if (!other.isInstanceOf[Block])
       false
