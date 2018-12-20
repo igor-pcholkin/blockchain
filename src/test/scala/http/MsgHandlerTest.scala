@@ -51,8 +51,8 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
 
     val signedMessage = InitPaymentMessage.apply("Igor", "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEDibd8O5I928ZnTU7RYTy6Od3K3SrGlC+V8lkMYrdJuzT9Ig/Iq8JciaukxCYmVSO1mZuC65xMkxSb5Q0rNZ8og==",
       "(publicKeyTo)", Money("EUR", 2025), LocalDateTime.now, keysFileOps)
-    val temperedMessage = signedMessage.copy(money = Money("EUR", 202500))
-    val is = new ByteArrayInputStream(temperedMessage.serialize.getBytes)
+    val tamperedMessage = signedMessage.copy(money = Money("EUR", 202500))
+    val is = new ByteArrayInputStream(tamperedMessage.serialize.getBytes)
 
     when(mockExchange.getRequestMethod).thenReturn("POST")
     when(mockExchange.getRequestBody).thenReturn(is)
