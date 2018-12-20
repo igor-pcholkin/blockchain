@@ -28,7 +28,7 @@ class InitPaymentHandler(nodeName: String, bcHttpServer: BCHttpServer, initPayme
         case Right(initPayment) =>
           validateFields (initPayment, exchange)
           val asset = Money (initPayment.currency, (BigDecimal (initPayment.amount) * 100).toLong)
-          val signedMessage = InitPaymentMessage.apply(nodeName, initPayment.from, initPayment.to, asset, LocalDateTime.now, keysFileOps)
+          val signedMessage = InitPaymentMessage.apply(nodeName, initPayment.from, initPayment.to, asset, keysFileOps)
           initPayments.add (signedMessage)
           peerAccess.sendMsg (signedMessage)
           bcHttpServer.sendHttpResponse (exchange, SC_CREATED, "New Payment has been initiated.")
