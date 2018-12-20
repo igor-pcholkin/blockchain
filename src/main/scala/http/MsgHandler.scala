@@ -19,7 +19,6 @@ class MsgHandler(bcHttpServer: BCHttpServer, initPayments: InitPayments, val key
       val msgAsString = Source.fromInputStream(exchange.getRequestBody).getLines().mkString("\n")
       val message = InitPaymentMessage.deserialize(msgAsString) match {
         case Right(initPaymentMessage) =>
-          println(s"Deser msg: $initPaymentMessage")
           if (verifySignature(initPaymentMessage)) {
             initPayments.add(initPaymentMessage)
             bcHttpServer.sendHttpResponse(exchange, "Initial payment message verified.")

@@ -14,7 +14,7 @@ import io.circe.parser._
 import org.apache.http.HttpStatus.{SC_BAD_REQUEST, SC_CREATED}
 import util.HttpUtil.withHttpMethod
 
-case class InitPayment(from: String, to: String, currency: String, amount: Double)
+case class InitPaymentRequest(from: String, to: String, currency: String, amount: Double)
 
 class InitPaymentHandler(nodeName: String, bcHttpServer: BCHttpServer, initPayments: InitPayments, implicit val keysFileOps: KeysFileOps,
                          peerAccess: PeerAccess) extends HttpHandler {
@@ -24,7 +24,7 @@ class InitPaymentHandler(nodeName: String, bcHttpServer: BCHttpServer, initPayme
       val s = Source.fromInputStream(exchange.getRequestBody)
       val inputAsString = s.getLines.mkString
       s.close()
-      decode[InitPayment](inputAsString) match {
+      decode[InitPaymentRequest](inputAsString) match {
         case Right(initPayment) =>
           validateFields (initPayment, exchange)
           val asset = Money (initPayment.currency, (BigDecimal (initPayment.amount) * 100).toLong)
@@ -38,7 +38,7 @@ class InitPaymentHandler(nodeName: String, bcHttpServer: BCHttpServer, initPayme
     }
   }
 
-  def validateFields(initPayment: InitPayment, exchange: HttpExchange) = {
+  def validateFields(initPayment: InitPaymentRequest, exchange: HttpExchange) = {
     checkNonEmpty(initPayment.from, "from", exchange)
     checkNonEmpty(initPayment.to, "to", exchange)
     checkNonEmpty(initPayment.currency, "currency", exchange)
