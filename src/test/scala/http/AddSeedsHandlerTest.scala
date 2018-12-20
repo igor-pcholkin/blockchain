@@ -3,6 +3,7 @@ package http
 import java.io.ByteArrayInputStream
 
 import com.sun.net.httpserver.HttpExchange
+import org.apache.http.HttpStatus
 import org.mockito.Matchers
 import org.mockito.Mockito.{times, verify, when}
 import org.scalatest.FlatSpec
@@ -26,7 +27,7 @@ class AddSeedsHandlerTest extends FlatSpec with org.scalatest.Matchers with Mock
 
     peerAccess.peers.toArray shouldBe(Seq("blabla.com:6001", "lala.com:6002", "localhost:6001", "localhost:6002").toArray)
 
-    verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange), Matchers.eq(201),
+    verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange), Matchers.eq(HttpStatus.SC_CREATED),
       Matchers.eq("New seeds have been added."))
 
   }

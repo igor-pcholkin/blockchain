@@ -11,6 +11,8 @@ import peers.PeerAccess
 import scala.io.Source
 import io.circe.generic.auto._
 import io.circe.parser._
+import org.apache.http.HttpStatus.{SC_BAD_REQUEST, SC_CREATED}
+import util.HttpUtil.withHttpMethod
 
 case class InitPayment(from: String, to: String, currency: String, amount: Double)
 
@@ -18,7 +20,7 @@ class InitPaymentHandler(nodeName: String, bcHttpServer: BCHttpServer, initPayme
                          peerAccess: PeerAccess) extends HttpHandler {
   @throws[IOException]
   def handle(exchange: HttpExchange): Unit = {
-    if (exchange.getRequestMethod == "POST") {
+    withHttpMethod ("POST", exchange, bcHttpServer) {
       val s = Source.fromInputStream(exchange.getRequestBody)
       val inputAsString = s.getLines.mkString
       s.close()
@@ -29,12 +31,10 @@ class InitPaymentHandler(nodeName: String, bcHttpServer: BCHttpServer, initPayme
           val signedMessage = InitPaymentMessage.apply(nodeName, initPayment.from, initPayment.to, asset, LocalDateTime.now, keysFileOps)
           initPayments.add (signedMessage)
           peerAccess.sendMsg (signedMessage)
-          bcHttpServer.sendHttpResponse (exchange, 201, "New Payment has been initiated.")
+          bcHttpServer.sendHttpResponse (exchange, SC_CREATED, "New Payment has been initiated.")
         case Left(error) =>
-          bcHttpServer.sendHttpResponse (exchange, 400, error.getMessage)
+          bcHttpServer.sendHttpResponse (exchange, SC_BAD_REQUEST, error.getMessage)
       }
-    } else {
-      bcHttpServer.sendHttpResponse(exchange, 400, "Invalid method, use POST")
     }
   }
 

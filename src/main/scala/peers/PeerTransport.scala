@@ -1,6 +1,7 @@
 package peers
 
 import core.Message
+import org.apache.http.HttpStatus
 import org.apache.http.client.methods.HttpPost
 import org.apache.http.entity.{ContentType, StringEntity}
 import org.apache.http.impl.client.HttpClients
@@ -23,7 +24,7 @@ class HttpPeerTransport extends PeerTransport {
           postRequest(msg.serialize, peer)
         }
       }).withTimeout
-    Future.successful(Result(200, "Msg sent to all peers."))
+    Future.successful(Result(HttpStatus.SC_OK, "Msg sent to all peers."))
   }
 
   def postRequest(msg: String, peer: String) = {

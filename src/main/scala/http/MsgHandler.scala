@@ -8,12 +8,14 @@ import keys.{KeysFileOps, KeysSerializator}
 import util.StringConverter
 
 import scala.io.Source
+import org.apache.http.HttpStatus.SC_BAD_REQUEST
+import util.HttpUtil.withHttpMethod
 
 class MsgHandler(bcHttpServer: BCHttpServer, initPayments: InitPayments, val keysFileOps: KeysFileOps) extends HttpHandler
   with StringConverter with KeysSerializator {
   @throws[IOException]
   def handle(exchange: HttpExchange): Unit = {
-    if (exchange.getRequestMethod == "POST") {
+    withHttpMethod ("POST", exchange, bcHttpServer) {
       val msgAsString = Source.fromInputStream(exchange.getRequestBody).getLines().mkString("\n")
       val message = InitPaymentMessage.deserialize(msgAsString) match {
         case Right(initPaymentMessage) =>
@@ -22,14 +24,12 @@ class MsgHandler(bcHttpServer: BCHttpServer, initPayments: InitPayments, val key
             initPayments.add(initPaymentMessage)
             bcHttpServer.sendHttpResponse(exchange, "Initial payment message verified.")
           } else {
-            bcHttpServer.sendHttpResponse(exchange, 400, "Initial payment message validation failed.")
+            bcHttpServer.sendHttpResponse(exchange, SC_BAD_REQUEST, "Initial payment message validation failed.")
           }
         case Left(error) =>
-          bcHttpServer.sendHttpResponse(exchange, 400, error.getMessage)
+          bcHttpServer.sendHttpResponse(exchange, SC_BAD_REQUEST, error.getMessage)
 
       }
-    } else {
-      bcHttpServer.sendHttpResponse(exchange, 400, "Invalid method, use POST")
     }
   }
 

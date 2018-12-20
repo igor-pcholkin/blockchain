@@ -6,6 +6,7 @@ import java.security.KeyPair
 import com.sun.net.httpserver.{HttpExchange, HttpServer}
 import core.{BlockChain, InitPayments}
 import keys.ProdKeysFileOps
+import org.apache.http.HttpStatus
 import peers.PeerAccess
 
 class BCHttpServer(port: Int, bc: BlockChain, peerAccess: PeerAccess, initPayments: InitPayments) {
@@ -29,7 +30,7 @@ class BCHttpServer(port: Int, bc: BlockChain, peerAccess: PeerAccess, initPaymen
   }
 
   def sendHttpResponse(exchange: HttpExchange, response: String): Unit = {
-    sendHttpResponse(exchange, 200, response)
+    sendHttpResponse(exchange, HttpStatus.SC_OK, response)
   }
 
   def sendHttpResponse(exchange: HttpExchange, code: Int, response: String): Unit = {
