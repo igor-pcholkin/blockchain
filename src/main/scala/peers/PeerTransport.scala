@@ -1,6 +1,7 @@
 package peers
 
-import core.Message
+import core.messages.Message
+import io.circe.Encoder
 import org.apache.http.HttpStatus
 import org.apache.http.client.methods.HttpPost
 import org.apache.http.entity.{ContentType, StringEntity}
@@ -13,15 +14,15 @@ import scala.io.Source
 import scala.concurrent.ExecutionContext.Implicits.global
 
 abstract class PeerTransport {
-  def sendMsg(msg: Message, peers: Seq[String]): Future[Result]
+  def sendMsg[T <: Message](msg: T, peers: Seq[String])(implicit encoder: Encoder[T]): Future[Result]
 }
 
 class HttpPeerTransport extends PeerTransport {
-  override def sendMsg(msg: Message, peers: Seq[String]) = {
+  override def sendMsg[T <: Message](msg: T, peers: Seq[String])(implicit encoder: Encoder[T]) = {
     val f = Future.sequence(
       peers map { peer =>
         Future {
-          postRequest(msg.serialize, peer)
+          postRequest(Message.serialize(msg), peer)
         }
       }).withTimeout
     Future.successful(Result(HttpStatus.SC_OK, "Msg sent to all peers."))

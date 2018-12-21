@@ -1,7 +1,8 @@
 package core
 
-import java.time.LocalDateTime
+import io.circe.generic.auto._
 
+import core.messages.{InitPaymentMessage, Message}
 import keys.{KeysFileOps, KeysGenerator, KeysSerializator}
 import org.mockito.Mockito.when
 import org.scalatest.mockito.MockitoSugar
@@ -20,7 +21,7 @@ class InitPaymentMessageTest extends FlatSpec with Matchers with MockitoSugar wi
     val message = InitPaymentMessage("Igor", serializedPublicKey, "5678", asset, keysFileOps )
 
     message.encodedSignature.getOrElse("").length > 0 shouldBe true
-    val jsonMessage = message.serialize
+    val jsonMessage = Message.serialize(message)
     println(jsonMessage)
     jsonMessage.startsWith(s"""{"createdBy":"Igor","fromPublicKeyEncoded":"$serializedPublicKey","toPublicKeyEncoded":"5678","money":{"currency":"EUR","amountInCents":2025},"timestamp":""") shouldBe true
     jsonMessage.contains("\"encodedSignature\":{}") shouldBe false

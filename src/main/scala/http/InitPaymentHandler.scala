@@ -1,10 +1,10 @@
 package http
 
 import java.io.IOException
-import java.time.LocalDateTime
 
 import com.sun.net.httpserver.{HttpExchange, HttpHandler}
-import core.{InitPaymentMessage, InitPayments, Money, Signer}
+import core.messages.InitPaymentMessage
+import core.{InitPayments, Money, Signer}
 import keys.KeysFileOps
 import peers.PeerAccess
 

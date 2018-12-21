@@ -4,6 +4,7 @@ import java.io.ByteArrayInputStream
 import java.time.LocalDateTime
 
 import com.sun.net.httpserver.HttpExchange
+import core.messages.InitPaymentMessage
 import core.{InitPayments, Money, Signer}
 import keys.{KeysFileOps, KeysGenerator, KeysSerializator}
 import org.apache.http.HttpStatus.SC_CREATED
@@ -15,6 +16,7 @@ import peers.{PeerAccess, PeerTransport}
 import util.{DateTimeUtil, StringConverter}
 
 import scala.collection.JavaConverters._
+import io.circe._
 
 class InitPaymentHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSugar with DateTimeUtil with KeysGenerator with KeysSerializator with StringConverter {
   val keysFileOps = mock[KeysFileOps]
@@ -56,6 +58,6 @@ class InitPaymentHandlerTest extends FlatSpec with org.scalatest.Matchers with M
 
     verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange), Matchers.eq(SC_CREATED),
       Matchers.eq("New Payment has been initiated."))
-    verify(peerAccess.peerTransport, times(1)).sendMsg(Matchers.eq(createdInitPayment), Matchers.eq(Seq("blabla.com", "another.com")))
+    verify(peerAccess.peerTransport, times(1)).sendMsg(Matchers.eq(createdInitPayment), Matchers.eq(Seq("blabla.com", "another.com")))(Matchers.any[Encoder[InitPaymentMessage]])
   }
 }

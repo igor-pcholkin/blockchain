@@ -2,7 +2,8 @@ package peers
 
 import java.util.concurrent.ConcurrentLinkedQueue
 
-import core.Message
+import core.messages.Message
+import io.circe.Encoder
 
 import scala.concurrent.Future
 import scala.collection.JavaConverters._
@@ -28,7 +29,7 @@ class PeerAccess(val peerTransport: PeerTransport) {
     peers foreach (add(_))
   }
 
-  def sendMsg(msg: Message): Future[Result] = {
+  def sendMsg[T <: Message](msg: T)(implicit encoder: Encoder[T]): Future[Result] = {
     peerTransport.sendMsg(msg, peers.asScala.toSeq)
   }
 }

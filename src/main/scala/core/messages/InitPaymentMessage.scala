@@ -1,11 +1,10 @@
-package core
+package core.messages
 
 import java.time.LocalDateTime
 
-import io.circe.Printer
+import core.{Money, Signer}
 import io.circe.generic.auto._
 import io.circe.parser.decode
-import io.circe.syntax._
 import keys.KeysFileOps
 import util.StringConverter
 
@@ -28,11 +27,6 @@ object InitPaymentMessage extends StringConverter {
 case class InitPaymentMessage(val createdBy: String, val fromPublicKeyEncoded: String, val toPublicKeyEncoded: String, val money: Money,
                               val timestamp: LocalDateTime, val encodedSignature: Option[String] = None) extends Message {
 
-  def serialize: String = {
-    val printer = Printer.noSpaces.copy(dropNullValues = true)
-    printer.pretty(this.asJson)
-  }
-
-  def dataToSign: Array[Byte] = (createdBy + fromPublicKeyEncoded + toPublicKeyEncoded + money + timestamp).getBytes
+  override def dataToSign: Array[Byte] = (createdBy + fromPublicKeyEncoded + toPublicKeyEncoded + money + timestamp).getBytes
 
 }

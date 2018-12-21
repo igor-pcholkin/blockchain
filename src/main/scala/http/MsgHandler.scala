@@ -4,14 +4,18 @@ import java.io.IOException
 
 import com.sun.net.httpserver.{HttpExchange, HttpHandler}
 import core._
+import core.messages.{InitPaymentMessage, Message, NewBlockMessage, PaymentTransaction}
 import keys.{KeysFileOps, KeysSerializator}
 import util.StringConverter
 
 import scala.io.Source
 import org.apache.http.HttpStatus.SC_BAD_REQUEST
+import peers.PeerAccess
 import util.HttpUtil.withHttpMethod
+import io.circe.generic.auto._
 
-class MsgHandler(nodeName: String, bcHttpServer: BCHttpServer, initPayments: InitPayments, bc: BlockChain, val keysFileOps: KeysFileOps) extends HttpHandler
+class MsgHandler(nodeName: String, bcHttpServer: BCHttpServer, initPayments: InitPayments, bc: BlockChain, val keysFileOps: KeysFileOps,
+                 peerAccess: PeerAccess) extends HttpHandler
   with StringConverter with KeysSerializator {
   @throws[IOException]
   def handle(exchange: HttpExchange): Unit = {
@@ -23,6 +27,7 @@ class MsgHandler(nodeName: String, bcHttpServer: BCHttpServer, initPayments: Ini
             initPayments.add(initPaymentMessage)
             if (isLocalKey()) {
               addTransactionToNewBlock(initPaymentMessage)
+              peerAccess.sendMsg(NewBlockMessage(bc.getLatestBlock))
               bcHttpServer.sendHttpResponse(exchange, "Payment transaction created and added to blockchain.")
             } else {
               bcHttpServer.sendHttpResponse(exchange, "Initial payment message verified and added to message cache.")
@@ -41,7 +46,7 @@ class MsgHandler(nodeName: String, bcHttpServer: BCHttpServer, initPayments: Ini
 
   def addTransactionToNewBlock(initPaymentMessage: InitPaymentMessage) = {
     val paymentTransaction = PaymentTransaction(nodeName, initPaymentMessage, keysFileOps)
-    val serializedTransaction = paymentTransaction.serialize.getBytes
+    val serializedTransaction = Message.serialize(paymentTransaction).getBytes
     val newBlock = bc.genNextBlock(serializedTransaction)
     bc.add(newBlock)
   }
