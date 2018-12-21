@@ -21,8 +21,10 @@ class MsgHandler(nodeName: String, bcHttpServer: BCHttpServer, initPayments: Ini
   def handle(exchange: HttpExchange): Unit = {
     withHttpMethod ("POST", exchange, bcHttpServer) {
       val msgAsString = Source.fromInputStream(exchange.getRequestBody).getLines().mkString("\n")
-      val message = InitPaymentMessage.deserialize(msgAsString) match {
-        case Right(initPaymentMessage) =>
+      Message.deserialize(msgAsString).getOrElse {
+        bcHttpServer.sendHttpResponse(exchange, SC_BAD_REQUEST, s"Invalid message received: $msgAsString")
+      } match {
+        case initPaymentMessage: InitPaymentMessage =>
           if (verifySignature(initPaymentMessage)) {
             initPayments.add(initPaymentMessage)
             if (isLocalKey()) {
@@ -35,9 +37,11 @@ class MsgHandler(nodeName: String, bcHttpServer: BCHttpServer, initPayments: Ini
           } else {
             bcHttpServer.sendHttpResponse(exchange, SC_BAD_REQUEST, "Initial payment message validation failed.")
           }
-        case Left(error) =>
-          bcHttpServer.sendHttpResponse(exchange, SC_BAD_REQUEST, error.getMessage)
-
+        case newBlockMessage: NewBlockMessage =>
+          bc.add(newBlockMessage.block)
+          bcHttpServer.sendHttpResponse(exchange, "New block received and added to blockchain.")
+        case _ =>
+          throw new RuntimeException(s"Unexpected message: $msgAsString")
       }
     }
   }

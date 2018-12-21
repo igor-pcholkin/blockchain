@@ -3,14 +3,15 @@ package core.messages
 import java.time.LocalDateTime
 
 import core.{Money, Signer}
+import io.circe
 import io.circe.generic.auto._
 import io.circe.parser.decode
 import keys.KeysFileOps
 import util.StringConverter
 
 
-object InitPaymentMessage extends StringConverter {
-  def deserialize(s: String) = decode[InitPaymentMessage](s)
+object InitPaymentMessage extends StringConverter with MsgDeserializator {
+  override def deserialize(s: String): Either[circe.Error, InitPaymentMessage] = decode[InitPaymentMessage](s)
 
   def apply(createdBy: String, fromPublicKeyEncoded: String, toPublicKeyEncoded: String, money: Money,
             keysFileOps: KeysFileOps): InitPaymentMessage = {

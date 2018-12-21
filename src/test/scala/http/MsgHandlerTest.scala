@@ -1,6 +1,7 @@
 package http
 
 import java.io.ByteArrayInputStream
+import java.time.LocalDateTime
 
 import com.sun.net.httpserver.HttpExchange
 import core._
@@ -9,7 +10,7 @@ import io.circe.Encoder
 import keys.KeysFileOps
 import org.apache.http.HttpStatus
 import org.mockito.Matchers
-import org.mockito.Mockito.{times, verify, when, never}
+import org.mockito.Mockito.{never, times, verify, when}
 import org.scalatest.FlatSpec
 import org.scalatest.mockito.MockitoSugar
 import peers.PeerAccess
@@ -124,6 +125,31 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
     signer.verify("John", transaction.dataToSign, decodedTransactionSignature) shouldBe true
     val decodedPaymentMessageSignature = base64StrToBytes(transaction.paymentMessage.encodedSignature.get)
     signer.verify("Igor", transaction.paymentMessage.dataToSign, decodedPaymentMessageSignature) shouldBe true
+  }
+
+  "Message handler" should "add a new block to blockchain" in {
+    val mockExchange = mock[HttpExchange]
+    val mockBcHttpServer = mock[BCHttpServer]
+    val blockChain = new BlockChain
+    val initPayments = new InitPayments()
+    val keysFileOps = mock[KeysFileOps]
+    val peerAccess = mock[PeerAccess]
+
+    val block = Block(1, blockChain.getLatestBlock.hash, LocalDateTime.of(2018, 12, 21, 15, 0, 0), "Hi".getBytes)
+    val newBlockMessage = NewBlockMessage(block)
+    val is = new ByteArrayInputStream(Message.serialize(newBlockMessage).getBytes)
+
+    when(mockExchange.getRequestMethod).thenReturn("POST")
+    when(mockExchange.getRequestBody).thenReturn(is)
+
+    blockChain.chain.size() shouldBe 1
+
+    new MsgHandler("John", mockBcHttpServer, initPayments, blockChain, keysFileOps, peerAccess).handle(mockExchange)
+
+    blockChain.chain.size() shouldBe 2
+
+    verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange),
+      Matchers.eq("New block received and added to blockchain."))
   }
 
 }

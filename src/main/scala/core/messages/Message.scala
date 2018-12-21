@@ -1,6 +1,7 @@
 package core.messages
 
-import io.circe.{Printer, Encoder}
+import io.circe
+import io.circe.{Encoder, Printer}
 import io.circe.syntax._
 
 object Message {
@@ -8,6 +9,19 @@ object Message {
     val printer = Printer.noSpaces.copy(dropNullValues = true)
     printer.pretty(msg.asJson)
   }
+
+  def deserialize(s: String): Option[Message] = {
+
+    val deserializers = Stream(InitPaymentMessage, NewBlockMessage)
+
+    deserializers.map { d =>
+      d.deserialize(s)
+    }.find(_.isRight).flatMap {
+      case Right(msg) => Some(msg)
+      case _ => None
+    }
+  }
+
 }
 
 abstract class Message {
@@ -15,3 +29,6 @@ abstract class Message {
 
 }
 
+trait MsgDeserializator {
+  def deserialize(s: String): Either[circe.Error, Message]
+}
