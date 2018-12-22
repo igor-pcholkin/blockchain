@@ -14,14 +14,21 @@ object InitPaymentMessage extends StringConverter with MsgDeserializator {
   override def deserialize(s: String): Either[circe.Error, InitPaymentMessage] = decode[InitPaymentMessage](s)
 
   def apply(createdByNode: String, fromPublicKeyEncoded: String, toPublicKeyEncoded: String, money: Money,
-            keysFileOps: KeysFileOps): Option[InitPaymentMessage] = {
-    val timestamp = LocalDateTime.now
-    val notSignedMessage = InitPaymentMessage(createdByNode, fromPublicKeyEncoded, toPublicKeyEncoded, money, timestamp)
-    val signer = new Signer (keysFileOps)
-    keysFileOps.getUserByKey(fromPublicKeyEncoded).map { userName =>
-      val signature = signer.sign (userName, fromPublicKeyEncoded, notSignedMessage.dataToSign)
-      val encodedSignature = bytesToBase64Str(signature)
-      notSignedMessage.copy (encodedSignature = Some(encodedSignature) )
+            keysFileOps: KeysFileOps): Either[String, InitPaymentMessage] = {
+    if (fromPublicKeyEncoded == toPublicKeyEncoded) {
+      Left("Sender and receiver of payment can't be the same person")
+    } else {
+      val timestamp = LocalDateTime.now
+      val notSignedMessage = InitPaymentMessage(createdByNode, fromPublicKeyEncoded, toPublicKeyEncoded, money, timestamp)
+      val signer = new Signer(keysFileOps)
+      keysFileOps.getUserByKey(fromPublicKeyEncoded) match {
+        case Some(userName) =>
+          val signature = signer.sign(userName, fromPublicKeyEncoded, notSignedMessage.dataToSign)
+          val encodedSignature = bytesToBase64Str(signature)
+          Right(notSignedMessage.copy(encodedSignature = Some(encodedSignature)))
+        case None =>
+          Left("No user with given (from) public key found.")
+      }
     }
   }
 

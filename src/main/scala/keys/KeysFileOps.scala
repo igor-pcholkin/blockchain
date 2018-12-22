@@ -2,6 +2,8 @@ package keys
 
 import java.io.{File, FileOutputStream, PrintWriter}
 
+import keys.ProdKeysFileOps.keyDir
+
 import scala.io.Source
 
 trait KeysFileOps {
@@ -17,6 +19,8 @@ trait KeysFileOps {
 }
 
 object ProdKeysFileOps extends KeysFileOps {
+  def keyDir() = new File("keys")
+
   override def writeKey(path: String, key: String) = {
     val pw = new PrintWriter(new FileOutputStream(path))
     pw.write(key)
@@ -32,6 +36,15 @@ object ProdKeysFileOps extends KeysFileOps {
     new File(s"keys/$userName").mkdirs()
   }
 
+  def isKeysDirExists(): Boolean = {
+    val kd = keyDir()
+    kd.exists && kd.isDirectory
+  }
+
+  def createKeysDir() = {
+    keyDir().mkdirs()
+  }
+
   override def readKeyFromFile(fileName: String) = {
     val s = Source.fromFile(fileName)
     val key = s.getLines().mkString
@@ -40,10 +53,12 @@ object ProdKeysFileOps extends KeysFileOps {
   }
 
   override def getUserByKey(encodedPublicKey: String) = {
-    val keyDir = new File("keys")
-    keyDir.list.toStream.map { userDir =>
-      readKeyFromFile("keys/$userDir/publicKey")
-    }.find(_ == encodedPublicKey)
+    if (!isKeysDirExists()) {
+      createKeysDir
+    }
+    keyDir().list.toStream.map { userName =>
+      (userName, readKeyFromFile(s"keys/$userName/publicKey"))
+    }.find(_._2 == encodedPublicKey).map(_._1)
   }
 }
 

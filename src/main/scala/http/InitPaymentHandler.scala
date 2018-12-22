@@ -26,32 +26,35 @@ class InitPaymentHandler(nodeName: String, bcHttpServer: BCHttpServer, initPayme
       s.close()
       decode[InitPaymentRequest](inputAsString) match {
         case Right(initPayment) =>
-          validateFields (initPayment, exchange)
           val asset = Money (initPayment.currency, (BigDecimal (initPayment.amount) * 100).toLong)
           InitPaymentMessage.apply(nodeName, initPayment.from, initPayment.to, asset, keysFileOps) match {
-            case Some(signedMessage) =>
+            case Right(signedMessage) =>
               initPayments.add (signedMessage)
               peerAccess.sendMsg (signedMessage)
               bcHttpServer.sendHttpResponse (exchange, SC_CREATED, "New Payment has been initiated.")
-            case None =>
-              bcHttpServer.sendHttpResponse (exchange, SC_BAD_REQUEST, "No user with given (from) public key found.")
+            case Left(error) =>
+              bcHttpServer.sendHttpResponse (exchange, SC_BAD_REQUEST, error)
           }
         case Left(error) =>
-          bcHttpServer.sendHttpResponse (exchange, SC_BAD_REQUEST, error.getMessage)
+          val correctedMessage = correctValidationError(exchange, error.getMessage) match {
+            case Some(correctedMessage) => correctedMessage
+            case None =>  error.getMessage
+          }
+          bcHttpServer.sendHttpResponse (exchange, SC_BAD_REQUEST, correctedMessage)
       }
     }
   }
 
-  def validateFields(initPaymentRequest: InitPaymentRequest, exchange: HttpExchange) = {
-    checkNonEmpty(initPaymentRequest.from, "from", exchange)
-    checkNonEmpty(initPaymentRequest.to, "to", exchange)
-    checkNonEmpty(initPaymentRequest.currency, "currency", exchange)
-    checkNonEmpty(initPaymentRequest.amount, "amount", exchange)
+  def correctValidationError(exchange: HttpExchange, error: String) = {
+    Stream("from", "to", "currency", "amount").flatMap {
+      checkField(_, error, exchange)
+    }.find(_.nonEmpty)
   }
 
-  def checkNonEmpty[T](field: T, fieldName: String, exchange: HttpExchange) = {
-    if (Option(field).isEmpty) {
-      bcHttpServer.sendHttpResponse(exchange, 400, s"$fieldName field in invoice is missing.")
-    }
+  def checkField(fieldName: String, error: String, exchange: HttpExchange) = {
+    if (error == s"Attempt to decode value on failed cursor: DownField($fieldName)") {
+      Some(s""""$fieldName" field in payment request is missing.""")
+    } else
+      None
   }
 }

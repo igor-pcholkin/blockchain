@@ -18,7 +18,7 @@ import util.{DateTimeUtil, StringConverter}
 import scala.collection.JavaConverters._
 import io.circe._
 
-class InitPaymentHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSugar with DateTimeUtil with KeysGenerator with KeysSerializator with StringConverter {
+class InitPaymentHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSugar with DateTimeUtil with KeysGenerator with StringConverter {
   val keysFileOps = mock[KeysFileOps]
 
   "InitPaymentHandler" should "initialize new payment to node and send it to another peers" in {

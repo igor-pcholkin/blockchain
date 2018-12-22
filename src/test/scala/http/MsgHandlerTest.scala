@@ -37,7 +37,7 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
     // whether payment transaction could be created and signed
     when(keysFileOps.isKeysDirExists("John")).thenReturn(false)
 
-    val signedMessage = InitPaymentMessage.apply("Riga", fromPublicKey, "(publicKeyTo)", Money("EUR", 2025), keysFileOps).get
+    val signedMessage = InitPaymentMessage.apply("Riga", fromPublicKey, "(publicKeyTo)", Money("EUR", 2025), keysFileOps).right.get
     val is = new ByteArrayInputStream(Message.serialize(signedMessage).getBytes)
 
     when(mockExchange.getRequestMethod).thenReturn("POST")
@@ -71,7 +71,7 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
     // whether payment transaction could be created and signed
     when(keysFileOps.isKeysDirExists("John")).thenReturn(false)
 
-    val signedMessage = InitPaymentMessage.apply("Riga", fromPublicKey, "(publicKeyTo)", Money("EUR", 2025), keysFileOps).get
+    val signedMessage = InitPaymentMessage.apply("Riga", fromPublicKey, "(publicKeyTo)", Money("EUR", 2025), keysFileOps).right.get
     val tamperedMessage = signedMessage.copy(money = Money("EUR", 202500))
     val is = new ByteArrayInputStream(Message.serialize(tamperedMessage).getBytes)
 
@@ -110,7 +110,7 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
     when(keysFileOps.readKeyFromFile("keys/John/publicKey")).thenReturn("MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEp0qOMxie16K1oArb+FGKB6YSbl+Hz3pLsVI4r6zWMXmtuD6QFZxGDhbvPO6c969SFEW5VmOSelb8ck+2TysK/Q==")
 
     val signedMessage = InitPaymentMessage.apply("Riga", fromPublicKey,
-      "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEp0qOMxie16K1oArb+FGKB6YSbl+Hz3pLsVI4r6zWMXmtuD6QFZxGDhbvPO6c969SFEW5VmOSelb8ck+2TysK/Q==", Money("EUR", 2025), keysFileOps).get
+      "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEp0qOMxie16K1oArb+FGKB6YSbl+Hz3pLsVI4r6zWMXmtuD6QFZxGDhbvPO6c969SFEW5VmOSelb8ck+2TysK/Q==", Money("EUR", 2025), keysFileOps).right.get
     val is = new ByteArrayInputStream(Message.serialize(signedMessage).getBytes)
 
     when(mockExchange.getRequestMethod).thenReturn("POST")
