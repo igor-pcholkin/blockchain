@@ -1,0 +1,6 @@
+Scenario 1.
+
+Start one node as Riga, 5761, another as London, 5762.
+For each node, add another node as peer.
+Generate valid payment request on node1 (Riga) with from field as public key of node1 and to field as public key of node2.
+That should result in adding new block on both nodes to blockchain.

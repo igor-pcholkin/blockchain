@@ -1,16 +1,22 @@
 package http
 
 import core.{BlockChain, InitPayments}
+import org.slf4j.LoggerFactory
 import peers.{HttpPeerTransport, PeerAccess}
 
 object Main extends App {
+
+  val logger = LoggerFactory.getLogger(this.getClass)
+
   val (nodeName, port) = if (args.length < 2) {
-    System.err.println("Node name and port should be provided")
+    logger.error("Node name and port should be provided")
     System.exit(1)
     ("", 2)
   } else {
     (args(0), args(1).toInt)
   }
+
+  logger.info(s"Started as $nodeName, listening port $port")
 
   val bc = new BlockChain
   val peerAccess = new PeerAccess(new HttpPeerTransport)

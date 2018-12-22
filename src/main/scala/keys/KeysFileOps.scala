@@ -12,6 +12,8 @@ trait KeysFileOps {
   def createKeysDir(nodeName: String): Unit
 
   def readKeyFromFile(fileName: String): String
+
+  def getUserByKey(encodedPublicKey: String): Option[String]
 }
 
 object ProdKeysFileOps extends KeysFileOps {
@@ -21,13 +23,13 @@ object ProdKeysFileOps extends KeysFileOps {
     pw.close()
   }
 
-  override def isKeysDirExists(nodeName: String): Boolean = {
-    val keyDir = new File(nodeName)
+  override def isKeysDirExists(userName: String): Boolean = {
+    val keyDir = new File(s"keys/$userName")
     keyDir.exists && keyDir.isDirectory
   }
 
-  override def createKeysDir(nodeName: String) = {
-    new File(nodeName).mkdirs()
+  override def createKeysDir(userName: String) = {
+    new File(s"keys/$userName").mkdirs()
   }
 
   override def readKeyFromFile(fileName: String) = {
@@ -37,5 +39,11 @@ object ProdKeysFileOps extends KeysFileOps {
     key
   }
 
+  override def getUserByKey(encodedPublicKey: String) = {
+    val keyDir = new File("keys")
+    keyDir.list.toStream.map { userDir =>
+      readKeyFromFile("keys/$userDir/publicKey")
+    }.find(_ == encodedPublicKey)
+  }
 }
 

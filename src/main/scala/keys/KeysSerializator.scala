@@ -26,20 +26,20 @@ trait KeysSerializator extends StringConverter {
   }
 
   def readPrivateKey(userName: String) = {
-    val buffer = keysFileOps.readKeyFromFile(s"$userName/privateKey")
+    val buffer = keysFileOps.readKeyFromFile(s"keys/$userName/privateKey")
     deserializePrivate(buffer)
   }
 
   def readPublicKey(userName: String) = {
-    val buffer = keysFileOps.readKeyFromFile(s"$userName/publicKey")
+    val buffer = keysFileOps.readKeyFromFile(s"keys/$userName/publicKey")
     deserializePublic(buffer)
   }
 
   def writeKey(userName: String, privateKey: PrivateKey) = {
-    keysFileOps.writeKey(s"$userName/privateKey", serialize(privateKey))
+    keysFileOps.writeKey(s"keys/$userName/privateKey", serialize(privateKey))
   }
 
   def writeKey(userName: String, publicKey: PublicKey) = {
-    keysFileOps.writeKey(s"$userName/publicKey", serialize(publicKey))
+    keysFileOps.writeKey(s"keys/$userName/publicKey", serialize(publicKey))
   }
 }

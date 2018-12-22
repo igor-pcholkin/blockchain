@@ -13,21 +13,23 @@ import util.StringConverter
 object InitPaymentMessage extends StringConverter with MsgDeserializator {
   override def deserialize(s: String): Either[circe.Error, InitPaymentMessage] = decode[InitPaymentMessage](s)
 
-  def apply(createdBy: String, fromPublicKeyEncoded: String, toPublicKeyEncoded: String, money: Money,
-            keysFileOps: KeysFileOps): InitPaymentMessage = {
+  def apply(createdByNode: String, fromPublicKeyEncoded: String, toPublicKeyEncoded: String, money: Money,
+            keysFileOps: KeysFileOps): Option[InitPaymentMessage] = {
     val timestamp = LocalDateTime.now
-    val notSignedMessage = InitPaymentMessage(createdBy, fromPublicKeyEncoded, toPublicKeyEncoded, money, timestamp)
+    val notSignedMessage = InitPaymentMessage(createdByNode, fromPublicKeyEncoded, toPublicKeyEncoded, money, timestamp)
     val signer = new Signer (keysFileOps)
-    val signature = signer.sign (createdBy, fromPublicKeyEncoded, notSignedMessage.dataToSign)
-    val encodedSignature = bytesToBase64Str(signature)
-    notSignedMessage.copy (encodedSignature = Some(encodedSignature) )
+    keysFileOps.getUserByKey(fromPublicKeyEncoded).map { userName =>
+      val signature = signer.sign (userName, fromPublicKeyEncoded, notSignedMessage.dataToSign)
+      val encodedSignature = bytesToBase64Str(signature)
+      notSignedMessage.copy (encodedSignature = Some(encodedSignature) )
+    }
   }
 
 }
 
-case class InitPaymentMessage(val createdBy: String, val fromPublicKeyEncoded: String, val toPublicKeyEncoded: String, val money: Money,
+case class InitPaymentMessage(val createdByNode: String, val fromPublicKeyEncoded: String, val toPublicKeyEncoded: String, val money: Money,
                               val timestamp: LocalDateTime, val encodedSignature: Option[String] = None) extends Message {
 
-  override def dataToSign: Array[Byte] = (createdBy + fromPublicKeyEncoded + toPublicKeyEncoded + money + timestamp).getBytes
+  override def dataToSign: Array[Byte] = (createdByNode + fromPublicKeyEncoded + toPublicKeyEncoded + money + timestamp).getBytes
 
 }

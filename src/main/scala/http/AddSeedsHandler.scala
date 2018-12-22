@@ -5,11 +5,11 @@ import java.io.IOException
 import com.sun.net.httpserver.{HttpExchange, HttpHandler}
 import org.apache.http.HttpStatus.{SC_BAD_REQUEST, SC_CREATED}
 import peers.PeerAccess
-import util.HttpUtil.withHttpMethod
+import util.HttpUtil
 
 import scala.io.Source
 
-class AddSeedsHandler(bcHttpServer: BCHttpServer, peerAccess: PeerAccess) extends HttpHandler {
+class AddSeedsHandler(bcHttpServer: BCHttpServer, peerAccess: PeerAccess) extends HttpHandler with HttpUtil {
   @throws[IOException]
   def handle(exchange: HttpExchange): Unit = {
     withHttpMethod ("PUT", exchange, bcHttpServer) {

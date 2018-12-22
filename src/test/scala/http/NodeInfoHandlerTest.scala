@@ -14,14 +14,11 @@ class NodeInfoHandlerTest extends FlatSpec with org.scalatest.Matchers with Mock
     val mockBcHttpServer = mock[BCHttpServer]
     val peerAccess = PeerAccess()
 
-    when(mockBcHttpServer.getKeys).thenReturn(None)
-
     new NodeInfoHandler("Riga", mockBcHttpServer, peerAccess).handle(mockExchange)
 
     verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange),
       Matchers.eq(s"""Node name: Riga
-                     |Public key: (None)
-                     |WebSocket peers: []""".stripMargin))
+                     |Peers: []""".stripMargin))
   }
 
   "NodeInfoHandler" should "respond with enhanced node info" in {
@@ -30,15 +27,11 @@ class NodeInfoHandlerTest extends FlatSpec with org.scalatest.Matchers with Mock
     val peerAccess = PeerAccess()
     peerAccess.add("localhost:9001,localhost:9002")
 
-    val keysPair = generateKeyPair()
-    when(mockBcHttpServer.getKeys).thenReturn(Some(keysPair))
-
     new NodeInfoHandler("Riga", mockBcHttpServer, peerAccess).handle(mockExchange)
 
     verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange),
       Matchers.eq(s"""Node name: Riga
-                     |Public key: ${keysPair.getPublic}
-                     |WebSocket peers: [localhost:9001,localhost:9002]""".stripMargin))
+                     |Peers: [localhost:9001,localhost:9002]""".stripMargin))
   }
 
 }

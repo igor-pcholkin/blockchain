@@ -27,10 +27,10 @@ class InitPaymentHandlerTest extends FlatSpec with org.scalatest.Matchers with M
     val peerAccess = new PeerAccess(mock[PeerTransport])
     peerAccess.addAll(Seq("blabla.com", "another.com"))
     val initPayments = new InitPayments
-
+    val fromPublicKey = "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEDibd8O5I928ZnTU7RYTy6Od3K3SrGlC+V8lkMYrdJuzT9Ig/Iq8JciaukxCYmVSO1mZuC65xMkxSb5Q0rNZ8og=="
     val initPayment =
-      """{
-        | "from": "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEDibd8O5I928ZnTU7RYTy6Od3K3SrGlC+V8lkMYrdJuzT9Ig/Iq8JciaukxCYmVSO1mZuC65xMkxSb5Q0rNZ8og==",
+      s"""{
+        | "from": "$fromPublicKey",
         | "to": "(publicKeyTo)",
         | "currency": "EUR",
         | "amount": 20.25
@@ -42,19 +42,20 @@ class InitPaymentHandlerTest extends FlatSpec with org.scalatest.Matchers with M
     when(mockExchange.getRequestBody).thenReturn(is)
 
     val nodeName = "Riga"
-    when(keysFileOps.readKeyFromFile("Riga/privateKey")).thenReturn("MEECAQAwEwYHKoZIzj0CAQYIKoZIzj0DAQcEJzAlAgEBBCC94HoY839pqOB/m2D00X4+8vsM6kzUby8gk7Eq8XVsgw==")
-    when(keysFileOps.readKeyFromFile("Riga/publicKey")).thenReturn("MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEDibd8O5I928ZnTU7RYTy6Od3K3SrGlC+V8lkMYrdJuzT9Ig/Iq8JciaukxCYmVSO1mZuC65xMkxSb5Q0rNZ8og==")
+    when(keysFileOps.getUserByKey(fromPublicKey)).thenReturn(Some("Igor"))
+    when(keysFileOps.readKeyFromFile("keys/Igor/privateKey")).thenReturn("MEECAQAwEwYHKoZIzj0CAQYIKoZIzj0DAQcEJzAlAgEBBCC94HoY839pqOB/m2D00X4+8vsM6kzUby8gk7Eq8XVsgw==")
+    when(keysFileOps.readKeyFromFile("keys/Igor/publicKey")).thenReturn(fromPublicKey)
     new InitPaymentHandler(nodeName, mockBcHttpServer, initPayments, keysFileOps, peerAccess).handle(mockExchange)
 
     initPayments.initPayments.size shouldBe 1
     val createdInitPayment = initPayments.initPayments.asScala.head._2
-    createdInitPayment.createdBy shouldBe "Riga"
+    createdInitPayment.createdByNode shouldBe "Riga"
     createdInitPayment.fromPublicKeyEncoded shouldBe "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEDibd8O5I928ZnTU7RYTy6Od3K3SrGlC+V8lkMYrdJuzT9Ig/Iq8JciaukxCYmVSO1mZuC65xMkxSb5Q0rNZ8og=="
     createdInitPayment.toPublicKeyEncoded shouldBe "(publicKeyTo)"
     createdInitPayment.money shouldBe Money("EUR", 2025)
     timeStampsAreWithin(createdInitPayment.timestamp, LocalDateTime.now, 1000) shouldBe true
     val decodedSignature = base64StrToBytes(createdInitPayment.encodedSignature.getOrElse(""))
-    new Signer(keysFileOps).verify(nodeName, createdInitPayment.dataToSign, decodedSignature) shouldBe true
+    new Signer(keysFileOps).verify("Igor", createdInitPayment.dataToSign, decodedSignature) shouldBe true
 
     verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange), Matchers.eq(SC_CREATED),
       Matchers.eq("New Payment has been initiated."))

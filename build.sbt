@@ -7,7 +7,8 @@ scalaVersion := "2.12.6"
 libraryDependencies ++= Seq(
   "org.apache.httpcomponents" % "httpclient" % "4.5.6",
   "org.scalatest" %% "scalatest" % "3.0.5" % "test",
-  "org.mockito" % "mockito-all" % "1.9.5" % "test"
+  "org.mockito" % "mockito-all" % "1.9.5" % "test",
+  "ch.qos.logback" % "logback-classic" % "1.2.3"
 )
 
 val circeVersion = "0.10.0"
