@@ -6,7 +6,7 @@ import java.time.LocalDateTime
 import com.sun.net.httpserver.HttpExchange
 import core.messages.InitPaymentMessage
 import core.{InitPayments, Money, Signer}
-import keys.{KeysFileOps, KeysGenerator, KeysSerializator}
+import keys.{KeysFileOps, KeysGenerator}
 import org.apache.http.HttpStatus.SC_CREATED
 import org.mockito.Matchers
 import org.mockito.Mockito.{times, verify, when}
@@ -19,7 +19,7 @@ import scala.collection.JavaConverters._
 import io.circe._
 
 class InitPaymentHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSugar with DateTimeUtil with KeysGenerator with StringConverter {
-  val keysFileOps = mock[KeysFileOps]
+  val keysFileOps: KeysFileOps = mock[KeysFileOps]
 
   "InitPaymentHandler" should "initialize new payment to node and send it to another peers" in {
     val mockBcHttpServer = mock[BCHttpServer]
@@ -41,11 +41,10 @@ class InitPaymentHandlerTest extends FlatSpec with org.scalatest.Matchers with M
     when(mockExchange.getRequestMethod).thenReturn("POST")
     when(mockExchange.getRequestBody).thenReturn(is)
 
-    val nodeName = "Riga"
-    when(keysFileOps.getUserByKey(fromPublicKey)).thenReturn(Some("Igor"))
-    when(keysFileOps.readKeyFromFile("keys/Igor/privateKey")).thenReturn("MEECAQAwEwYHKoZIzj0CAQYIKoZIzj0DAQcEJzAlAgEBBCC94HoY839pqOB/m2D00X4+8vsM6kzUby8gk7Eq8XVsgw==")
-    when(keysFileOps.readKeyFromFile("keys/Igor/publicKey")).thenReturn(fromPublicKey)
-    new InitPaymentHandler(nodeName, mockBcHttpServer, initPayments, keysFileOps, peerAccess).handle(mockExchange)
+    when(keysFileOps.getUserByKey("Riga", fromPublicKey)).thenReturn(Some("Igor"))
+    when(keysFileOps.readKeyFromFile("Riga", "Igor", "privateKey")).thenReturn("MEECAQAwEwYHKoZIzj0CAQYIKoZIzj0DAQcEJzAlAgEBBCC94HoY839pqOB/m2D00X4+8vsM6kzUby8gk7Eq8XVsgw==")
+    when(keysFileOps.readKeyFromFile("Riga", "Igor", "publicKey")).thenReturn(fromPublicKey)
+    new InitPaymentHandler("Riga", mockBcHttpServer, initPayments, keysFileOps, peerAccess).handle(mockExchange)
 
     initPayments.initPayments.size shouldBe 1
     val createdInitPayment = initPayments.initPayments.asScala.head._2
@@ -55,7 +54,7 @@ class InitPaymentHandlerTest extends FlatSpec with org.scalatest.Matchers with M
     createdInitPayment.money shouldBe Money("EUR", 2025)
     timeStampsAreWithin(createdInitPayment.timestamp, LocalDateTime.now, 1000) shouldBe true
     val decodedSignature = base64StrToBytes(createdInitPayment.encodedSignature.getOrElse(""))
-    new Signer(keysFileOps).verify("Igor", createdInitPayment.dataToSign, decodedSignature) shouldBe true
+    new Signer(keysFileOps).verify("Riga", "Igor", createdInitPayment.dataToSign, decodedSignature) shouldBe true
 
     verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange), Matchers.eq(SC_CREATED),
       Matchers.eq("New Payment has been initiated."))

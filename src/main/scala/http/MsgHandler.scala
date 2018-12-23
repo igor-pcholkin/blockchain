@@ -26,7 +26,7 @@ class MsgHandler(nodeName: String, bcHttpServer: BCHttpServer, initPayments: Ini
         case initPaymentMessage: InitPaymentMessage =>
           if (verifySignature(initPaymentMessage)) {
             initPayments.add(initPaymentMessage)
-            if (isLocalKey()) {
+            if (isLocalHostDestinationFor(initPaymentMessage)) {
               addTransactionToNewBlock(initPaymentMessage)
               peerAccess.sendMsg(NewBlockMessage(bc.getLatestBlock))
               bcHttpServer.sendHttpResponse(exchange, "Payment transaction created and added to blockchain.")
@@ -45,16 +45,19 @@ class MsgHandler(nodeName: String, bcHttpServer: BCHttpServer, initPayments: Ini
     }
   }
 
-  def isLocalKey() = keysFileOps.isKeysDirExists(nodeName)
-
-  def addTransactionToNewBlock(initPaymentMessage: InitPaymentMessage) = {
-    val paymentTransaction = PaymentTransaction(nodeName, initPaymentMessage, keysFileOps)
-    val serializedTransaction = Message.serialize(paymentTransaction).getBytes
-    val newBlock = bc.genNextBlock(serializedTransaction)
-    bc.add(newBlock)
+  def isLocalHostDestinationFor(initPaymentMessage: InitPaymentMessage): Boolean = {
+    keysFileOps.getUserByKey(nodeName, initPaymentMessage.toPublicKeyEncoded).nonEmpty
   }
 
-  def verifySignature(initPaymentMessage: InitPaymentMessage) = {
+  def addTransactionToNewBlock(initPaymentMessage: InitPaymentMessage): Unit = {
+    PaymentTransaction(nodeName, initPaymentMessage, keysFileOps) map { paymentTransaction =>
+      val serializedTransaction = Message.serialize(paymentTransaction).getBytes
+      val newBlock = bc.genNextBlock(serializedTransaction)
+      bc.add(newBlock)
+    }
+  }
+
+  def verifySignature(initPaymentMessage: InitPaymentMessage): Boolean = {
     initPaymentMessage.encodedSignature match {
       case Some(encodedSignature) =>
         val decodedSignature = base64StrToBytes(encodedSignature)

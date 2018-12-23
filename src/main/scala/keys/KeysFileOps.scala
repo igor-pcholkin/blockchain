@@ -2,63 +2,64 @@ package keys
 
 import java.io.{File, FileOutputStream, PrintWriter}
 
-import keys.ProdKeysFileOps.keyDir
-
 import scala.io.Source
 
 trait KeysFileOps {
-  def writeKey(path: String, key: String)
+  def writeKeyToFile(nodeName: String, userName: String, keyName: String, key: String): Unit
 
-  def isKeysDirExists(nodeName: String): Boolean
+  def readKeyFromFile(nodeName: String, userName: String, keyName: String): String
 
-  def createKeysDir(nodeName: String): Unit
+  def getUserByKey(nodeName: String, encodedPublicKey: String): Option[String]
 
-  def readKeyFromFile(fileName: String): String
-
-  def getUserByKey(encodedPublicKey: String): Option[String]
+  def isKeysDirExists(nodeName: String, userName: String): Boolean
 }
 
 object ProdKeysFileOps extends KeysFileOps {
-  def keyDir() = new File("keys")
+  private def getKeysDir(nodeName: String) = new File(s"$nodeName/keys")
+  private def getUserKeysDir(nodeName: String, userName: String) = s"$nodeName/keys/$userName"
 
-  override def writeKey(path: String, key: String) = {
-    val pw = new PrintWriter(new FileOutputStream(path))
+  override def writeKeyToFile(nodeName: String, userName: String, keyName: String, key: String): Unit = {
+    val keysDir = getUserKeysDir(nodeName, userName)
+    if (!isKeysDirExists(nodeName, userName)) {
+      createKeysDir(nodeName, userName)
+    }
+    val keyFileName = s"$keysDir/$keyName"
+    val pw = new PrintWriter(new FileOutputStream(keyFileName))
     pw.write(key)
     pw.close()
   }
 
-  override def isKeysDirExists(userName: String): Boolean = {
-    val keyDir = new File(s"keys/$userName")
-    keyDir.exists && keyDir.isDirectory
+  def isKeysDirExists(nodeName: String, userName: String): Boolean = {
+    val keysDir = new File(getUserKeysDir(nodeName, userName))
+    keysDir.exists && keysDir.isDirectory
   }
 
-  override def createKeysDir(userName: String) = {
-    new File(s"keys/$userName").mkdirs()
+  private def createKeysDir(nodeName: String, userName: String) = {
+    new File(getUserKeysDir(nodeName, userName)).mkdirs()
   }
 
-  def isKeysDirExists(): Boolean = {
-    val kd = keyDir()
+  private def isKeysDirExists(nodeName: String): Boolean = {
+    val kd = getKeysDir(nodeName)
     kd.exists && kd.isDirectory
   }
 
-  def createKeysDir() = {
-    keyDir().mkdirs()
-  }
-
-  override def readKeyFromFile(fileName: String) = {
-    val s = Source.fromFile(fileName)
+  override def readKeyFromFile(nodeName: String, userName: String, keyName: String): String = {
+    val keysDir = getUserKeysDir(nodeName, userName)
+    val keyFileName = s"$keysDir/$keyName"
+    val s = Source.fromFile(keyFileName)
     val key = s.getLines().mkString
     s.close()
     key
   }
 
-  override def getUserByKey(encodedPublicKey: String) = {
-    if (!isKeysDirExists()) {
-      createKeysDir
+  override def getUserByKey(nodeName: String, encodedPublicKey: String): Option[String] = {
+    if (!isKeysDirExists(nodeName)) {
+      None
+    } else {
+      getKeysDir(nodeName).list.toStream.map { userName =>
+        (userName, readKeyFromFile(nodeName, userName, "publicKey"))
+      }.find(_._2 == encodedPublicKey).map(_._1)
     }
-    keyDir().list.toStream.map { userName =>
-      (userName, readKeyFromFile(s"keys/$userName/publicKey"))
-    }.find(_._2 == encodedPublicKey).map(_._1)
   }
 }
 

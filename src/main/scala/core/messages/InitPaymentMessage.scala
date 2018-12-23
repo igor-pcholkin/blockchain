@@ -21,9 +21,9 @@ object InitPaymentMessage extends StringConverter with MsgDeserializator {
       val timestamp = LocalDateTime.now
       val notSignedMessage = InitPaymentMessage(createdByNode, fromPublicKeyEncoded, toPublicKeyEncoded, money, timestamp)
       val signer = new Signer(keysFileOps)
-      keysFileOps.getUserByKey(fromPublicKeyEncoded) match {
+      keysFileOps.getUserByKey(createdByNode, fromPublicKeyEncoded) match {
         case Some(userName) =>
-          val signature = signer.sign(userName, fromPublicKeyEncoded, notSignedMessage.dataToSign)
+          val signature = signer.sign(createdByNode, userName, fromPublicKeyEncoded, notSignedMessage.dataToSign)
           val encodedSignature = bytesToBase64Str(signature)
           Right(notSignedMessage.copy(encodedSignature = Some(encodedSignature)))
         case None =>
@@ -34,8 +34,8 @@ object InitPaymentMessage extends StringConverter with MsgDeserializator {
 
 }
 
-case class InitPaymentMessage(val createdByNode: String, val fromPublicKeyEncoded: String, val toPublicKeyEncoded: String, val money: Money,
-                              val timestamp: LocalDateTime, val encodedSignature: Option[String] = None) extends Message {
+case class InitPaymentMessage(createdByNode: String, fromPublicKeyEncoded: String, toPublicKeyEncoded: String, money: Money,
+                              timestamp: LocalDateTime, encodedSignature: Option[String] = None) extends Message {
 
   override def dataToSign: Array[Byte] = (createdByNode + fromPublicKeyEncoded + toPublicKeyEncoded + money + timestamp).getBytes
 

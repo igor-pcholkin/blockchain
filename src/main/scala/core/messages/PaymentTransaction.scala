@@ -11,13 +11,15 @@ import util.StringConverter
 object PaymentTransaction extends StringConverter {
   def deserialize(s: String) = decode[PaymentTransaction](s)
 
-  def apply(createdBy: String, paymentMessage: InitPaymentMessage, keysFileOps: KeysFileOps): PaymentTransaction = {
+  def apply(createdByNode: String, paymentMessage: InitPaymentMessage, keysFileOps: KeysFileOps): Option[PaymentTransaction] = {
     val timestamp = LocalDateTime.now
     val notSignedTransaction = PaymentTransaction(paymentMessage, timestamp)
     val signer = new Signer(keysFileOps)
-    val signature = signer.sign(createdBy, paymentMessage.toPublicKeyEncoded, notSignedTransaction.dataToSign)
-    val encodedSignature = bytesToBase64Str(signature)
-    notSignedTransaction.copy(encodedSignature = Some(encodedSignature))
+    keysFileOps.getUserByKey(createdByNode, paymentMessage.toPublicKeyEncoded) map { userName =>
+      val signature = signer.sign(createdByNode, userName, paymentMessage.toPublicKeyEncoded, notSignedTransaction.dataToSign)
+      val encodedSignature = bytesToBase64Str(signature)
+      notSignedTransaction.copy(encodedSignature = Some(encodedSignature))
+    }
   }
 }
 

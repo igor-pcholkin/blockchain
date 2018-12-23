@@ -16,9 +16,9 @@ class InitPaymentMessageTest extends FlatSpec with scalatest.Matchers with Mocki
       override val keysFileOps: KeysFileOps = mock[KeysFileOps]
     }
     val serializedPublicKey = ks.serialize(keyPair.getPublic)
-    when(ks.keysFileOps.getUserByKey(serializedPublicKey)).thenReturn(Some("Igor"))
-    when(ks.keysFileOps.readKeyFromFile("keys/Igor/privateKey")).thenReturn(ks.serialize(keyPair.getPrivate))
-    when(ks.keysFileOps.readKeyFromFile("keys/Igor/publicKey")).thenReturn(serializedPublicKey)
+    when(ks.keysFileOps.getUserByKey("Riga", serializedPublicKey)).thenReturn(Some("Igor"))
+    when(ks.keysFileOps.readKeyFromFile("Riga", "Igor", "privateKey")).thenReturn(ks.serialize(keyPair.getPrivate))
+    when(ks.keysFileOps.readKeyFromFile("Riga", "Igor", "publicKey")).thenReturn(serializedPublicKey)
 
     val asset = Money("EUR", 2025)
     val message = InitPaymentMessage("Riga", serializedPublicKey, "5678", asset, ks.keysFileOps).right.get
@@ -36,7 +36,7 @@ class InitPaymentMessageTest extends FlatSpec with scalatest.Matchers with Mocki
       override val keysFileOps: KeysFileOps = mock[KeysFileOps]
     }
     val serializedPublicKey = ks.serialize(keyPair.getPublic)
-    when(ks.keysFileOps.getUserByKey(serializedPublicKey)).thenReturn(None)
+    when(ks.keysFileOps.getUserByKey("Riga", serializedPublicKey)).thenReturn(None)
 
     val asset = Money("EUR", 2025)
     InitPaymentMessage("Riga", serializedPublicKey, "5678", asset, ks.keysFileOps ) shouldBe Left("No user with given (from) public key found.")
@@ -52,7 +52,7 @@ class InitPaymentMessageTest extends FlatSpec with scalatest.Matchers with Mocki
     val asset = Money("EUR", 2025)
     InitPaymentMessage("Riga", serializedPublicKey, serializedPublicKey, asset, ks.keysFileOps ) shouldBe Left("Sender and receiver of payment can't be the same person")
 
-    verify(ks.keysFileOps, never).getUserByKey(Matchers.any[String])
+    verify(ks.keysFileOps, never).getUserByKey(Matchers.any[String], Matchers.any[String])
   }
 
 }

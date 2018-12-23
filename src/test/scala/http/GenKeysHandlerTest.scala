@@ -1,7 +1,6 @@
 package http
 
 import java.net.URI
-import java.security.KeyPair
 
 import com.sun.net.httpserver.HttpExchange
 import keys.KeysFileOps
@@ -19,13 +18,12 @@ class GenKeysHandlerTest extends FlatSpec with org.scalatest.Matchers with Mocki
     val mockBcHttpServer = mock[BCHttpServer]
     when(mockExchange.getRequestURI).thenReturn(new URI("/genkeys?userName=Igor"))
     when(mockExchange.getRequestMethod).thenReturn("PUT")
-    when(mockKeysFileOps.isKeysDirExists(any[String])).thenReturn(false)
+    when(mockKeysFileOps.isKeysDirExists(any[String], any[String])).thenReturn(false)
 
-    new GenKeysHandler(mockKeysFileOps, mockBcHttpServer).handle(mockExchange)
+    new GenKeysHandler("Riga", mockKeysFileOps, mockBcHttpServer).handle(mockExchange)
 
-    verify(mockKeysFileOps, times(1)).createKeysDir(any[String])
-    verify(mockKeysFileOps, times(1)).writeKey(Matchers.eq("keys/Igor/privateKey"), any[String])
-    verify(mockKeysFileOps, times(1)).writeKey(Matchers.eq("keys/Igor/publicKey"), any[String])
+    verify(mockKeysFileOps, times(1)).writeKeyToFile(Matchers.eq("Riga"), Matchers.eq("Igor"), Matchers.eq("privateKey"), any[String])
+    verify(mockKeysFileOps, times(1)).writeKeyToFile(Matchers.eq("Riga"), Matchers.eq("Igor"), Matchers.eq("publicKey"), any[String])
     verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange), Matchers.eq(SC_CREATED),
       Matchers.eq("New keys have been created"))
   }
@@ -36,12 +34,12 @@ class GenKeysHandlerTest extends FlatSpec with org.scalatest.Matchers with Mocki
     val mockBcHttpServer = mock[BCHttpServer]
     when(mockExchange.getRequestURI).thenReturn(new URI("/genkeys?userName=Igor"))
     when(mockExchange.getRequestMethod).thenReturn("PUT")
-    when(mockKeysFileOps.isKeysDirExists(any[String])).thenReturn(true)
+    when(mockKeysFileOps.isKeysDirExists(any[String], any[String])).thenReturn(true)
 
-    new GenKeysHandler(mockKeysFileOps, mockBcHttpServer).handle(mockExchange)
+    new GenKeysHandler("Riga", mockKeysFileOps, mockBcHttpServer).handle(mockExchange)
 
-    verify(mockKeysFileOps, never).writeKey(Matchers.eq("keys/Igor/privateKey"), any[String])
-    verify(mockKeysFileOps, never).writeKey(Matchers.eq("keys/Igor/publicKey"), any[String])
+    verify(mockKeysFileOps, never).writeKeyToFile(Matchers.eq("Riga"), Matchers.eq("Igor"), Matchers.eq("privateKey"), any[String])
+    verify(mockKeysFileOps, never).writeKeyToFile(Matchers.eq("Riga"), Matchers.eq("Igor"), Matchers.eq("publicKey"), any[String])
     verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange), Matchers.eq(SC_BAD_REQUEST),
       Matchers.eq("Public or private key already exists, use overwrite=true to overwrite"))
   }
@@ -53,13 +51,12 @@ class GenKeysHandlerTest extends FlatSpec with org.scalatest.Matchers with Mocki
     val mockBcHttpServer = mock[BCHttpServer]
     when(mockExchange.getRequestURI).thenReturn(new URI("/genkeys?userName=Igor&overwrite=true"))
     when(mockExchange.getRequestMethod).thenReturn("PUT")
-    when(mockKeysFileOps.isKeysDirExists(any[String])).thenReturn(true)
+    when(mockKeysFileOps.isKeysDirExists(any[String], any[String])).thenReturn(true)
 
-    new GenKeysHandler(mockKeysFileOps, mockBcHttpServer).handle(mockExchange)
+    new GenKeysHandler("Riga", mockKeysFileOps, mockBcHttpServer).handle(mockExchange)
 
-    verify(mockKeysFileOps, never).createKeysDir(any[String])
-    verify(mockKeysFileOps, times(1)).writeKey(Matchers.eq("keys/Igor/privateKey"), any[String])
-    verify(mockKeysFileOps, times(1)).writeKey(Matchers.eq("keys/Igor/publicKey"), any[String])
+    verify(mockKeysFileOps, times(1)).writeKeyToFile(Matchers.eq("Riga"), Matchers.eq("Igor"), Matchers.eq("privateKey"), any[String])
+    verify(mockKeysFileOps, times(1)).writeKeyToFile(Matchers.eq("Riga"), Matchers.eq("Igor"), Matchers.eq("publicKey"), any[String])
     verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange), Matchers.eq(SC_CREATED),
       Matchers.eq("New keys have been created"))
   }
@@ -71,11 +68,10 @@ class GenKeysHandlerTest extends FlatSpec with org.scalatest.Matchers with Mocki
     when(mockExchange.getRequestURI).thenReturn(new URI("/genkeys"))
     when(mockExchange.getRequestMethod).thenReturn("PUT")
 
-    new GenKeysHandler(mockKeysFileOps, mockBcHttpServer).handle(mockExchange)
+    new GenKeysHandler("Riga", mockKeysFileOps, mockBcHttpServer).handle(mockExchange)
 
-    verify(mockKeysFileOps, never).createKeysDir(any[String])
-    verify(mockKeysFileOps, never).writeKey(Matchers.eq("keys/Igor/privateKey"), any[String])
-    verify(mockKeysFileOps, never).writeKey(Matchers.eq("keys/Igor/publicKey"), any[String])
+    verify(mockKeysFileOps, never).writeKeyToFile(Matchers.eq("Riga"), Matchers.eq("Igor"), Matchers.eq("privateKey"), any[String])
+    verify(mockKeysFileOps, never).writeKeyToFile(Matchers.eq("Riga"), Matchers.eq("Igor"), Matchers.eq("publicKey"), any[String])
     verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange), Matchers.eq(SC_BAD_REQUEST),
       Matchers.eq("User name should be specified in request query (userName)"))
   }

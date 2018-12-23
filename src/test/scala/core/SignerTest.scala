@@ -26,10 +26,10 @@ class SignerTest extends FlatSpec with Matchers with KeysGenerator with MockitoS
     val signer = new Signer(keysFileOps)
     val serializedPublicKey = serialize(pair.getPublic)
     val serializedPrivateKey = serialize(pair.getPrivate)
-    when(keysFileOps.readKeyFromFile("keys/Igor/publicKey")).thenReturn(serializedPublicKey)
-    when(keysFileOps.readKeyFromFile("keys/Igor/privateKey")).thenReturn(serializedPrivateKey)
+    when(keysFileOps.readKeyFromFile("Riga", "Igor", "publicKey")).thenReturn(serializedPublicKey)
+    when(keysFileOps.readKeyFromFile("Riga", "Igor", "privateKey")).thenReturn(serializedPrivateKey)
     val data = "123".getBytes
-    val signature  = signer.sign("Igor", serializedPublicKey, data)
+    val signature  = signer.sign("Riga", "Igor", serializedPublicKey, data)
     Signer.verify(signature, data, pair.getPublic) shouldBe true
   }
 
@@ -37,16 +37,16 @@ class SignerTest extends FlatSpec with Matchers with KeysGenerator with MockitoS
     val signer = new Signer(keysFileOps)
     val serializedPublicKey = serialize(pair.getPublic)
     val serializedPrivateKey = serialize(pair.getPrivate)
-    when(keysFileOps.readKeyFromFile("keys/Igor/publicKey")).thenReturn(serializedPublicKey)
-    when(keysFileOps.readKeyFromFile("keys/Igor/privateKey")).thenReturn(serializedPrivateKey)
+    when(keysFileOps.readKeyFromFile("Riga", "Igor", "publicKey")).thenReturn(serializedPublicKey)
+    when(keysFileOps.readKeyFromFile("Riga", "Igor", "privateKey")).thenReturn(serializedPrivateKey)
     val data = "123".getBytes
     assertThrows[RuntimeException] {
-        signer.sign("Igor", serialize(pair2.getPublic), data)
+        signer.sign("Riga", "Igor", serialize(pair2.getPublic), data)
     }
   }
 
   import java.security.KeyPair
   val pair: KeyPair = generateKeyPair()
   val pair2: KeyPair = generateKeyPair()
-  override val keysFileOps = mock[KeysFileOps]
+  override val keysFileOps: KeysFileOps = mock[KeysFileOps]
 }

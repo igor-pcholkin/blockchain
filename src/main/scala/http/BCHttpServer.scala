@@ -1,24 +1,23 @@
 package http
 
 import java.net.InetSocketAddress
-import java.security.KeyPair
 
 import com.sun.net.httpserver.{HttpExchange, HttpServer}
 import core.{BlockChain, InitPayments}
 import keys.ProdKeysFileOps
 import org.apache.http.HttpStatus
-import org.slf4j.LoggerFactory
+import org.slf4j.{Logger, LoggerFactory}
 import peers.PeerAccess
 
 class BCHttpServer(port: Int, bc: BlockChain, peerAccess: PeerAccess, initPayments: InitPayments) {
 
-  val logger = LoggerFactory.getLogger(this.getClass)
+  val logger: Logger = LoggerFactory.getLogger(this.getClass)
 
-  def start(nodeName: String) = {
+  def start(nodeName: String): Unit = {
     val server = HttpServer.create()
     server.bind(new InetSocketAddress(port), 0)
     server.createContext("/dumpchain", new GetChainHandler(this, bc))
-    server.createContext("/genkeys", new GenKeysHandler(ProdKeysFileOps, this))
+    server.createContext("/genkeys", new GenKeysHandler(nodeName, ProdKeysFileOps, this))
     server.createContext("/nodeinfo", new NodeInfoHandler(nodeName, this, peerAccess))
     server.createContext("/addseeds", new AddSeedsHandler(this, peerAccess))
     server.createContext("/initpayment", new InitPaymentHandler(nodeName, this, initPayments, ProdKeysFileOps, peerAccess))
@@ -41,7 +40,7 @@ class BCHttpServer(port: Int, bc: BlockChain, peerAccess: PeerAccess, initPaymen
     exchange.sendResponseHeaders(code, bytes.length)
     val os = exchange.getResponseBody
     os.write(bytes)
-    os.close
+    os.close()
   }
 
 }
