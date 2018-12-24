@@ -4,7 +4,7 @@ import java.io.IOException
 
 import com.sun.net.httpserver.{HttpExchange, HttpHandler}
 import core._
-import core.messages.{InitPaymentMessage, Message, NewBlockMessage, PaymentTransaction}
+import core.messages._
 import keys.{KeysFileOps, KeysSerializator}
 import util.{HttpUtil, StringConverter}
 
@@ -24,28 +24,43 @@ class MsgHandler(nodeName: String, bcHttpServer: BCHttpServer, initPayments: Ini
         bcHttpServer.sendHttpResponse(exchange, SC_BAD_REQUEST, s"Invalid message received: $msgAsString")
       } match {
         case initPaymentMessage: InitPaymentMessage =>
-          if (verifySignature(initPaymentMessage)) {
-            initPayments.add(initPaymentMessage)
-            if (isLocalHostDestinationFor(initPaymentMessage)) {
-              addTransactionToNewBlock(initPaymentMessage)
-              peerAccess.sendMsg(NewBlockMessage(bc.getLatestBlock))
-              bcHttpServer.sendHttpResponse(exchange, "Payment transaction created and added to blockchain.")
-            } else {
-              bcHttpServer.sendHttpResponse(exchange, "Initial payment message verified and added to message cache.")
-            }
-          } else {
-            bcHttpServer.sendHttpResponse(exchange, SC_BAD_REQUEST, "Initial payment message validation failed.")
-          }
+          handle(initPaymentMessage, exchange)
         case newBlockMessage: NewBlockMessage =>
-          bc.add(newBlockMessage.block)
-          bcHttpServer.sendHttpResponse(exchange, "New block received and added to blockchain.")
+          handle(newBlockMessage, exchange)
+        case addPeersMessage: AddPeersMessage =>
+          handle(addPeersMessage, exchange)
         case _ =>
           throw new RuntimeException(s"Unexpected message: $msgAsString")
       }
     }
   }
 
-  def isLocalHostDestinationFor(initPaymentMessage: InitPaymentMessage): Boolean = {
+  private def handle(initPaymentMessage: InitPaymentMessage, exchange: HttpExchange): Unit = {
+    if (verifySignature(initPaymentMessage)) {
+      initPayments.add(initPaymentMessage)
+      if (isLocalHostDestinationFor(initPaymentMessage)) {
+        addTransactionToNewBlock(initPaymentMessage)
+        peerAccess.sendMsg(NewBlockMessage(bc.getLatestBlock))
+        bcHttpServer.sendHttpResponse(exchange, "Payment transaction created and added to blockchain.")
+      } else {
+        bcHttpServer.sendHttpResponse(exchange, "Initial payment message verified and added to message cache.")
+      }
+    } else {
+      bcHttpServer.sendHttpResponse(exchange, SC_BAD_REQUEST, "Initial payment message validation failed.")
+    }
+  }
+
+  private def handle(newBlockMessage: NewBlockMessage, exchange: HttpExchange): Unit = {
+    bc.add(newBlockMessage.block)
+    bcHttpServer.sendHttpResponse(exchange, "New block received and added to blockchain.")
+  }
+
+  private def handle(addPeersMessage: AddPeersMessage, exchange: HttpExchange): Unit = {
+    peerAccess.addAll(addPeersMessage.peers)
+    bcHttpServer.sendHttpResponse(exchange, "New peers received and added to the node.")
+  }
+
+  private def isLocalHostDestinationFor(initPaymentMessage: InitPaymentMessage): Boolean = {
     keysFileOps.getUserByKey(nodeName, initPaymentMessage.toPublicKeyEncoded).nonEmpty
   }
 

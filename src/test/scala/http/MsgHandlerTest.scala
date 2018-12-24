@@ -5,7 +5,7 @@ import java.time.LocalDateTime
 
 import com.sun.net.httpserver.HttpExchange
 import core._
-import core.messages.{InitPaymentMessage, Message, NewBlockMessage, PaymentTransaction}
+import core.messages._
 import io.circe.Encoder
 import keys.KeysFileOps
 import org.apache.http.HttpStatus
@@ -157,6 +157,28 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
 
     verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange),
       Matchers.eq("New block received and added to blockchain."))
+  }
+
+  "Message handler" should "accept AddPeersMessage when it arrives from another node" in {
+    val mockExchange = mock[HttpExchange]
+    val mockBcHttpServer = mock[BCHttpServer]
+    val blockChain = new BlockChain
+    val initPayments = new InitPayments()
+    val keysFileOps = mock[KeysFileOps]
+    val peerAccess = mock[PeerAccess]
+
+    val peers = Seq("localhost:6789", "blabla123.com")
+    val addPeersMessage = AddPeersMessage(peers)
+    val is = new ByteArrayInputStream(Message.serialize(addPeersMessage).getBytes)
+
+    when(mockExchange.getRequestMethod).thenReturn("POST")
+    when(mockExchange.getRequestBody).thenReturn(is)
+
+    new MsgHandler("Riga", mockBcHttpServer, initPayments, blockChain, keysFileOps, peerAccess).handle(mockExchange)
+
+    verify(peerAccess, times(1)).addAll(Matchers.eq(peers))
+    verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange),
+      Matchers.eq("New peers received and added to the node."))
   }
 
 }

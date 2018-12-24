@@ -3,10 +3,11 @@ package http
 import java.io.IOException
 
 import com.sun.net.httpserver.{HttpExchange, HttpHandler}
-import org.apache.http.HttpStatus.{SC_BAD_REQUEST, SC_CREATED}
+import core.messages.AddPeersMessage
+import org.apache.http.HttpStatus.SC_CREATED
 import peers.PeerAccess
 import util.HttpUtil
-
+import io.circe.generic.auto._
 import scala.io.Source
 
 class AddSeedsHandler(bcHttpServer: BCHttpServer, peerAccess: PeerAccess) extends HttpHandler with HttpUtil {
@@ -16,8 +17,14 @@ class AddSeedsHandler(bcHttpServer: BCHttpServer, peerAccess: PeerAccess) extend
       val s = Source.fromInputStream(exchange.getRequestBody)
       val seeds = s.getLines.mkString(",").split(",").map(_.trim)
       peerAccess.addAll(seeds)
+      peerAccess.sendMsg(AddPeersMessage(seeds :+ getLocalServerAddress(exchange)))
       s.close()
       bcHttpServer.sendHttpResponse(exchange, SC_CREATED, "New seeds have been added.")
     }
+  }
+
+  private def getLocalServerAddress(exchange: HttpExchange) = {
+    val localServerAddress = exchange.getLocalAddress.toString
+    localServerAddress.split("/")(1)
   }
 }

@@ -12,7 +12,7 @@ object Message {
 
   def deserialize(s: String): Option[Message] = {
 
-    val deserializers = Stream(InitPaymentMessage, NewBlockMessage)
+    val deserializers = Stream(InitPaymentMessage, NewBlockMessage, AddPeersMessage)
 
     deserializers.map { d =>
       d.deserialize(s)
@@ -25,7 +25,7 @@ object Message {
 }
 
 abstract class Message {
-  def dataToSign: Array[Byte]
+  def dataToSign: Array[Byte] = Array[Byte]()
 
 }
 
