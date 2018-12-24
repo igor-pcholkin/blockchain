@@ -15,11 +15,11 @@ class AddSeedsHandler(bcHttpServer: BCHttpServer, peerAccess: PeerAccess) extend
   @throws[IOException]
   def handle(exchange: HttpExchange): Unit = {
     withHttpMethod ("PUT", exchange, bcHttpServer) {
-      val s = Source.fromInputStream(exchange.getRequestBody)
-      val seeds = s.getLines.mkString(",").split(",").map(_.trim)
+      val source = Source.fromInputStream(exchange.getRequestBody)
+      val seeds = source.getLines.mkString(",").split(",").map(_.trim)
       peerAccess.addAll(seeds)
-      peerAccess.sendMsg(AddPeersMessage(seeds :+ bcHttpServer.getLocalServerAddress()))
-      s.close()
+      peerAccess.sendMsg(AddPeersMessage(seeds :+ bcHttpServer.localServerAddress))
+      source.close()
       bcHttpServer.sendHttpResponse(exchange, SC_CREATED, "New seeds have been added.")
     }
   }

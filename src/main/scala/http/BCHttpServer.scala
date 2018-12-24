@@ -44,7 +44,7 @@ class BCHttpServer(port: Int, bc: BlockChain, peerAccess: PeerAccess, initPaymen
     os.close()
   }
 
-  lazy val getLocalServerAddress = {
+  lazy val localServerAddress: String = {
     // ugly, but it works... a better way?
     val socket = new Socket()
     socket.connect(new InetSocketAddress("google.com", 80))

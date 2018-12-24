@@ -5,7 +5,7 @@ import io.circe.{Encoder, Printer}
 import io.circe.syntax._
 
 object Message {
-  def serialize[T <: Message](msg: T) (implicit encoder: Encoder[T]) = {
+  def serialize[T <: Message](msg: T) (implicit encoder: Encoder[T]): String = {
     val printer = Printer.noSpaces.copy(dropNullValues = true)
     printer.pretty(msg.asJson)
   }

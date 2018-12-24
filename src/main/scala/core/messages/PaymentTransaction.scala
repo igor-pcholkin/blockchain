@@ -3,13 +3,14 @@ package core.messages
 import java.time.LocalDateTime
 
 import core.Signer
+import io.circe
 import io.circe.generic.auto._
 import io.circe.parser.decode
 import keys.KeysFileOps
 import util.StringConverter
 
 object PaymentTransaction extends StringConverter {
-  def deserialize(s: String) = decode[PaymentTransaction](s)
+  def deserialize(s: String): Either[circe.Error, PaymentTransaction] = decode[PaymentTransaction](s)
 
   def apply(createdByNode: String, paymentMessage: InitPaymentMessage, keysFileOps: KeysFileOps): Option[PaymentTransaction] = {
     val timestamp = LocalDateTime.now

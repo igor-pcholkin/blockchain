@@ -11,6 +11,6 @@ class SHA256Test extends FlatSpec with Matchers with StringConverter {
     val hash2 = SHA256.hash("1234")
     println(hexBytesStr(hash1))
     println(hexBytesStr(hash2))
-    hash1.toSeq should not be(hash2.toSeq)
+    hash1.toSeq should not be hash2.toSeq
   }
 }

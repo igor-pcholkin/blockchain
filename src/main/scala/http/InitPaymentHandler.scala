@@ -4,7 +4,7 @@ import java.io.IOException
 
 import com.sun.net.httpserver.{HttpExchange, HttpHandler}
 import core.messages.InitPaymentMessage
-import core.{InitPayments, Money, Signer}
+import core.{InitPayments, Money}
 import keys.KeysFileOps
 import peers.PeerAccess
 
@@ -37,21 +37,21 @@ class InitPaymentHandler(nodeName: String, bcHttpServer: BCHttpServer, initPayme
           }
         case Left(error) =>
           val correctedMessage = correctValidationError(exchange, error.getMessage) match {
-            case Some(correctedMessage) => correctedMessage
-            case None =>  error.getMessage
+            case Some(message) => message
+            case None => error.getMessage
           }
           bcHttpServer.sendHttpResponse (exchange, SC_BAD_REQUEST, correctedMessage)
       }
     }
   }
 
-  def correctValidationError(exchange: HttpExchange, error: String) = {
+  private def correctValidationError(exchange: HttpExchange, error: String) = {
     Stream("from", "to", "currency", "amount").flatMap {
       checkField(_, error, exchange)
     }.find(_.nonEmpty)
   }
 
-  def checkField(fieldName: String, error: String, exchange: HttpExchange) = {
+  private def checkField(fieldName: String, error: String, exchange: HttpExchange) = {
     if (error == s"Attempt to decode value on failed cursor: DownField($fieldName)") {
       Some(s""""$fieldName" field in payment request is missing.""")
     } else

@@ -5,7 +5,7 @@ import java.time.LocalDateTime
 import util.StringConverter
 
 case class Block(index: Int, prevHash: Array[Byte], timestamp: LocalDateTime, data: Array[Byte]) extends StringConverter {
-  override def equals(other: Any) = {
+  override def equals(other: Any): Boolean = {
     if (!other.isInstanceOf[Block])
       false
     else {
@@ -19,9 +19,9 @@ case class Block(index: Int, prevHash: Array[Byte], timestamp: LocalDateTime, da
     SHA256.hash(this).toSeq.hashCode()
   }
 
-  def hash = SHA256.hash(this)
+  lazy val hash: Array[Byte] = SHA256.hash(this)
 
-  override def toString() = {
+  override def toString: String = {
     s"$index:${hexBytesStr(prevHash)}:$timestamp:${hexBytesStr(data)}"
   }
 

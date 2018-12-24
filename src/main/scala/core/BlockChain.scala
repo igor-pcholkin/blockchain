@@ -8,7 +8,7 @@ class BlockChain {
   val chain = new ConcurrentLinkedDeque[Block]()
   chain.add(origin)
 
-  def genNextBlock(data: Array[Byte]) = {
+  def genNextBlock(data: Array[Byte]): Block = {
     val prevBlock = getLatestBlock
     val nextIndex = prevBlock.index + 1
     val prevHash = SHA256.hash(prevBlock)
@@ -16,19 +16,19 @@ class BlockChain {
     Block(nextIndex, prevHash, nextTimestamp, data)
   }
 
-  def add(block: Block) = {
+  def add(block: Block): Unit = {
     if (isValid(block))
       chain.add(block)
   }
 
-  def isValid(block: Block) = {
+  def isValid(block: Block): Boolean = {
     block.index == getLatestBlock.index + 1 && block.prevHash.toSeq == getLatestBlock.hash.toSeq &&
       block.timestamp.compareTo(getLatestBlock.timestamp) > 0
   }
 
-  def getLatestBlock = chain.peekLast()
+  def getLatestBlock: Block = chain.peekLast()
 
-  def serialize = {
+  def serialize: String = {
     val sb = new StringBuilder
     val it = chain.iterator
     while (it.hasNext) {

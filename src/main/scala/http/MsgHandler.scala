@@ -67,7 +67,7 @@ class MsgHandler(nodeName: String, bcHttpServer: BCHttpServer, initPayments: Ini
   }
 
   def addTransactionToNewBlock(initPaymentMessage: InitPaymentMessage): Unit = {
-    PaymentTransaction(nodeName, initPaymentMessage, keysFileOps) map { paymentTransaction =>
+    PaymentTransaction(nodeName, initPaymentMessage, keysFileOps) foreach { paymentTransaction =>
       val serializedTransaction = Message.serialize(paymentTransaction).getBytes
       val newBlock = bc.genNextBlock(serializedTransaction)
       bc.add(newBlock)

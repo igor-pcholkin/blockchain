@@ -18,7 +18,7 @@ abstract class PeerTransport {
 }
 
 class HttpPeerTransport extends PeerTransport {
-  override def sendMsg[T <: Message](msg: T, peers: Seq[String])(implicit encoder: Encoder[T]) = {
+  override def sendMsg[T <: Message](msg: T, peers: Seq[String])(implicit encoder: Encoder[T]): Future[Result] = {
     val f = Future.sequence(
       peers map { peer =>
         Future {
@@ -28,7 +28,7 @@ class HttpPeerTransport extends PeerTransport {
     Future.successful(Result(HttpStatus.SC_OK, "Msg sent to all peers."))
   }
 
-  def postRequest(msg: String, peer: String) = {
+  private def postRequest(msg: String, peer: String) = {
     val url = s"http://$peer/msgHandler"
 
     val post = new HttpPost(url)

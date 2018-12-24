@@ -22,7 +22,7 @@ class AddSeedsHandlerTest extends FlatSpec with org.scalatest.Matchers with Mock
 
     when(mockExchange.getRequestMethod).thenReturn("PUT")
     when(mockExchange.getRequestBody).thenReturn(is)
-    when(mockBcHttpServer.getLocalServerAddress()).thenReturn("123.233.22.44:1234")
+    when(mockBcHttpServer.localServerAddress).thenReturn("123.233.22.44:1234")
 
     val peerAccess = mock[PeerAccess]
     new AddSeedsHandler(mockBcHttpServer, peerAccess).handle(mockExchange)

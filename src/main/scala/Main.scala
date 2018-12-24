@@ -1,6 +1,5 @@
-package http
-
 import core.{BlockChain, InitPayments}
+import http.BCHttpServer
 import org.slf4j.LoggerFactory
 import peers.{HttpPeerTransport, PeerAccess}
 

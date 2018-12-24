@@ -5,7 +5,7 @@ import http.BCHttpServer
 import org.apache.http.HttpStatus.SC_BAD_REQUEST
 
 trait HttpUtil {
-  def withHttpMethod(httpMethod: String, exchange: HttpExchange, bcHttpServer: BCHttpServer)(code : => Unit) = {
+  def withHttpMethod(httpMethod: String, exchange: HttpExchange, bcHttpServer: BCHttpServer)(code : => Unit): Unit = {
     if (exchange.getRequestMethod == httpMethod) {
       code
     } else {
@@ -13,7 +13,7 @@ trait HttpUtil {
     }
   }
 
-  def getRequestParam(mayBeQuery: Option[String], paramName: String) = {
+  def getRequestParam(mayBeQuery: Option[String], paramName: String): Option[String] = {
     mayBeQuery.flatMap { query =>
       query.split("&").flatMap { param =>
         val paramPair = param.split("=")

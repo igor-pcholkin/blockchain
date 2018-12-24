@@ -7,15 +7,15 @@ import core.messages.InitPaymentMessage
 class InitPayments {
   val initPayments = new ConcurrentHashMap[Int, InitPaymentMessage]()
 
-  def add(initPayment: InitPaymentMessage) = {
+  def add(initPayment: InitPaymentMessage): Unit = {
     val initPaymentHashCode = initPayment.hashCode()
     if (!initPayments.contains(initPaymentHashCode)) {
       initPayments.put(initPaymentHashCode, initPayment)
     }
   }
 
-  def addAll(initPayments: Seq[InitPaymentMessage]) = {
-    initPayments foreach (add(_))
+  def addAll(initPayments: Seq[InitPaymentMessage]): Unit = {
+    initPayments foreach add
   }
 
 }
