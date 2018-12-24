@@ -19,7 +19,7 @@ import io.circe.generic.auto._
 
 class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSugar with StringConverter {
 
-  "Message handler" should "verify and add initial payment message to message cache without creation payment transaction" in {
+  "Message handler" should "verify, add initial payment message to message cache and relay to peers, without creation payment transaction" in {
 
     val mockExchange = mock[HttpExchange]
     val mockBcHttpServer = mock[BCHttpServer]
@@ -47,7 +47,9 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
 
     verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange),
       Matchers.eq("Initial payment message verified and added to message cache."))
-    verify(peerAccess, never).sendMsg(Matchers.any[NewBlockMessage])(Matchers.any[Encoder[NewBlockMessage]])
+    verify(peerAccess, times(1)).sendMsg(Matchers.eq(signedMessage))(Matchers.any[Encoder[InitPaymentMessage]])
+    // it doesn't make disctinction between InitPaymentMessage and NewBlockMessage, so commented out
+    //verify(peerAccess, never).sendMsg(Matchers.any[NewBlockMessage])(Matchers.any[Encoder[NewBlockMessage]])
 
     initPayments.initPayments.containsValue(signedMessage) shouldBe true
     blockChain.chain.size() shouldBe 1
@@ -155,6 +157,7 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
 
     blockChain.chain.size() shouldBe 2
 
+    verify(peerAccess, times(1)).sendMsg(Matchers.eq(newBlockMessage))(Matchers.any[Encoder[NewBlockMessage]])
     verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange),
       Matchers.eq("New block received and added to blockchain."))
   }

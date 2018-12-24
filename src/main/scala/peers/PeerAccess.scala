@@ -7,29 +7,34 @@ import io.circe.Encoder
 
 import scala.concurrent.Future
 import scala.collection.JavaConverters._
+import scala.collection.mutable
 
 case class Result(status: Int, replyMsg: String)
 
 object PeerAccess {
-  def apply() = {
+  def apply(): PeerAccess = {
     new PeerAccess(new HttpPeerTransport)
   }
 }
 
 class PeerAccess(val peerTransport: PeerTransport) {
   val peers = new ConcurrentLinkedQueue[String]()
+  val msgToPeers = new mutable.HashMap[Message, Seq[String]]
 
-  def add(peer: String) = {
+  def add(peer: String): Unit = {
     if (!peers.contains(peer)) {
       peers.add(peer)
     }
   }
 
-  def addAll(peers: Seq[String]) = {
-    peers foreach (add(_))
+  def addAll(peers: Seq[String]): Unit = {
+    peers foreach add
   }
 
   def sendMsg[T <: Message](msg: T)(implicit encoder: Encoder[T]): Future[Result] = {
-    peerTransport.sendMsg(msg, peers.asScala.toSeq)
+    val peersReceivedMsg = msgToPeers.getOrElse(msg, Nil)
+    val peersToSendMessage = peers.asScala.toSeq.diff(peersReceivedMsg)
+    msgToPeers.put(msg, peersReceivedMsg ++ peersToSendMessage)
+    peerTransport.sendMsg(msg, peersToSendMessage)
   }
 }

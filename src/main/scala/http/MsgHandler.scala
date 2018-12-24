@@ -26,7 +26,7 @@ class MsgHandler(nodeName: String, bcHttpServer: BCHttpServer, initPayments: Ini
         case initPaymentMessage: InitPaymentMessage =>
           handle(initPaymentMessage, exchange)
         case newBlockMessage: NewBlockMessage =>
-          handle(newBlockMessage, exchange)
+          handle(newBlockMessage, exchange, peerAccess)
         case addPeersMessage: AddPeersMessage =>
           handle(addPeersMessage, exchange)
         case _ =>
@@ -43,6 +43,7 @@ class MsgHandler(nodeName: String, bcHttpServer: BCHttpServer, initPayments: Ini
         peerAccess.sendMsg(NewBlockMessage(bc.getLatestBlock))
         bcHttpServer.sendHttpResponse(exchange, "Payment transaction created and added to blockchain.")
       } else {
+        peerAccess.sendMsg(initPaymentMessage)
         bcHttpServer.sendHttpResponse(exchange, "Initial payment message verified and added to message cache.")
       }
     } else {
@@ -50,8 +51,9 @@ class MsgHandler(nodeName: String, bcHttpServer: BCHttpServer, initPayments: Ini
     }
   }
 
-  private def handle(newBlockMessage: NewBlockMessage, exchange: HttpExchange): Unit = {
+  private def handle(newBlockMessage: NewBlockMessage, exchange: HttpExchange, peerAccess: PeerAccess): Unit = {
     bc.add(newBlockMessage.block)
+    peerAccess.sendMsg(newBlockMessage)
     bcHttpServer.sendHttpResponse(exchange, "New block received and added to blockchain.")
   }
 

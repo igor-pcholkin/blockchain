@@ -1,6 +1,6 @@
 package http
 
-import java.net.InetSocketAddress
+import java.net.{InetSocketAddress, Socket}
 
 import com.sun.net.httpserver.{HttpExchange, HttpServer}
 import core.{BlockChain, InitPayments}
@@ -13,8 +13,9 @@ class BCHttpServer(port: Int, bc: BlockChain, peerAccess: PeerAccess, initPaymen
 
   val logger: Logger = LoggerFactory.getLogger(this.getClass)
 
+  val server: HttpServer = HttpServer.create()
+
   def start(nodeName: String): Unit = {
-    val server = HttpServer.create()
     server.bind(new InetSocketAddress(port), 0)
     server.createContext("/dumpchain", new GetChainHandler(this, bc))
     server.createContext("/genkeys", new GenKeysHandler(nodeName, ProdKeysFileOps, this))
@@ -43,4 +44,10 @@ class BCHttpServer(port: Int, bc: BlockChain, peerAccess: PeerAccess, initPaymen
     os.close()
   }
 
+  lazy val getLocalServerAddress = {
+    // ugly, but it works... a better way?
+    val socket = new Socket()
+    socket.connect(new InetSocketAddress("google.com", 80))
+    socket.getLocalAddress.toString.split("/")(1) + ":" + port
+  }
 }

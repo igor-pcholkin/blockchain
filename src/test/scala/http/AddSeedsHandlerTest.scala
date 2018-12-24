@@ -1,7 +1,6 @@
 package http
 
 import java.io.ByteArrayInputStream
-import java.net.{InetAddress, InetSocketAddress}
 
 import com.sun.net.httpserver.HttpExchange
 import core.messages.AddPeersMessage
@@ -23,8 +22,7 @@ class AddSeedsHandlerTest extends FlatSpec with org.scalatest.Matchers with Mock
 
     when(mockExchange.getRequestMethod).thenReturn("PUT")
     when(mockExchange.getRequestBody).thenReturn(is)
-    val localServerAddress = createLocalAddress()
-    when(mockExchange.getLocalAddress).thenReturn(localServerAddress)
+    when(mockBcHttpServer.getLocalServerAddress()).thenReturn("123.233.22.44:1234")
 
     val peerAccess = mock[PeerAccess]
     new AddSeedsHandler(mockBcHttpServer, peerAccess).handle(mockExchange)
@@ -36,11 +34,6 @@ class AddSeedsHandlerTest extends FlatSpec with org.scalatest.Matchers with Mock
     verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange), Matchers.eq(HttpStatus.SC_CREATED),
       Matchers.eq("New seeds have been added."))
 
-  }
-
-  private def createLocalAddress() = {
-    val inetAddress = InetAddress.getByName("123.233.22.44")
-    new InetSocketAddress(inetAddress, 1234)
   }
 
 }
