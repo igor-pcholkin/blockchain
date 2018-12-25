@@ -74,7 +74,7 @@ abstract class BlockChain(nodeName: String) {
           add(block)
         }
         mayBeBlock
-      } takeWhile(_.nonEmpty)
+      }.takeWhile(_.nonEmpty).toList
     }
   }
 
