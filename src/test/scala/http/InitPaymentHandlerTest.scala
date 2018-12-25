@@ -4,7 +4,7 @@ import java.io.ByteArrayInputStream
 import java.time.LocalDateTime
 
 import com.sun.net.httpserver.HttpExchange
-import core.messages.InitPaymentMessage
+import messages.InitPaymentMessage
 import core.{InitPayments, Money, Signer}
 import keys.{KeysFileOps, KeysGenerator}
 import org.apache.http.HttpStatus.SC_CREATED

@@ -2,7 +2,7 @@ package core
 
 import java.util.concurrent.ConcurrentHashMap
 
-import core.messages.InitPaymentMessage
+import messages.InitPaymentMessage
 
 class InitPayments {
   val initPayments = new ConcurrentHashMap[Int, InitPaymentMessage]()

@@ -3,7 +3,7 @@ package http
 import java.io.ByteArrayInputStream
 
 import com.sun.net.httpserver.HttpExchange
-import core.messages.AddPeersMessage
+import messages.AddPeersMessage
 import io.circe.Encoder
 import org.apache.http.HttpStatus
 import org.mockito.Matchers

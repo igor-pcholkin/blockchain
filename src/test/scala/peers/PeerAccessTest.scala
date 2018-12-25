@@ -1,6 +1,6 @@
 package peers
 
-import core.messages.AddPeersMessage
+import messages.AddPeersMessage
 import io.circe.Encoder
 import org.mockito.Matchers
 import org.mockito.Mockito.{times, verify}

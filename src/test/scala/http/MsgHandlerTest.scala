@@ -5,7 +5,7 @@ import java.time.LocalDateTime
 
 import com.sun.net.httpserver.HttpExchange
 import core._
-import core.messages._
+import messages._
 import io.circe.Encoder
 import keys.KeysFileOps
 import org.apache.http.HttpStatus

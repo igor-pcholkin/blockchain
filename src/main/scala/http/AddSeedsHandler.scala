@@ -3,7 +3,7 @@ package http
 import java.io.IOException
 
 import com.sun.net.httpserver.{HttpExchange, HttpHandler}
-import core.messages.AddPeersMessage
+import messages.AddPeersMessage
 import org.apache.http.HttpStatus.SC_CREATED
 import peers.PeerAccess
 import util.HttpUtil

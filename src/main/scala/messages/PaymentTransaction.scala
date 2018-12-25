@@ -1,4 +1,4 @@
-package core.messages
+package messages
 
 import java.time.LocalDateTime
 

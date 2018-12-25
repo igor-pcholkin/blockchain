@@ -1,7 +1,7 @@
 package core
 
 import io.circe.generic.auto._
-import core.messages.{InitPaymentMessage, Message}
+import messages.{InitPaymentMessage, Message}
 import keys.{KeysFileOps, KeysGenerator, KeysSerializator}
 import org.mockito.Matchers
 import org.mockito.Mockito.{never, verify, when}

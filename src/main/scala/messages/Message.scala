@@ -1,4 +1,4 @@
-package core.messages
+package messages
 
 import io.circe
 import io.circe.{Encoder, Printer}

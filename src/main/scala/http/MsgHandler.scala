@@ -4,7 +4,7 @@ import java.io.IOException
 
 import com.sun.net.httpserver.{HttpExchange, HttpHandler}
 import core._
-import core.messages._
+import messages._
 import keys.{KeysFileOps, KeysSerializator}
 import util.{HttpUtil, StringConverter}
 

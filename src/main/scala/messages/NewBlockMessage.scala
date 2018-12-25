@@ -1,4 +1,4 @@
-package core.messages
+package messages
 
 import io.circe.generic.auto._
 import io.circe.parser.decode

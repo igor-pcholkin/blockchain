@@ -3,7 +3,7 @@ package http
 import java.io.IOException
 
 import com.sun.net.httpserver.{HttpExchange, HttpHandler}
-import core.messages.InitPaymentMessage
+import messages.InitPaymentMessage
 import core.{InitPayments, Money}
 import keys.KeysFileOps
 import peers.PeerAccess

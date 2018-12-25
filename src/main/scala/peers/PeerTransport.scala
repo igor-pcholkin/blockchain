@@ -1,6 +1,6 @@
 package peers
 
-import core.messages.Message
+import messages.Message
 import io.circe.Encoder
 import org.apache.http.HttpStatus
 import org.apache.http.client.methods.HttpPost
