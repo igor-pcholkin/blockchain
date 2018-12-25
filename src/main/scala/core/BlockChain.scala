@@ -3,10 +3,21 @@ package core
 import java.time.LocalDateTime
 import java.util.concurrent.ConcurrentLinkedDeque
 
-class BlockChain {
+import scala.collection.JavaConverters._
+
+class ProdBlockChain(nodeName: String) extends BlockChain(nodeName) {
+
+  readChain()
+
+  override def chainFileOps: ChainFileOps = ProdChainFileOps
+}
+
+abstract class BlockChain(nodeName: String) {
   val origin = Block(0, Array[Byte](), LocalDateTime.of(2018, 12, 11, 17, 40, 0), "Future is here".getBytes)
   val chain = new ConcurrentLinkedDeque[Block]()
   chain.add(origin)
+
+  def chainFileOps: ChainFileOps
 
   def genNextBlock(data: Array[Byte]): Block = {
     val prevBlock = getLatestBlock
@@ -38,4 +49,34 @@ class BlockChain {
     }
     sb.toString
   }
+
+  def writeChain(): Unit = {
+    val chainDir = chainFileOps.getChainDir(nodeName)
+    if (!chainFileOps.isChainDirExists(nodeName)) {
+      chainFileOps.createChainDir(nodeName)
+    }
+
+    val it = chain.iterator.asScala
+    it.foldLeft(0) { (i, block) =>
+      chainFileOps.writeBlock(i, block, chainDir)
+      i + 1
+    }
+  }
+
+  def readChain(): Unit = {
+    val chainDir = chainFileOps.getChainDir(nodeName)
+    if (!chainFileOps.isChainDirExists(nodeName)) {
+      None
+    } else {
+      Stream.from(chain.size()).map { i =>
+        val mayBeBlock = chainFileOps.readBlock(i, chainDir)
+        mayBeBlock foreach { block =>
+          add(block)
+        }
+        mayBeBlock
+      } takeWhile(_.nonEmpty)
+    }
+  }
+
+
 }

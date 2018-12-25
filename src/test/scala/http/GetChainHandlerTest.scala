@@ -1,7 +1,7 @@
 package http
 
 import com.sun.net.httpserver.HttpExchange
-import core.BlockChain
+import core.{BlockChain, TestBlockChain}
 import org.mockito.Matchers
 import org.mockito.Mockito.{times, verify}
 import org.scalatest.FlatSpec
@@ -12,7 +12,7 @@ class GetChainHandlerTest extends FlatSpec with org.scalatest.Matchers with Mock
     val mockExchange = mock[HttpExchange]
     val mockBcHttpServer = mock[BCHttpServer]
 
-    val bc = new BlockChain()
+    val bc = new TestBlockChain
     val serialized = bc.serialize
     new GetChainHandler(mockBcHttpServer, bc).handle(mockExchange)
 

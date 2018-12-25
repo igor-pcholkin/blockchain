@@ -26,7 +26,18 @@ class BlockTest extends FlatSpec with Matchers {
 
   "toString method" should "convert block to string" in {
     val block = Block(0, "1234".getBytes, LocalDateTime.of(2018, 1, 24, 15, 0, 0), "Hi".getBytes)
-    block.toString shouldBe "0:31323334:2018-01-24T15:00:4869"
+    block.toString shouldBe "0|MTIzNA==|2018-01-24T15:00|SGk="
+  }
+
+  "Block object" should "be able to parse block" in {
+    val mayBeBlock = Block.parse("0|MTIzNA==|2018-01-24T15:00|SGk=")
+    mayBeBlock.get shouldBe Block(0, "1234".getBytes, LocalDateTime.of(2018, 1, 24, 15, 0, 0), "Hi".getBytes)
+  }
+
+  "Block object" should "return None when parsing invalid string to block" in {
+    Block.parse("0MTIzNA==|2018-01-24T15:00|SGk=") shouldBe None
+    Block.parse("a|MTIzNA==|2018-01-24T15:00|SGk=") shouldBe None
+    Block.parse("0|MTIzNA==|2018-01-24W15:00|SGk=") shouldBe None
   }
 
 }

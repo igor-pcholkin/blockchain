@@ -4,6 +4,25 @@ import java.time.LocalDateTime
 
 import util.StringConverter
 
+import scala.util.Try
+
+object Block extends StringConverter {
+  def parse(s: String): Option[Block] = {
+    val fields = s.split("\\|")
+    if (fields.length == 4) {
+      Try {
+        val index = fields(0).toInt
+        val prevHash = base64StrToBytes(fields(1))
+        val timestamp = LocalDateTime.parse(fields(2))
+        val data = base64StrToBytes(fields(3))
+        Some(Block(index, prevHash, timestamp, data))
+      } getOrElse None
+    } else {
+      None
+    }
+  }
+}
+
 case class Block(index: Int, prevHash: Array[Byte], timestamp: LocalDateTime, data: Array[Byte]) extends StringConverter {
   override def equals(other: Any): Boolean = {
     if (!other.isInstanceOf[Block])
@@ -22,7 +41,7 @@ case class Block(index: Int, prevHash: Array[Byte], timestamp: LocalDateTime, da
   lazy val hash: Array[Byte] = SHA256.hash(this)
 
   override def toString: String = {
-    s"$index:${hexBytesStr(prevHash)}:$timestamp:${hexBytesStr(data)}"
+    s"$index|${bytesToBase64Str(prevHash)}|$timestamp|${bytesToBase64Str(data)}"
   }
 
 }

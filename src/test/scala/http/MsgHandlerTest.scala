@@ -23,7 +23,7 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
 
     val mockExchange = mock[HttpExchange]
     val mockBcHttpServer = mock[BCHttpServer]
-    val blockChain = new BlockChain
+    val blockChain = new TestBlockChain
     val initPayments = new InitPayments()
     val keysFileOps = mock[KeysFileOps]
     val peerAccess = mock[PeerAccess]
@@ -59,7 +59,7 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
 
     val mockExchange = mock[HttpExchange]
     val mockBcHttpServer = mock[BCHttpServer]
-    val blockChain = new BlockChain
+    val blockChain = new TestBlockChain
     val initPayments = new InitPayments()
     val keysFileOps = mock[KeysFileOps]
     val peerAccess = mock[PeerAccess]
@@ -94,7 +94,7 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
 
     val mockExchange = mock[HttpExchange]
     val mockBcHttpServer = mock[BCHttpServer]
-    val blockChain = new BlockChain
+    val blockChain = new TestBlockChain
     val initPayments = new InitPayments()
     val keysFileOps = mock[KeysFileOps]
     val peerAccess = mock[PeerAccess]
@@ -139,7 +139,7 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
   "Message handler" should "add a new block to blockchain when it arrives from another node" in {
     val mockExchange = mock[HttpExchange]
     val mockBcHttpServer = mock[BCHttpServer]
-    val blockChain = new BlockChain
+    val blockChain = new TestBlockChain
     val initPayments = new InitPayments()
     val keysFileOps = mock[KeysFileOps]
     val peerAccess = mock[PeerAccess]
@@ -151,12 +151,17 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
     when(mockExchange.getRequestMethod).thenReturn("POST")
     when(mockExchange.getRequestBody).thenReturn(is)
 
+    when(blockChain.chainFileOps.getChainDir("Riga")).thenReturn("Riga/chain")
+    when(blockChain.chainFileOps.isChainDirExists("Riga")).thenReturn(true)
+
     blockChain.chain.size() shouldBe 1
 
     new MsgHandler("Riga", mockBcHttpServer, initPayments, blockChain, keysFileOps, peerAccess).handle(mockExchange)
 
     blockChain.chain.size() shouldBe 2
 
+    verify(blockChain.chainFileOps, times(1)).writeBlock(Matchers.eq(0), Matchers.any[Block], Matchers.any[String])
+    verify(blockChain.chainFileOps, times(1)).writeBlock(Matchers.eq(1), Matchers.any[Block], Matchers.any[String])
     verify(peerAccess, times(1)).sendMsg(Matchers.eq(newBlockMessage))(Matchers.any[Encoder[NewBlockMessage]])
     verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange),
       Matchers.eq("New block received and added to blockchain."))
@@ -165,7 +170,7 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
   "Message handler" should "accept AddPeersMessage when it arrives from another node" in {
     val mockExchange = mock[HttpExchange]
     val mockBcHttpServer = mock[BCHttpServer]
-    val blockChain = new BlockChain
+    val blockChain = new TestBlockChain
     val initPayments = new InitPayments()
     val keysFileOps = mock[KeysFileOps]
     val peerAccess = mock[PeerAccess]

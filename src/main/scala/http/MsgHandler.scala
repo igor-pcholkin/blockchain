@@ -53,6 +53,7 @@ class MsgHandler(nodeName: String, bcHttpServer: BCHttpServer, initPayments: Ini
 
   private def handle(newBlockMessage: NewBlockMessage, exchange: HttpExchange, peerAccess: PeerAccess): Unit = {
     bc.add(newBlockMessage.block)
+    bc.writeChain()
     peerAccess.sendMsg(newBlockMessage)
     bcHttpServer.sendHttpResponse(exchange, "New block received and added to blockchain.")
   }

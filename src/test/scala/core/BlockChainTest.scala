@@ -2,18 +2,19 @@ package core
 
 import java.time.LocalDateTime
 
+import org.scalatest.mockito.MockitoSugar
 import org.scalatest.{FlatSpec, Matchers}
 
 class BlockChainTest extends FlatSpec with Matchers {
   "Initial blockchain" should "contain the only origin block" in {
-    val bc = new BlockChain
+    val bc = new TestBlockChain
     bc.chain.size() shouldBe 1
     bc.chain should contain (bc.origin)
     bc.origin shouldBe Block(0, Array[Byte](), LocalDateTime.of(2018, 12, 11, 17, 40, 0), "Future is here".getBytes)
   }
 
   "generation of new block on original blockchain" should "produce correct block" in {
-    val bc = new BlockChain
+    val bc = new TestBlockChain
     val newBlock = bc.genNextBlock("Hi".getBytes)
     newBlock.index shouldBe 1
     newBlock.prevHash shouldBe bc.origin.hash
@@ -22,12 +23,12 @@ class BlockChainTest extends FlatSpec with Matchers {
   }
 
   "getLatestBlock on original blockchain" should "return origin block" in {
-    val bc = new BlockChain
+    val bc = new TestBlockChain
     bc.getLatestBlock shouldBe bc.origin
   }
 
   "adding new generated block" should "go without problems" in {
-    val bc = new BlockChain
+    val bc = new TestBlockChain
     val newBlock = bc.genNextBlock("Fund transfer from A to B".getBytes)
     bc.add(newBlock)
     bc.chain.size shouldBe 2
@@ -35,7 +36,7 @@ class BlockChainTest extends FlatSpec with Matchers {
   }
 
   "newly generated block with incorrect index" should "not be added" in {
-    val bc = new BlockChain
+    val bc = new TestBlockChain
     val newBlock = bc.genNextBlock("Fund transfer from A to B".getBytes)
     val newBlockInvIdx = Block(0, newBlock.prevHash, newBlock.timestamp, newBlock.data)
     bc.add(newBlockInvIdx)
@@ -54,7 +55,7 @@ class BlockChainTest extends FlatSpec with Matchers {
   }
 
   "newly generated block with incorrect hash of previous block" should "not be added" in {
-    val bc = new BlockChain
+    val bc = new TestBlockChain
     val newBlock = bc.genNextBlock("Fund transfer from A to B".getBytes)
     val newBlockIncPrevHash = Block(1, Array[Byte](1.toByte), newBlock.timestamp, newBlock.data)
     bc.add(newBlockIncPrevHash)
@@ -63,7 +64,7 @@ class BlockChainTest extends FlatSpec with Matchers {
   }
 
   "newly generated block with timestamp less than timestamp of previous block" should "not be added" in {
-    val bc = new BlockChain
+    val bc = new TestBlockChain
     val newBlock = bc.genNextBlock("Fund transfer from A to B".getBytes)
     val newBlockIncTimestamp = Block(1, newBlock.prevHash, LocalDateTime.of(2018, 12, 10, 23, 0, 0), newBlock.data)
     bc.add(newBlockIncTimestamp)
@@ -72,11 +73,11 @@ class BlockChainTest extends FlatSpec with Matchers {
   }
 
   "serialize method on blockchain consisting of two blocks" should "produce a correct sequence of bytes" in {
-    val bc = new BlockChain
+    val bc = new TestBlockChain
     val newBlock = Block(1, bc.getLatestBlock.hash, LocalDateTime.of(2018, 12, 24, 15, 0, 0), "Hi".getBytes)
     bc.add(newBlock)
     bc.chain.size() shouldBe 2
-    bc.serialize shouldBe ("0::2018-12-11T17:40:4675747572652069732068657265," +
-      "1:710F7EA50A4CEAA8E0A8D042D2223A20D6782EA0F3D4C2EC22C5970F4D2E6226:2018-12-24T15:00:4869")
+    bc.serialize shouldBe ("0||2018-12-11T17:40|RnV0dXJlIGlzIGhlcmU=," +
+      "1|cQ9+pQpM6qjgqNBC0iI6INZ4LqDz1MLsIsWXD00uYiY=|2018-12-24T15:00|SGk=")
   }
 }
