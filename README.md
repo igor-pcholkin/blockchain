@@ -1,5 +1,4 @@
 # blockchain
-Simple blockchain in Scala
 
 A blockchain for storing arbitrary facts which could be agreed upon by participants of the blockchain.
 The facts include (but not restricted by) financial transactions.
