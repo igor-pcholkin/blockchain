@@ -4,6 +4,7 @@ import java.io.ByteArrayInputStream
 import java.time.LocalDateTime
 
 import com.sun.net.httpserver.HttpExchange
+import core.Block.CURRENT_BLOCK_VERSION
 import core._
 import messages._
 import io.circe.Encoder
@@ -144,7 +145,7 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
     val keysFileOps = mock[KeysFileOps]
     val peerAccess = mock[PeerAccess]
 
-    val block = Block(1, blockChain.getLatestBlock.hash, LocalDateTime.of(2018, 12, 21, 15, 0, 0), "Hi".getBytes)
+    val block = Block(CURRENT_BLOCK_VERSION, blockChain.getLatestBlock.hash, LocalDateTime.of(2018, 12, 21, 15, 0, 0), "Hi".getBytes)
     val newBlockMessage = NewBlockMessage(block)
     val is = new ByteArrayInputStream(Message.serialize(newBlockMessage).getBytes)
 

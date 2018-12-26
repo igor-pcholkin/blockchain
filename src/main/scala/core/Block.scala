@@ -7,15 +7,18 @@ import util.StringConverter
 import scala.util.Try
 
 object Block extends StringConverter {
+  val NUM_BLOCK_FIELDS = 4
+  val CURRENT_BLOCK_VERSION: Byte = 1
+
   def parse(s: String): Option[Block] = {
     val fields = s.split("\\|")
-    if (fields.length == 4) {
+    if (fields.length == NUM_BLOCK_FIELDS) {
       Try {
-        val index = fields(0).toInt
+        val version = fields(0).toByte
         val prevHash = base64StrToBytes(fields(1))
         val timestamp = LocalDateTime.parse(fields(2))
         val data = base64StrToBytes(fields(3))
-        Some(Block(index, prevHash, timestamp, data))
+        Some(Block(version, prevHash, timestamp, data))
       } getOrElse None
     } else {
       None
@@ -23,13 +26,13 @@ object Block extends StringConverter {
   }
 }
 
-case class Block(index: Int, prevHash: Array[Byte], timestamp: LocalDateTime, data: Array[Byte]) extends StringConverter {
+case class Block(version: Byte, prevHash: Array[Byte], timestamp: LocalDateTime, data: Array[Byte]) extends StringConverter {
   override def equals(other: Any): Boolean = {
     if (!other.isInstanceOf[Block])
       false
     else {
       val otherAsBlock = other.asInstanceOf[Block]
-      index == otherAsBlock.index && prevHash.toSeq == otherAsBlock.prevHash.toSeq && timestamp == otherAsBlock.timestamp &&
+      version == otherAsBlock.version && prevHash.toSeq == otherAsBlock.prevHash.toSeq && timestamp == otherAsBlock.timestamp &&
         data.toSeq == otherAsBlock.data.toSeq
     }
   }
@@ -41,7 +44,7 @@ case class Block(index: Int, prevHash: Array[Byte], timestamp: LocalDateTime, da
   lazy val hash: Array[Byte] = SHA256.hash(this)
 
   override def toString: String = {
-    s"$index|${bytesToBase64Str(prevHash)}|$timestamp|${bytesToBase64Str(data)}"
+    s"$version|${bytesToBase64Str(prevHash)}|$timestamp|${bytesToBase64Str(data)}"
   }
 
 }

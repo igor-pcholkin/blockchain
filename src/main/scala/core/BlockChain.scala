@@ -13,7 +13,7 @@ class ProdBlockChain(nodeName: String) extends BlockChain(nodeName) {
 }
 
 abstract class BlockChain(nodeName: String) {
-  val origin = Block(0, Array[Byte](), LocalDateTime.of(2018, 12, 11, 17, 40, 0), "Future is here".getBytes)
+  val origin = Block(Block.CURRENT_BLOCK_VERSION, Array[Byte](), LocalDateTime.of(2018, 12, 11, 17, 40, 0), "Future is here".getBytes)
   val chain = new ConcurrentLinkedDeque[Block]()
   chain.add(origin)
 
@@ -21,10 +21,9 @@ abstract class BlockChain(nodeName: String) {
 
   def genNextBlock(data: Array[Byte]): Block = {
     val prevBlock = getLatestBlock
-    val nextIndex = prevBlock.index + 1
     val prevHash = SHA256.hash(prevBlock)
     val nextTimestamp = LocalDateTime.now()
-    Block(nextIndex, prevHash, nextTimestamp, data)
+    Block(Block.CURRENT_BLOCK_VERSION, prevHash, nextTimestamp, data)
   }
 
   def add(block: Block): Unit = {
@@ -33,7 +32,7 @@ abstract class BlockChain(nodeName: String) {
   }
 
   def isValid(block: Block): Boolean = {
-    block.index == getLatestBlock.index + 1 && block.prevHash.toSeq == getLatestBlock.hash.toSeq &&
+    block.version <= Block.CURRENT_BLOCK_VERSION && block.version > 0 && block.prevHash.toSeq == getLatestBlock.hash.toSeq &&
       block.timestamp.compareTo(getLatestBlock.timestamp) > 0
   }
 
