@@ -2,7 +2,7 @@ package peers
 
 import java.util.concurrent.ConcurrentLinkedQueue
 
-import messages.Message
+import core.Message
 import io.circe.Encoder
 
 import scala.concurrent.Future

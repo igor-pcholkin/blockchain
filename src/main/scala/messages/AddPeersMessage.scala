@@ -1,5 +1,6 @@
 package messages
 
+import core.{Message, MsgDeserializator}
 import io.circe
 import io.circe.parser.decode
 import io.circe.generic.auto._

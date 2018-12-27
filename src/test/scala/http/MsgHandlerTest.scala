@@ -25,7 +25,7 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
     val mockExchange = mock[HttpExchange]
     val mockBcHttpServer = mock[BCHttpServer]
     val blockChain = new TestBlockChain
-    val initPayments = new InitPayments()
+    val statements = new Statements()
     val keysFileOps = mock[KeysFileOps]
     val peerAccess = mock[PeerAccess]
 
@@ -44,7 +44,7 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
     when(mockExchange.getRequestMethod).thenReturn("POST")
     when(mockExchange.getRequestBody).thenReturn(is)
 
-    new MsgHandler("Riga", mockBcHttpServer, initPayments, blockChain, keysFileOps, peerAccess).handle(mockExchange)
+    new MsgHandler("Riga", mockBcHttpServer, statements, blockChain, keysFileOps, peerAccess).handle(mockExchange)
 
     verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange),
       Matchers.eq("Initial payment message verified and added to message cache."))
@@ -52,7 +52,7 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
     // it doesn't make disctinction between InitPaymentMessage and NewBlockMessage, so commented out
     //verify(peerAccess, never).sendMsg(Matchers.any[NewBlockMessage])(Matchers.any[Encoder[NewBlockMessage]])
 
-    initPayments.initPayments.containsValue(signedMessage) shouldBe true
+    statements.statements.containsValue(signedMessage) shouldBe true
     blockChain.chain.size() shouldBe 1
   }
 
@@ -61,7 +61,7 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
     val mockExchange = mock[HttpExchange]
     val mockBcHttpServer = mock[BCHttpServer]
     val blockChain = new TestBlockChain
-    val initPayments = new InitPayments()
+    val statements = new Statements()
     val keysFileOps = mock[KeysFileOps]
     val peerAccess = mock[PeerAccess]
 
@@ -81,13 +81,13 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
     when(mockExchange.getRequestMethod).thenReturn("POST")
     when(mockExchange.getRequestBody).thenReturn(is)
 
-    new MsgHandler("Riga", mockBcHttpServer, initPayments, blockChain, keysFileOps, peerAccess).handle(mockExchange)
+    new MsgHandler("Riga", mockBcHttpServer, statements, blockChain, keysFileOps, peerAccess).handle(mockExchange)
 
     verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange), Matchers.eq(HttpStatus.SC_BAD_REQUEST),
       Matchers.eq("Initial payment message validation failed."))
     verify(peerAccess, never).sendMsg(Matchers.any[NewBlockMessage])(Matchers.any[Encoder[NewBlockMessage]])
 
-    initPayments.initPayments.containsValue(signedMessage) shouldBe false
+    statements.statements.containsValue(signedMessage) shouldBe false
     blockChain.chain.size() shouldBe 1
   }
 
@@ -96,7 +96,7 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
     val mockExchange = mock[HttpExchange]
     val mockBcHttpServer = mock[BCHttpServer]
     val blockChain = new TestBlockChain
-    val initPayments = new InitPayments()
+    val statements = new Statements()
     val keysFileOps = mock[KeysFileOps]
     val peerAccess = mock[PeerAccess]
 
@@ -119,13 +119,13 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
     when(mockExchange.getRequestMethod).thenReturn("POST")
     when(mockExchange.getRequestBody).thenReturn(is)
 
-    new MsgHandler("Riga", mockBcHttpServer, initPayments, blockChain, keysFileOps, peerAccess).handle(mockExchange)
+    new MsgHandler("Riga", mockBcHttpServer, statements, blockChain, keysFileOps, peerAccess).handle(mockExchange)
 
     verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange),
       Matchers.eq("Payment transaction created and added to blockchain."))
     verify(peerAccess, times(1)).sendMsg(Matchers.any[NewBlockMessage])(Matchers.any[Encoder[NewBlockMessage]])
 
-    initPayments.initPayments.containsValue(signedMessage) shouldBe true
+    statements.statements.containsValue(signedMessage) shouldBe true
     blockChain.chain.size() shouldBe 2
     val lastBlock = blockChain.getLatestBlock
     val transaction = PaymentTransaction.deserialize(new String(lastBlock.data)).right.get
@@ -133,7 +133,8 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
     val decodedTransactionSignature = base64StrToBytes(transaction.encodedSignature.get)
     val signer = new Signer(keysFileOps)
     signer.verify("Riga", "John", transaction.dataToSign, decodedTransactionSignature) shouldBe true
-    val decodedPaymentMessageSignature = base64StrToBytes(transaction.paymentMessage.encodedSignature.get)
+    val encodedSignature = transaction.paymentMessage.providedSignaturesForKeys.head._2
+    val decodedPaymentMessageSignature = base64StrToBytes(encodedSignature)
     signer.verify("Riga", "Igor", transaction.paymentMessage.dataToSign, decodedPaymentMessageSignature) shouldBe true
   }
 
@@ -141,7 +142,7 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
     val mockExchange = mock[HttpExchange]
     val mockBcHttpServer = mock[BCHttpServer]
     val blockChain = new TestBlockChain
-    val initPayments = new InitPayments()
+    val initPayments = new Statements()
     val keysFileOps = mock[KeysFileOps]
     val peerAccess = mock[PeerAccess]
 
@@ -172,7 +173,7 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
     val mockExchange = mock[HttpExchange]
     val mockBcHttpServer = mock[BCHttpServer]
     val blockChain = new TestBlockChain
-    val initPayments = new InitPayments()
+    val initPayments = new Statements()
     val keysFileOps = mock[KeysFileOps]
     val peerAccess = mock[PeerAccess]
 

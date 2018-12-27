@@ -2,7 +2,7 @@ package messages
 
 import java.time.LocalDateTime
 
-import core.{Money, Signer}
+import core._
 import io.circe
 import io.circe.generic.auto._
 import io.circe.parser.decode
@@ -25,7 +25,7 @@ object InitPaymentMessage extends StringConverter with MsgDeserializator {
         case Some(userName) =>
           val signature = signer.sign(createdByNode, userName, fromPublicKeyEncoded, notSignedMessage.dataToSign)
           val encodedSignature = bytesToBase64Str(signature)
-          Right(notSignedMessage.copy(encodedSignature = Some(encodedSignature)))
+          Right(notSignedMessage.copy(providedSignaturesForKeys = Seq((fromPublicKeyEncoded, encodedSignature))))
         case None =>
           Left("No user with given (from) public key found.")
       }
@@ -35,7 +35,10 @@ object InitPaymentMessage extends StringConverter with MsgDeserializator {
 }
 
 case class InitPaymentMessage(createdByNode: String, fromPublicKeyEncoded: String, toPublicKeyEncoded: String, money: Money,
-                              timestamp: LocalDateTime, encodedSignature: Option[String] = None) extends Message {
+    timestamp: LocalDateTime, override val providedSignaturesForKeys: Seq[(String, String)] = Nil)
+      extends Statement with Message {
+
+  override val publicKeysRequiredToSignEncoded: Seq[String] = Seq(fromPublicKeyEncoded, toPublicKeyEncoded)
 
   override def dataToSign: Array[Byte] = (createdByNode + fromPublicKeyEncoded + toPublicKeyEncoded + money + timestamp).getBytes
 

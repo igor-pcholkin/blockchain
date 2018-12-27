@@ -1,7 +1,7 @@
 package core
 
 import io.circe.generic.auto._
-import messages.{InitPaymentMessage, Message}
+import messages.InitPaymentMessage
 import keys.{KeysFileOps, KeysGenerator, KeysSerializator}
 import org.mockito.Matchers
 import org.mockito.Mockito.{never, verify, when}
@@ -15,18 +15,22 @@ class InitPaymentMessageTest extends FlatSpec with scalatest.Matchers with Mocki
     val ks = new KeysSerializator {
       override val keysFileOps: KeysFileOps = mock[KeysFileOps]
     }
-    val serializedPublicKey = ks.serialize(keyPair.getPublic)
-    when(ks.keysFileOps.getUserByKey("Riga", serializedPublicKey)).thenReturn(Some("Igor"))
+    val fromPublicKey = ks.serialize(keyPair.getPublic)
+    val toPublicKey = "5678"
+    when(ks.keysFileOps.getUserByKey("Riga", fromPublicKey)).thenReturn(Some("Igor"))
     when(ks.keysFileOps.readKeyFromFile("Riga", "Igor", "privateKey")).thenReturn(ks.serialize(keyPair.getPrivate))
-    when(ks.keysFileOps.readKeyFromFile("Riga", "Igor", "publicKey")).thenReturn(serializedPublicKey)
+    when(ks.keysFileOps.readKeyFromFile("Riga", "Igor", "publicKey")).thenReturn(fromPublicKey)
 
     val asset = Money("EUR", 2025)
-    val message = InitPaymentMessage("Riga", serializedPublicKey, "5678", asset, ks.keysFileOps).right.get
+    val message = InitPaymentMessage("Riga", fromPublicKey, toPublicKey, asset, ks.keysFileOps).right.get
 
-    message.encodedSignature.getOrElse("").length > 0 shouldBe true
+    message.publicKeysRequiredToSignEncoded shouldBe Seq(fromPublicKey, toPublicKey)
+    val (key, signature) = message.providedSignaturesForKeys.head
+    key shouldBe fromPublicKey
+    signature.length > 0 shouldBe true
     val jsonMessage = Message.serialize(message)
     println(jsonMessage)
-    jsonMessage.startsWith(s"""{"createdByNode":"Riga","fromPublicKeyEncoded":"$serializedPublicKey","toPublicKeyEncoded":"5678","money":{"currency":"EUR","amountInCents":2025},"timestamp":""") shouldBe true
+    jsonMessage.startsWith(s"""{"createdByNode":"Riga","fromPublicKeyEncoded":"$fromPublicKey","toPublicKeyEncoded":"$toPublicKey","money":{"currency":"EUR","amountInCents":2025},"timestamp":""") shouldBe true
     jsonMessage.contains("\"encodedSignature\":{}") shouldBe false
   }
 

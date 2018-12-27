@@ -13,7 +13,7 @@ import org.apache.http.HttpStatus.SC_BAD_REQUEST
 import peers.PeerAccess
 import io.circe.generic.auto._
 
-class MsgHandler(nodeName: String, bcHttpServer: BCHttpServer, initPayments: InitPayments, bc: BlockChain, val keysFileOps: KeysFileOps,
+class MsgHandler(nodeName: String, bcHttpServer: BCHttpServer, statements: Statements, bc: BlockChain, val keysFileOps: KeysFileOps,
                  peerAccess: PeerAccess) extends HttpHandler with HttpUtil
   with StringConverter with KeysSerializator {
   @throws[IOException]
@@ -36,8 +36,8 @@ class MsgHandler(nodeName: String, bcHttpServer: BCHttpServer, initPayments: Ini
   }
 
   private def handle(initPaymentMessage: InitPaymentMessage, exchange: HttpExchange): Unit = {
-    if (verifySignature(initPaymentMessage)) {
-      initPayments.add(initPaymentMessage)
+    if (verifySignatures(initPaymentMessage)) {
+      statements.add(initPaymentMessage)
       if (isLocalHostDestinationFor(initPaymentMessage)) {
         addTransactionToNewBlock(initPaymentMessage)
         peerAccess.sendMsg(NewBlockMessage(bc.getLatestBlock))
@@ -75,13 +75,16 @@ class MsgHandler(nodeName: String, bcHttpServer: BCHttpServer, initPayments: Ini
     }
   }
 
-  def verifySignature(initPaymentMessage: InitPaymentMessage): Boolean = {
-    initPaymentMessage.encodedSignature match {
-      case Some(encodedSignature) =>
-        val decodedSignature = base64StrToBytes(encodedSignature)
-        val decodedPublicKey = deserializePublic(initPaymentMessage.fromPublicKeyEncoded)
-        Signer.verify(decodedSignature, initPaymentMessage.dataToSign, decodedPublicKey)
-      case None => false
+  def verifySignatures(statement: Statement): Boolean = {
+    statement.providedSignaturesForKeys.forall {
+      case (encodedPublicKey, signature) => verifySignature(statement, encodedPublicKey, signature)
     }
   }
+
+  def verifySignature(statement: Statement, publicKeyEncoded: String, encodedSignature: String): Boolean = {
+    val decodedSignature = base64StrToBytes(encodedSignature)
+    val decodedPublicKey = deserializePublic(publicKeyEncoded)
+    Signer.verify(decodedSignature, statement.dataToSign, decodedPublicKey)
+  }
+
 }

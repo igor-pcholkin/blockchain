@@ -1,8 +1,9 @@
-package messages
+package core
 
 import io.circe
-import io.circe.{Encoder, Printer}
 import io.circe.syntax._
+import io.circe.{Encoder, Printer}
+import messages.{AddPeersMessage, InitPaymentMessage, NewBlockMessage}
 
 object Message {
   def serialize[T <: Message](msg: T) (implicit encoder: Encoder[T]): String = {
@@ -24,10 +25,7 @@ object Message {
 
 }
 
-abstract class Message {
-  def dataToSign: Array[Byte] = Array[Byte]()
-
-}
+trait Message
 
 trait MsgDeserializator {
   def deserialize(s: String): Either[circe.Error, Message]

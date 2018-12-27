@@ -2,7 +2,7 @@ package messages
 
 import java.time.LocalDateTime
 
-import core.Signer
+import core.{Fact, Message, Signer}
 import io.circe
 import io.circe.generic.auto._
 import io.circe.parser.decode
@@ -24,7 +24,10 @@ object PaymentTransaction extends StringConverter {
   }
 }
 
-case class PaymentTransaction(paymentMessage: InitPaymentMessage, timestamp: LocalDateTime, encodedSignature: Option[String] = None) extends Message {
+case class PaymentTransaction(paymentMessage: InitPaymentMessage, timestamp: LocalDateTime, encodedSignature: Option[String] = None) extends Fact with Message {
+
+  override def publicKeysRequiredToSignEncoded: Seq[String] = ??? // TBD
+  override def providedSignaturesForKeys: Seq[(String, String)] = ???
 
   override def dataToSign: Array[Byte] = (paymentMessage.toString + timestamp).getBytes
 }

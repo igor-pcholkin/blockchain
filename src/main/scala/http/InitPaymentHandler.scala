@@ -4,7 +4,7 @@ import java.io.IOException
 
 import com.sun.net.httpserver.{HttpExchange, HttpHandler}
 import messages.InitPaymentMessage
-import core.{InitPayments, Money}
+import core.{Statements, Money}
 import keys.KeysFileOps
 import peers.PeerAccess
 
@@ -16,7 +16,7 @@ import util.HttpUtil
 
 case class InitPaymentRequest(from: String, to: String, currency: String, amount: Double)
 
-class InitPaymentHandler(nodeName: String, bcHttpServer: BCHttpServer, initPayments: InitPayments, implicit val keysFileOps: KeysFileOps,
+class InitPaymentHandler(nodeName: String, bcHttpServer: BCHttpServer, statements: Statements, implicit val keysFileOps: KeysFileOps,
                          peerAccess: PeerAccess) extends HttpHandler with HttpUtil {
   @throws[IOException]
   def handle(exchange: HttpExchange): Unit = {
@@ -29,7 +29,7 @@ class InitPaymentHandler(nodeName: String, bcHttpServer: BCHttpServer, initPayme
           val asset = Money (initPayment.currency, (BigDecimal (initPayment.amount) * 100).toLong)
           InitPaymentMessage.apply(nodeName, initPayment.from, initPayment.to, asset, keysFileOps) match {
             case Right(signedMessage) =>
-              initPayments.add (signedMessage)
+              statements.add (signedMessage)
               peerAccess.sendMsg (signedMessage)
               bcHttpServer.sendHttpResponse (exchange, SC_CREATED, "New Payment has been initiated.")
             case Left(error) =>
