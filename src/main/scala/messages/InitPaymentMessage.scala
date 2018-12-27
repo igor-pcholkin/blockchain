@@ -20,12 +20,10 @@ object InitPaymentMessage extends StringConverter with MsgDeserializator {
     } else {
       val timestamp = LocalDateTime.now
       val notSignedMessage = InitPaymentMessage(createdByNode, fromPublicKeyEncoded, toPublicKeyEncoded, money, timestamp)
-      val signer = new Signer(keysFileOps)
       keysFileOps.getUserByKey(createdByNode, fromPublicKeyEncoded) match {
         case Some(userName) =>
-          val signature = signer.sign(createdByNode, userName, fromPublicKeyEncoded, notSignedMessage.dataToSign)
-          val encodedSignature = bytesToBase64Str(signature)
-          Right(notSignedMessage.copy(providedSignaturesForKeys = Seq((fromPublicKeyEncoded, encodedSignature))))
+          val signer = new Signer(keysFileOps)
+          Right(notSignedMessage.signByUserPublicKey(createdByNode, signer, userName, fromPublicKeyEncoded).asInstanceOf[InitPaymentMessage])
         case None =>
           Left("No user with given (from) public key found.")
       }
@@ -39,6 +37,10 @@ case class InitPaymentMessage(createdByNode: String, fromPublicKeyEncoded: Strin
       extends Statement with Message {
 
   override val publicKeysRequiredToSignEncoded: Seq[String] = Seq(fromPublicKeyEncoded, toPublicKeyEncoded)
+
+  override def addSignature(publicKey: String, signature: String): Statement = {
+    copy(providedSignaturesForKeys = providedSignaturesForKeys :+ (publicKey, signature))
+  }
 
   override def dataToSign: Array[Byte] = (createdByNode + fromPublicKeyEncoded + toPublicKeyEncoded + money + timestamp).getBytes
 

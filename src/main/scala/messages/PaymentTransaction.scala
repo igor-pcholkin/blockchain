@@ -15,19 +15,21 @@ object PaymentTransaction extends StringConverter {
   def apply(createdByNode: String, paymentMessage: InitPaymentMessage, keysFileOps: KeysFileOps): Option[PaymentTransaction] = {
     val timestamp = LocalDateTime.now
     val notSignedTransaction = PaymentTransaction(paymentMessage, timestamp)
-    val signer = new Signer(keysFileOps)
     keysFileOps.getUserByKey(createdByNode, paymentMessage.toPublicKeyEncoded) map { userName =>
-      val signature = signer.sign(createdByNode, userName, paymentMessage.toPublicKeyEncoded, notSignedTransaction.dataToSign)
-      val encodedSignature = bytesToBase64Str(signature)
-      notSignedTransaction.copy(encodedSignature = Some(encodedSignature))
+      val signer = new Signer(keysFileOps)
+      notSignedTransaction.signByUserPublicKey(createdByNode, signer, userName, paymentMessage.toPublicKeyEncoded).asInstanceOf[PaymentTransaction]
     }
   }
 }
 
-case class PaymentTransaction(paymentMessage: InitPaymentMessage, timestamp: LocalDateTime, encodedSignature: Option[String] = None) extends Fact with Message {
+case class PaymentTransaction(paymentMessage: InitPaymentMessage, timestamp: LocalDateTime) extends Fact with Message {
 
-  override def publicKeysRequiredToSignEncoded: Seq[String] = ??? // TBD
-  override def providedSignaturesForKeys: Seq[(String, String)] = ???
+  override def publicKeysRequiredToSignEncoded: Seq[String] = paymentMessage.publicKeysRequiredToSignEncoded
+  override def providedSignaturesForKeys: Seq[(String, String)] = paymentMessage.providedSignaturesForKeys
+  override def addSignature(publicKey: String, signature: String) = {
+    val updatedPaymentMessage = paymentMessage.addSignature(publicKey, signature)
+    copy(paymentMessage = updatedPaymentMessage.asInstanceOf[InitPaymentMessage])
+  }
 
-  override def dataToSign: Array[Byte] = (paymentMessage.toString + timestamp).getBytes
+  override def dataToSign: Array[Byte] = (new String(paymentMessage.dataToSign) + timestamp).getBytes
 }

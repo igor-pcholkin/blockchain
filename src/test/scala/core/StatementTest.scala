@@ -9,11 +9,7 @@ import org.scalatest
 
 class StatementTest extends FlatSpec with scalatest.Matchers with MockitoSugar {
   "Statement" should "correctly find local user with public key which has not signed the statement yet" in {
-    val statement = new Statement {
-      def publicKeysRequiredToSignEncoded = Seq("pubKA", "pubKB")
-
-      def providedSignaturesForKeys = Seq(("pubKA", "sign"))
-    }
+    val statement = createStatement(Seq(("pubKA", "sign")))
 
     val keysFileOps = mock[KeysFileOps]
 
@@ -24,11 +20,7 @@ class StatementTest extends FlatSpec with scalatest.Matchers with MockitoSugar {
   }
 
   it should "correctly find the first local user with public key which has not signed the statement yet" in {
-    val statement = new Statement {
-      def publicKeysRequiredToSignEncoded = Seq("pubKA", "pubKB")
-
-      def providedSignaturesForKeys = Nil
-    }
+    val statement = createStatement(Nil)
 
     val keysFileOps = mock[KeysFileOps]
 
@@ -39,11 +31,7 @@ class StatementTest extends FlatSpec with scalatest.Matchers with MockitoSugar {
   }
 
   it should "not find local user with public key which has not signed the statement yet" in {
-    val statement = new Statement {
-      def publicKeysRequiredToSignEncoded = Seq("pubKA", "pubKB")
-
-      def providedSignaturesForKeys = Seq(("pubKA", "sign"))
-    }
+    val statement = createStatement(Seq(("pubKA", "sign")))
 
     val keysFileOps = mock[KeysFileOps]
 
@@ -54,11 +42,7 @@ class StatementTest extends FlatSpec with scalatest.Matchers with MockitoSugar {
   }
 
   it should "correctly find the second local user with public key which has not signed the statement yet" in {
-    val statement = new Statement {
-      def publicKeysRequiredToSignEncoded = Seq("pubKA", "pubKB")
-
-      def providedSignaturesForKeys = Nil
-    }
+    val statement = createStatement(Nil)
 
     val keysFileOps = mock[KeysFileOps]
 
@@ -68,4 +52,17 @@ class StatementTest extends FlatSpec with scalatest.Matchers with MockitoSugar {
     statement.couldBeSignedByLocalPublicKey("Riga", keysFileOps) shouldBe true
   }
 
+
+  def createStatement(signatures: Seq[(String, String)]) = {
+    new Statement {
+      override val publicKeysRequiredToSignEncoded = Seq("pubKA", "pubKB")
+
+      override val providedSignaturesForKeys = signatures
+
+      def dataToSign = ???
+
+      def addSignature(publicKey: String, signature: String) = ???
+
+    }
+  }
 }

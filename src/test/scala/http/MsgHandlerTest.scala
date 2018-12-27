@@ -129,8 +129,7 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
     blockChain.chain.size() shouldBe 2
     val lastBlock = blockChain.getLatestBlock
     val transaction = PaymentTransaction.deserialize(new String(lastBlock.data)).right.get
-    transaction.paymentMessage shouldBe signedMessage
-    val decodedTransactionSignature = base64StrToBytes(transaction.encodedSignature.get)
+    val decodedTransactionSignature = base64StrToBytes(transaction.providedSignaturesForKeys(1)._2)
     val signer = new Signer(keysFileOps)
     signer.verify("Riga", "John", transaction.dataToSign, decodedTransactionSignature) shouldBe true
     val encodedSignature = transaction.paymentMessage.providedSignaturesForKeys.head._2
