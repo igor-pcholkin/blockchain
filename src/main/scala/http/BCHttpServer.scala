@@ -3,13 +3,13 @@ package http
 import java.net.{InetSocketAddress, Socket}
 
 import com.sun.net.httpserver.{HttpExchange, HttpServer}
-import core.{BlockChain, Statements}
+import core.{BlockChain, StatementsCache}
 import keys.ProdKeysFileOps
 import org.apache.http.HttpStatus
 import org.slf4j.{Logger, LoggerFactory}
 import peers.PeerAccess
 
-class BCHttpServer(port: Int, bc: BlockChain, peerAccess: PeerAccess, statements: Statements) {
+class BCHttpServer(port: Int, bc: BlockChain, peerAccess: PeerAccess, statementsCache: StatementsCache) {
 
   val logger: Logger = LoggerFactory.getLogger(this.getClass)
 
@@ -21,8 +21,8 @@ class BCHttpServer(port: Int, bc: BlockChain, peerAccess: PeerAccess, statements
     server.createContext("/genkeys", new GenKeysHandler(nodeName, ProdKeysFileOps, this))
     server.createContext("/nodeinfo", new NodeInfoHandler(nodeName, this, peerAccess))
     server.createContext("/addseeds", new AddSeedsHandler(this, peerAccess))
-    server.createContext("/initpayment", new InitPaymentHandler(nodeName, this, statements, ProdKeysFileOps, peerAccess))
-    server.createContext("/msgHandler", new MsgHandler(nodeName, this, statements, bc, ProdKeysFileOps, peerAccess))
+    server.createContext("/initpayment", new InitPaymentHandler(nodeName, this, statementsCache, ProdKeysFileOps, peerAccess))
+    server.createContext("/msgHandler", new MsgHandler(nodeName, this, statementsCache, bc, ProdKeysFileOps, peerAccess))
     server.start()
   }
 

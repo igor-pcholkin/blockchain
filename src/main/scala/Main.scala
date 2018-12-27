@@ -1,4 +1,4 @@
-import core.{Statements, ProdBlockChain}
+import core.{StatementsCache, ProdBlockChain}
 import http.BCHttpServer
 import org.slf4j.LoggerFactory
 import peers.{HttpPeerTransport, PeerAccess}
@@ -19,7 +19,7 @@ object Main extends App {
 
   val bc = new ProdBlockChain(nodeName)
   val peerAccess = new PeerAccess(new HttpPeerTransport)
-  val statements = new Statements
+  val statementsCache = new StatementsCache
 
-  new BCHttpServer(port, bc, peerAccess, statements).start(nodeName)
+  new BCHttpServer(port, bc, peerAccess, statementsCache).start(nodeName)
 }

@@ -13,7 +13,7 @@ import org.apache.http.HttpStatus.SC_BAD_REQUEST
 import peers.PeerAccess
 import io.circe.generic.auto._
 
-class MsgHandler(nodeName: String, bcHttpServer: BCHttpServer, statements: Statements, bc: BlockChain, val keysFileOps: KeysFileOps,
+class MsgHandler(nodeName: String, bcHttpServer: BCHttpServer, statementsCache: StatementsCache, bc: BlockChain, val keysFileOps: KeysFileOps,
                  peerAccess: PeerAccess) extends HttpHandler with HttpUtil
   with StringConverter with KeysSerializator {
   @throws[IOException]
@@ -37,8 +37,8 @@ class MsgHandler(nodeName: String, bcHttpServer: BCHttpServer, statements: State
 
   private def handle(initPaymentMessage: InitPaymentMessage, exchange: HttpExchange): Unit = {
     if (verifySignatures(initPaymentMessage)) {
-      statements.add(initPaymentMessage)
-      if (isLocalHostDestinationFor(initPaymentMessage)) {
+      statementsCache.add(initPaymentMessage)
+      if (initPaymentMessage.couldBeSignedByLocalPublicKey(nodeName, keysFileOps)) {
         addTransactionToNewBlock(initPaymentMessage)
         peerAccess.sendMsg(NewBlockMessage(bc.getLatestBlock))
         bcHttpServer.sendHttpResponse(exchange, "Payment transaction created and added to blockchain.")
@@ -61,10 +61,6 @@ class MsgHandler(nodeName: String, bcHttpServer: BCHttpServer, statements: State
   private def handle(addPeersMessage: AddPeersMessage, exchange: HttpExchange): Unit = {
     peerAccess.addAll(addPeersMessage.peers)
     bcHttpServer.sendHttpResponse(exchange, "New peers received and added to the node.")
-  }
-
-  private def isLocalHostDestinationFor(initPaymentMessage: InitPaymentMessage): Boolean = {
-    keysFileOps.getUserByKey(nodeName, initPaymentMessage.toPublicKeyEncoded).nonEmpty
   }
 
   def addTransactionToNewBlock(initPaymentMessage: InitPaymentMessage): Unit = {

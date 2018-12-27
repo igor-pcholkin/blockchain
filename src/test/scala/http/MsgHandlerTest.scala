@@ -25,7 +25,7 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
     val mockExchange = mock[HttpExchange]
     val mockBcHttpServer = mock[BCHttpServer]
     val blockChain = new TestBlockChain
-    val statements = new Statements()
+    val statements = new StatementsCache()
     val keysFileOps = mock[KeysFileOps]
     val peerAccess = mock[PeerAccess]
 
@@ -61,7 +61,7 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
     val mockExchange = mock[HttpExchange]
     val mockBcHttpServer = mock[BCHttpServer]
     val blockChain = new TestBlockChain
-    val statements = new Statements()
+    val statements = new StatementsCache()
     val keysFileOps = mock[KeysFileOps]
     val peerAccess = mock[PeerAccess]
 
@@ -96,7 +96,7 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
     val mockExchange = mock[HttpExchange]
     val mockBcHttpServer = mock[BCHttpServer]
     val blockChain = new TestBlockChain
-    val statements = new Statements()
+    val statements = new StatementsCache()
     val keysFileOps = mock[KeysFileOps]
     val peerAccess = mock[PeerAccess]
 
@@ -142,7 +142,7 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
     val mockExchange = mock[HttpExchange]
     val mockBcHttpServer = mock[BCHttpServer]
     val blockChain = new TestBlockChain
-    val initPayments = new Statements()
+    val initPayments = new StatementsCache()
     val keysFileOps = mock[KeysFileOps]
     val peerAccess = mock[PeerAccess]
 
@@ -173,7 +173,7 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
     val mockExchange = mock[HttpExchange]
     val mockBcHttpServer = mock[BCHttpServer]
     val blockChain = new TestBlockChain
-    val initPayments = new Statements()
+    val initPayments = new StatementsCache()
     val keysFileOps = mock[KeysFileOps]
     val peerAccess = mock[PeerAccess]
 

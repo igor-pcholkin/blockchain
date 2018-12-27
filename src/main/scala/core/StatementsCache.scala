@@ -2,7 +2,7 @@ package core
 
 import java.util.concurrent.ConcurrentHashMap
 
-class Statements {
+class StatementsCache {
   val statements = new ConcurrentHashMap[Int, Statement]()
 
   def add(statement: Statement): Unit = {

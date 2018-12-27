@@ -5,7 +5,7 @@ import java.time.LocalDateTime
 
 import com.sun.net.httpserver.HttpExchange
 import messages.InitPaymentMessage
-import core.{Statements, Money, Signer}
+import core.{StatementsCache, Money, Signer}
 import keys.{KeysFileOps, KeysGenerator}
 import org.apache.http.HttpStatus.SC_CREATED
 import org.mockito.Matchers
@@ -26,7 +26,7 @@ class InitPaymentHandlerTest extends FlatSpec with org.scalatest.Matchers with M
     val mockExchange = mock[HttpExchange]
     val peerAccess = new PeerAccess(mock[PeerTransport])
     peerAccess.addAll(Seq("blabla.com", "another.com"))
-    val statements = new Statements
+    val statements = new StatementsCache
     val fromPublicKey = "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEDibd8O5I928ZnTU7RYTy6Od3K3SrGlC+V8lkMYrdJuzT9Ig/Iq8JciaukxCYmVSO1mZuC65xMkxSb5Q0rNZ8og=="
     val initPayment =
       s"""{
