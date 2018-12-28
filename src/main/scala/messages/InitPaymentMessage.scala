@@ -4,8 +4,11 @@ import java.time.LocalDateTime
 
 import core._
 import io.circe
+import io.circe.Encoder
 import io.circe.generic.auto._
 import io.circe.parser.decode
+import io.circe._
+import io.circe.syntax._
 import keys.KeysFileOps
 import util.StringConverter
 
@@ -19,29 +22,24 @@ object InitPaymentMessage extends StringConverter with MsgDeserializator {
       Left("Sender and receiver of payment can't be the same person")
     } else {
       val timestamp = LocalDateTime.now
-      val notSignedMessage = InitPaymentMessage(createdByNode, fromPublicKeyEncoded, toPublicKeyEncoded, money, timestamp)
-      keysFileOps.getUserByKey(createdByNode, fromPublicKeyEncoded) match {
-        case Some(userName) =>
-          val signer = new Signer(keysFileOps)
-          Right(notSignedMessage.signByUserPublicKey(createdByNode, signer, userName, fromPublicKeyEncoded).asInstanceOf[InitPaymentMessage])
-        case None =>
-          Left("No user with given (from) public key found.")
-      }
+      Right(InitPaymentMessage(createdByNode, fromPublicKeyEncoded, toPublicKeyEncoded, money, timestamp))
     }
   }
 
 }
 
 case class InitPaymentMessage(createdByNode: String, fromPublicKeyEncoded: String, toPublicKeyEncoded: String, money: Money,
-    timestamp: LocalDateTime, override val providedSignaturesForKeys: Seq[(String, String)] = Nil)
-      extends Statement with Message {
-
-  override val publicKeysRequiredToSignEncoded: Seq[String] = Seq(fromPublicKeyEncoded, toPublicKeyEncoded)
-
-  override def addSignature(publicKey: String, signature: String): Statement = {
-    copy(providedSignaturesForKeys = providedSignaturesForKeys :+ (publicKey, signature))
-  }
+    timestamp: LocalDateTime) extends Statement {
 
   override def dataToSign: Array[Byte] = (createdByNode + fromPublicKeyEncoded + toPublicKeyEncoded + money + timestamp).getBytes
+
+  lazy val encoder: Encoder[Statement] = new Encoder[InitPaymentMessage] {
+    final def apply(message: InitPaymentMessage): Json = {
+      Json.obj(
+        ("statementType", "InitPaymentMessage".asJson),
+        ("statement", message.asJson)
+      )
+    }
+  }.asInstanceOf[Encoder[Statement]]
 
 }

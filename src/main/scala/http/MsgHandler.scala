@@ -23,8 +23,8 @@ class MsgHandler(nodeName: String, bcHttpServer: BCHttpServer, statementsCache: 
       Message.deserialize(msgAsString).getOrElse {
         bcHttpServer.sendHttpResponse(exchange, SC_BAD_REQUEST, s"Invalid message received: $msgAsString")
       } match {
-        case initPaymentMessage: InitPaymentMessage =>
-          handle(initPaymentMessage, exchange)
+        case signedStatement: SignedStatement =>
+          handle(signedStatement, exchange)
         case newBlockMessage: NewBlockMessage =>
           handle(newBlockMessage, exchange, peerAccess)
         case addPeersMessage: AddPeersMessage =>
@@ -35,16 +35,18 @@ class MsgHandler(nodeName: String, bcHttpServer: BCHttpServer, statementsCache: 
     }
   }
 
-  private def handle(initPaymentMessage: InitPaymentMessage, exchange: HttpExchange): Unit = {
-    if (verifySignatures(initPaymentMessage)) {
-      statementsCache.add(initPaymentMessage)
-      if (initPaymentMessage.couldBeSignedByLocalPublicKey(nodeName, keysFileOps)) {
-        addTransactionToNewBlock(initPaymentMessage)
+  private def handle(signedStatement: SignedStatement, exchange: HttpExchange): Unit = {
+    if (verifySignatures(signedStatement)) {
+      val newSignatures = signedStatement.signByLocalPublicKeys(nodeName, keysFileOps)
+      val enhancedStatement = signedStatement.addSignatures(newSignatures)
+      statementsCache.add(enhancedStatement)
+      if (enhancedStatement.isSignedByAllKeys) {
+        addFactToNewBlock(enhancedStatement)
         peerAccess.sendMsg(NewBlockMessage(bc.getLatestBlock))
         bcHttpServer.sendHttpResponse(exchange, "Payment transaction created and added to blockchain.")
       } else {
-        peerAccess.sendMsg(initPaymentMessage)
-        bcHttpServer.sendHttpResponse(exchange, "Initial payment message verified and added to message cache.")
+        peerAccess.sendMsg(signedStatement)(SignedStatement.encoder)
+        bcHttpServer.sendHttpResponse(exchange, "Statement has been verified and added to cache.")
       }
     } else {
       bcHttpServer.sendHttpResponse(exchange, SC_BAD_REQUEST, "Initial payment message validation failed.")
@@ -63,24 +65,23 @@ class MsgHandler(nodeName: String, bcHttpServer: BCHttpServer, statementsCache: 
     bcHttpServer.sendHttpResponse(exchange, "New peers received and added to the node.")
   }
 
-  def addTransactionToNewBlock(initPaymentMessage: InitPaymentMessage): Unit = {
-    PaymentTransaction(nodeName, initPaymentMessage, keysFileOps) foreach { paymentTransaction =>
-      val serializedTransaction = Message.serialize(paymentTransaction).getBytes
-      val newBlock = bc.genNextBlock(serializedTransaction)
-      bc.add(newBlock)
+  def addFactToNewBlock(signedStatement: SignedStatement): Unit = {
+    val fact = Fact(signedStatement.statement, signedStatement.providedSignaturesForKeys)
+    val serializedFact = Message.serialize(fact)(Fact.encoder).getBytes
+    val newBlock = bc.genNextBlock(serializedFact)
+    bc.add(newBlock)
+  }
+
+  def verifySignatures(signedStatement: SignedStatement): Boolean = {
+    signedStatement.providedSignaturesForKeys.forall {
+      case (encodedPublicKey, signature) => verifySignature(signedStatement, encodedPublicKey, signature)
     }
   }
 
-  def verifySignatures(statement: Statement): Boolean = {
-    statement.providedSignaturesForKeys.forall {
-      case (encodedPublicKey, signature) => verifySignature(statement, encodedPublicKey, signature)
-    }
-  }
-
-  def verifySignature(statement: Statement, publicKeyEncoded: String, encodedSignature: String): Boolean = {
+  def verifySignature(signedStatement: SignedStatement, publicKeyEncoded: String, encodedSignature: String): Boolean = {
     val decodedSignature = base64StrToBytes(encodedSignature)
     val decodedPublicKey = deserializePublic(publicKeyEncoded)
-    Signer.verify(decodedSignature, statement.dataToSign, decodedPublicKey)
+    Signer.verify(decodedSignature, signedStatement.statement.dataToSign, decodedPublicKey)
   }
 
 }

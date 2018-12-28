@@ -4,7 +4,7 @@ import java.io.IOException
 
 import com.sun.net.httpserver.{HttpExchange, HttpHandler}
 import messages.InitPaymentMessage
-import core.{StatementsCache, Money}
+import core.{Money, SignedStatement, StatementsCache}
 import keys.KeysFileOps
 import peers.PeerAccess
 
@@ -28,10 +28,17 @@ class InitPaymentHandler(nodeName: String, bcHttpServer: BCHttpServer, statement
         case Right(initPayment) =>
           val asset = Money (initPayment.currency, (BigDecimal (initPayment.amount) * 100).toLong)
           InitPaymentMessage.apply(nodeName, initPayment.from, initPayment.to, asset, keysFileOps) match {
-            case Right(signedMessage) =>
-              statementsCache.add (signedMessage)
-              peerAccess.sendMsg (signedMessage)
-              bcHttpServer.sendHttpResponse (exchange, SC_CREATED, "New Payment has been initiated.")
+            case Right(initPaymentMessage) =>
+              val signedStatement = SignedStatement(initPaymentMessage, Seq(initPayment.from, initPayment.to), nodeName, keysFileOps)
+              signedStatement.providedSignaturesForKeys.find(_._1 == initPayment.from) match {
+                case Some(_) =>
+                  statementsCache.add (signedStatement)
+
+                  peerAccess.sendMsg (signedStatement)(SignedStatement.encoder)
+                  bcHttpServer.sendHttpResponse (exchange, SC_CREATED, "New Payment has been initiated.")
+                case None =>
+                  bcHttpServer.sendHttpResponse(exchange, SC_BAD_REQUEST, "No user with given (from) public key found.")
+              }
             case Left(error) =>
               bcHttpServer.sendHttpResponse (exchange, SC_BAD_REQUEST, error)
           }

@@ -1,42 +1,33 @@
 package core
 
-import keys.KeysFileOps
-import messages.PaymentTransaction.bytesToBase64Str
+import io.circe
+import io.circe.{Decoder, Encoder, HCursor, Json}
+import io.circe.parser.decode
+import io.circe.syntax._
 
-abstract class Statement {
-  def publicKeysRequiredToSignEncoded: Seq[String]
-  def providedSignaturesForKeys: Seq[(String, String)]
+object Fact extends MsgDeserializator {
+  override def deserialize(s: String): Either[circe.Error, Fact] = decode[Fact](s)(decoder)
 
-  def dataToSign: Array[Byte]
-
-  def addSignature(publicKey: String, signature: String): Statement
-
-  def couldBeSignedByLocalPublicKey(nodeName: String, keysFileOps: KeysFileOps): Boolean = {
-    notUsedPublicKeys.exists { publicKey =>
-      keysFileOps.getUserByKey(nodeName, publicKey).nonEmpty
-    }
+  lazy val encoder: Encoder[Fact] = (fact: Fact) => {
+      val statement = fact.statement
+      Json.obj(
+        ("statement", statement.asJson(statement.encoder)),
+        ("providedSignaturesForKeys", fact.providedSignaturesForKeys.asJson)
+      )
   }
 
-  def signByLocalPublicKeys(nodeName: String, keysFileOps: KeysFileOps): Unit = {
-    val signer = new Signer(keysFileOps)
-    notUsedPublicKeys foreach { publicKey =>
-      keysFileOps.getUserByKey(nodeName, publicKey) map { userName =>
-        signByUserPublicKey(nodeName, signer, userName, publicKey)
-      }
-    }
-  }
-
-  def signByUserPublicKey(nodeName: String, signer: Signer, userName: String, publicKeyEncoded: String): Statement = {
-    val signature = signer.sign(nodeName, userName, publicKeyEncoded, dataToSign)
-    val encodedSignature = bytesToBase64Str(signature)
-    addSignature(publicKeyEncoded, encodedSignature)
-  }
-
-  private def notUsedPublicKeys = {
-    publicKeysRequiredToSignEncoded.filterNot { publicKey =>
-      providedSignaturesForKeys.exists(_._1 == publicKey)
+  lazy val decoder: Decoder[Fact] = (c: HCursor) => {
+    for {
+      statement <- c.downField("statement").as[Statement](Statement.decoder)
+      providedSignaturesForKeys <- c.downField("providedSignaturesForKeys").as[Seq[(String, String)]]
+    } yield {
+      new Fact(statement, providedSignaturesForKeys)
     }
   }
 }
 
-abstract class Fact extends Statement
+/**
+  * Fact is a statement signed by all users which are required to sign it.
+  * Facts are stored in blockchain.
+  */
+case class Fact(statement: Statement, providedSignaturesForKeys: Seq[(String, String)]) extends Message

@@ -1,13 +1,15 @@
 package core
 
+import io.circe.Encoder
 import keys.KeysFileOps
 import org.mockito.Matchers
 import org.scalatest.FlatSpec
 import org.scalatest.mockito.MockitoSugar
 import org.mockito.Mockito.{never, verify, when}
 import org.scalatest
+import io.circe.generic.semiauto._
 
-class StatementTest extends FlatSpec with scalatest.Matchers with MockitoSugar {
+class SignedStatementTest extends FlatSpec with scalatest.Matchers with MockitoSugar {
   "Statement" should "correctly find local user with public key which has not signed the statement yet" in {
     val statement = createStatement(Seq(("pubKA", "sign")))
 
@@ -53,16 +55,16 @@ class StatementTest extends FlatSpec with scalatest.Matchers with MockitoSugar {
   }
 
 
-  def createStatement(signatures: Seq[(String, String)]) = {
-    new Statement {
-      override val publicKeysRequiredToSignEncoded = Seq("pubKA", "pubKB")
+  class TestStatement extends Statement {
 
-      override val providedSignaturesForKeys = signatures
+    override def dataToSign: Array[Byte] = "blabla".getBytes
 
-      def dataToSign = ???
+    override def encoder: Encoder[Statement] = deriveEncoder[TestStatement].asInstanceOf[Encoder[Statement]]
 
-      def addSignature(publicKey: String, signature: String) = ???
-
-    }
+  }
+  
+  def createStatement(signatures: Seq[(String, String)]): SignedStatement = {
+    val statement = new TestStatement
+    SignedStatement(statement, Seq("pubKA", "pubKB"), signatures)
   }
 }

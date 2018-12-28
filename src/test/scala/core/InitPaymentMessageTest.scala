@@ -24,26 +24,10 @@ class InitPaymentMessageTest extends FlatSpec with scalatest.Matchers with Mocki
     val asset = Money("EUR", 2025)
     val message = InitPaymentMessage("Riga", fromPublicKey, toPublicKey, asset, ks.keysFileOps).right.get
 
-    message.publicKeysRequiredToSignEncoded shouldBe Seq(fromPublicKey, toPublicKey)
-    val (key, signature) = message.providedSignaturesForKeys.head
-    key shouldBe fromPublicKey
-    signature.length > 0 shouldBe true
     val jsonMessage = Message.serialize(message)
     println(jsonMessage)
     jsonMessage.startsWith(s"""{"createdByNode":"Riga","fromPublicKeyEncoded":"$fromPublicKey","toPublicKeyEncoded":"$toPublicKey","money":{"currency":"EUR","amountInCents":2025},"timestamp":""") shouldBe true
     jsonMessage.contains("\"encodedSignature\":{}") shouldBe false
-  }
-
-  "InitPaymentMessage" should "not create payment message if user signing the message is not found for given (from) public key" in {
-    val keyPair = generateKeyPair()
-    val ks = new KeysSerializator {
-      override val keysFileOps: KeysFileOps = mock[KeysFileOps]
-    }
-    val serializedPublicKey = ks.serialize(keyPair.getPublic)
-    when(ks.keysFileOps.getUserByKey("Riga", serializedPublicKey)).thenReturn(None)
-
-    val asset = Money("EUR", 2025)
-    InitPaymentMessage("Riga", serializedPublicKey, "5678", asset, ks.keysFileOps ) shouldBe Left("No user with given (from) public key found.")
   }
 
   "InitPaymentMessage" should "not create payment message if user signing the message is the same as receiver of the payment" in {

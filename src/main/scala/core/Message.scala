@@ -3,17 +3,17 @@ package core
 import io.circe
 import io.circe.syntax._
 import io.circe.{Encoder, Printer}
-import messages.{AddPeersMessage, InitPaymentMessage, NewBlockMessage}
+import messages.{AddPeersMessage, NewBlockMessage}
 
 object Message {
-  def serialize[T <: Message](msg: T) (implicit encoder: Encoder[T]): String = {
+  def serialize[T <: Message](msg: T)(implicit encoder: Encoder[T]): String = {
     val printer = Printer.noSpaces.copy(dropNullValues = true)
     printer.pretty(msg.asJson)
   }
 
   def deserialize(s: String): Option[Message] = {
 
-    val deserializers = Stream(InitPaymentMessage, NewBlockMessage, AddPeersMessage)
+    val deserializers = Stream(SignedStatement, NewBlockMessage, AddPeersMessage)
 
     deserializers.map { d =>
       d.deserialize(s)
@@ -25,6 +25,7 @@ object Message {
 
 }
 
+/** message is anything that is transferred between peers and requires serialization */
 trait Message
 
 trait MsgDeserializator {

@@ -30,16 +30,18 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
     val peerAccess = mock[PeerAccess]
 
     val fromPublicKey = "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEDibd8O5I928ZnTU7RYTy6Od3K3SrGlC+V8lkMYrdJuzT9Ig/Iq8JciaukxCYmVSO1mZuC65xMkxSb5Q0rNZ8og=="
+    val toPublicKey = "(publicKeyTo)"
 
     when(keysFileOps.getUserByKey("Riga", fromPublicKey)).thenReturn(Some("Igor"))
     // needed to sign payment request message by public key of creator
     when(keysFileOps.readKeyFromFile("Riga", "Igor", "privateKey")).thenReturn("MEECAQAwEwYHKoZIzj0CAQYIKoZIzj0DAQcEJzAlAgEBBCC94HoY839pqOB/m2D00X4+8vsM6kzUby8gk7Eq8XVsgw==")
     when(keysFileOps.readKeyFromFile("Riga", "Igor", "publicKey")).thenReturn(fromPublicKey)
     // whether payment transaction could be created and signed
-    when(keysFileOps.getUserByKey("Riga", "(publicKeyTo)")).thenReturn(None)
+    when(keysFileOps.getUserByKey("Riga", toPublicKey)).thenReturn(None)
 
-    val signedMessage = InitPaymentMessage.apply("Riga", fromPublicKey, "(publicKeyTo)", Money("EUR", 2025), keysFileOps).right.get
-    val is = new ByteArrayInputStream(Message.serialize(signedMessage).getBytes)
+    val initPaymentMessage = InitPaymentMessage("Riga", fromPublicKey, toPublicKey, Money("EUR", 2025), keysFileOps).right.get
+    val signedStatement = SignedStatement(initPaymentMessage, Seq(fromPublicKey, toPublicKey), "Riga", keysFileOps)
+    val is = new ByteArrayInputStream(Message.serialize(signedStatement)(SignedStatement.encoder).getBytes)
 
     when(mockExchange.getRequestMethod).thenReturn("POST")
     when(mockExchange.getRequestBody).thenReturn(is)
@@ -47,12 +49,12 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
     new MsgHandler("Riga", mockBcHttpServer, statements, blockChain, keysFileOps, peerAccess).handle(mockExchange)
 
     verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange),
-      Matchers.eq("Initial payment message verified and added to message cache."))
-    verify(peerAccess, times(1)).sendMsg(Matchers.eq(signedMessage))(Matchers.any[Encoder[InitPaymentMessage]])
+      Matchers.eq("Statement has been verified and added to cache."))
+    verify(peerAccess, times(1)).sendMsg(Matchers.eq(signedStatement))(Matchers.any[Encoder[SignedStatement]])
     // it doesn't make disctinction between InitPaymentMessage and NewBlockMessage, so commented out
     //verify(peerAccess, never).sendMsg(Matchers.any[NewBlockMessage])(Matchers.any[Encoder[NewBlockMessage]])
 
-    statements.statements.containsValue(signedMessage) shouldBe true
+    statements.statements.containsValue(signedStatement) shouldBe true
     blockChain.chain.size() shouldBe 1
   }
 
@@ -61,33 +63,36 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
     val mockExchange = mock[HttpExchange]
     val mockBcHttpServer = mock[BCHttpServer]
     val blockChain = new TestBlockChain
-    val statements = new StatementsCache()
+    val statementsCache = new StatementsCache()
     val keysFileOps = mock[KeysFileOps]
     val peerAccess = mock[PeerAccess]
 
     val fromPublicKey = "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEDibd8O5I928ZnTU7RYTy6Od3K3SrGlC+V8lkMYrdJuzT9Ig/Iq8JciaukxCYmVSO1mZuC65xMkxSb5Q0rNZ8og=="
+    val toPublicKey = "(publicKeyTo)"
 
     when(keysFileOps.getUserByKey("Riga", fromPublicKey)).thenReturn(Some("Igor"))
     // needed to sign payment request message by public key of creator
     when(keysFileOps.readKeyFromFile("Riga", "Igor", "privateKey")).thenReturn("MEECAQAwEwYHKoZIzj0CAQYIKoZIzj0DAQcEJzAlAgEBBCC94HoY839pqOB/m2D00X4+8vsM6kzUby8gk7Eq8XVsgw==")
     when(keysFileOps.readKeyFromFile("Riga", "Igor", "publicKey")).thenReturn(fromPublicKey)
     // whether payment transaction could be created and signed
-    when(keysFileOps.getUserByKey("Riga", "(publicKeyTo)")).thenReturn(None)
+    when(keysFileOps.getUserByKey("Riga", toPublicKey)).thenReturn(None)
 
-    val signedMessage = InitPaymentMessage.apply("Riga", fromPublicKey, "(publicKeyTo)", Money("EUR", 2025), keysFileOps).right.get
-    val tamperedMessage = signedMessage.copy(money = Money("EUR", 202500))
-    val is = new ByteArrayInputStream(Message.serialize(tamperedMessage).getBytes)
+    val initPaymentMessage = InitPaymentMessage("Riga", fromPublicKey, toPublicKey, Money("EUR", 2025), keysFileOps).right.get
+    val signedStatement = SignedStatement(initPaymentMessage, Seq(fromPublicKey, toPublicKey), "Riga", keysFileOps)
+    val tamperedMessage = initPaymentMessage.copy(money = Money("EUR", 202500))
+    val tamperedStatement = signedStatement.copy(statement = tamperedMessage)
+    val is = new ByteArrayInputStream(Message.serialize(tamperedStatement)(SignedStatement.encoder).getBytes)
 
     when(mockExchange.getRequestMethod).thenReturn("POST")
     when(mockExchange.getRequestBody).thenReturn(is)
 
-    new MsgHandler("Riga", mockBcHttpServer, statements, blockChain, keysFileOps, peerAccess).handle(mockExchange)
+    new MsgHandler("Riga", mockBcHttpServer, statementsCache, blockChain, keysFileOps, peerAccess).handle(mockExchange)
 
     verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange), Matchers.eq(HttpStatus.SC_BAD_REQUEST),
       Matchers.eq("Initial payment message validation failed."))
     verify(peerAccess, never).sendMsg(Matchers.any[NewBlockMessage])(Matchers.any[Encoder[NewBlockMessage]])
 
-    statements.statements.containsValue(signedMessage) shouldBe false
+    statementsCache.statements.containsValue(tamperedStatement) shouldBe false
     blockChain.chain.size() shouldBe 1
   }
 
@@ -96,7 +101,7 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
     val mockExchange = mock[HttpExchange]
     val mockBcHttpServer = mock[BCHttpServer]
     val blockChain = new TestBlockChain
-    val statements = new StatementsCache()
+    val statementsCache = new StatementsCache()
     val keysFileOps = mock[KeysFileOps]
     val peerAccess = mock[PeerAccess]
 
@@ -113,28 +118,29 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
     when(keysFileOps.readKeyFromFile("Riga", "John", "privateKey")).thenReturn("MEECAQAwEwYHKoZIzj0CAQYIKoZIzj0DAQcEJzAlAgEBBCAimtA53n1kVMdG1OleLJtfbFnjr1zU5smd04yfbdWpUw==")
     when(keysFileOps.readKeyFromFile("Riga", "John", "publicKey")).thenReturn(toPublicKey)
 
-    val signedMessage = InitPaymentMessage.apply("Riga", fromPublicKey, toPublicKey, Money("EUR", 2025), keysFileOps).right.get
-    val is = new ByteArrayInputStream(Message.serialize(signedMessage).getBytes)
+    val paymentMessage = InitPaymentMessage("Riga", fromPublicKey, toPublicKey, Money("EUR", 2025), keysFileOps).right.get
+    val signedStatement = SignedStatement(paymentMessage, Seq(fromPublicKey, toPublicKey), "Riga", keysFileOps)
+    val is = new ByteArrayInputStream(Message.serialize(signedStatement)(SignedStatement.encoder).getBytes)
 
     when(mockExchange.getRequestMethod).thenReturn("POST")
     when(mockExchange.getRequestBody).thenReturn(is)
 
-    new MsgHandler("Riga", mockBcHttpServer, statements, blockChain, keysFileOps, peerAccess).handle(mockExchange)
+    new MsgHandler("Riga", mockBcHttpServer, statementsCache, blockChain, keysFileOps, peerAccess).handle(mockExchange)
 
     verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange),
       Matchers.eq("Payment transaction created and added to blockchain."))
     verify(peerAccess, times(1)).sendMsg(Matchers.any[NewBlockMessage])(Matchers.any[Encoder[NewBlockMessage]])
 
-    statements.statements.containsValue(signedMessage) shouldBe true
+    statementsCache.statements.containsValue(signedStatement) shouldBe true
     blockChain.chain.size() shouldBe 2
     val lastBlock = blockChain.getLatestBlock
-    val transaction = PaymentTransaction.deserialize(new String(lastBlock.data)).right.get
-    val decodedTransactionSignature = base64StrToBytes(transaction.providedSignaturesForKeys(1)._2)
+    val fact = Fact.deserialize(new String(lastBlock.data)).right.get
+    val secondSignature = base64StrToBytes(fact.providedSignaturesForKeys(1)._2)
     val signer = new Signer(keysFileOps)
-    signer.verify("Riga", "John", transaction.dataToSign, decodedTransactionSignature) shouldBe true
-    val encodedSignature = transaction.paymentMessage.providedSignaturesForKeys.head._2
-    val decodedPaymentMessageSignature = base64StrToBytes(encodedSignature)
-    signer.verify("Riga", "Igor", transaction.paymentMessage.dataToSign, decodedPaymentMessageSignature) shouldBe true
+    signer.verify("Riga", "John", fact.statement.dataToSign, secondSignature) shouldBe true
+    val firstSignature = fact.providedSignaturesForKeys.head._2
+    val decodedPaymentMessageSignature = base64StrToBytes(firstSignature)
+    signer.verify("Riga", "Igor", fact.statement.dataToSign, decodedPaymentMessageSignature) shouldBe true
   }
 
   "Message handler" should "add a new block to blockchain when it arrives from another node" in {
