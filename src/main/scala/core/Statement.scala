@@ -3,15 +3,14 @@ package core
 import io.circe
 import io.circe.Encoder
 import keys.KeysFileOps
-import io.circe._
 import io.circe.syntax._
-import messages.InitPaymentMessage
-import io.circe.generic.auto._
 import io.circe.parser.decode
+import io.circe._
 import util.StringConverter
+import scala.reflect.runtime.universe
 
 /**
-  * Statement is any business specific data which requires agreement (signing) between peers
+  * Statement is any business specific data which potentially requires agreement (signing) between peers.
   * As opposed to facts, statements are not stored in blockchain.
   * */
 trait Statement extends Message {
@@ -21,12 +20,14 @@ trait Statement extends Message {
 }
 
 object Statement {
+  private val runtimeMirror = universe.runtimeMirror(getClass.getClassLoader)
+
   lazy val decoder: Decoder[Statement] = (c: HCursor) => c.downField("statementType").as[String].flatMap { statementType =>
-    if (statementType == "InitPaymentMessage") {
-      c.downField("statement").as[InitPaymentMessage]
-    } else {
-      throw new RuntimeException("Unkonown statement type")
-    }
+    val module = runtimeMirror.staticModule(statementType)
+
+    val moduleMirror = runtimeMirror.reflectModule(module)
+    implicit val decoder: Decoder[Statement] = moduleMirror.instance.asInstanceOf[StatementDecoder].getDecoder
+    c.downField("statement").as
   }
 }
 
@@ -104,4 +105,8 @@ case class SignedStatement(statement: Statement, publicKeysRequiredToSignEncoded
     }
   }
 
+}
+
+trait StatementDecoder {
+  def getDecoder: Decoder[Statement]
 }

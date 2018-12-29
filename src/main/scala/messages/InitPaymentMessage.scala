@@ -8,13 +8,16 @@ import io.circe.Encoder
 import io.circe.generic.auto._
 import io.circe.parser.decode
 import io.circe._
+import io.circe.generic.semiauto.deriveDecoder
 import io.circe.syntax._
 import keys.KeysFileOps
 import util.StringConverter
 
 
-object InitPaymentMessage extends StringConverter with MsgDeserializator {
+object InitPaymentMessage extends StringConverter with MsgDeserializator with StatementDecoder {
   override def deserialize(s: String): Either[circe.Error, InitPaymentMessage] = decode[InitPaymentMessage](s)
+
+  override def getDecoder: Decoder[Statement] = deriveDecoder[InitPaymentMessage].asInstanceOf[Decoder[Statement]]
 
   def apply(createdByNode: String, fromPublicKeyEncoded: String, toPublicKeyEncoded: String, money: Money,
             keysFileOps: KeysFileOps): Either[String, InitPaymentMessage] = {
@@ -36,7 +39,7 @@ case class InitPaymentMessage(createdByNode: String, fromPublicKeyEncoded: Strin
   lazy val encoder: Encoder[Statement] = new Encoder[InitPaymentMessage] {
     final def apply(message: InitPaymentMessage): Json = {
       Json.obj(
-        ("statementType", "InitPaymentMessage".asJson),
+        ("statementType", "messages.InitPaymentMessage".asJson),
         ("statement", message.asJson)
       )
     }
