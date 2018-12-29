@@ -24,5 +24,14 @@ New transaction block should be created on (Paris) and propagated to both other 
 Scenario 4.
 
 Start one node as Riga, 5761, another as London, 5762, third as Paris, 5763.
+For each node, add another node as peer.
 Create payment request on node1 (Riga) with from and to as public keys of different users on the same node.
 New transaction block should be created immediately and propagated to both other nodes.
+
+Scenario 5.
+
+Start one node as Riga, 5761, another as London, 5762.
+For each node, add another node as peer.
+Create payment request on (Riga) with from field as public key of one of users on (Riga) and "to" field as public key of some
+user on (Paris). Now start Paris node (and add London node as a peer).
+New transaction block should be created on (Paris) and propagated to both other nodes.
