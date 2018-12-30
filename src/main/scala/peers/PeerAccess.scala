@@ -4,6 +4,7 @@ import java.util.concurrent.ConcurrentLinkedQueue
 
 import core.Message
 import io.circe.Encoder
+import org.apache.http.HttpStatus
 
 import scala.concurrent.Future
 import scala.collection.JavaConverters._
@@ -36,5 +37,13 @@ class PeerAccess(val peerTransport: PeerTransport) {
     val peersToSendMessage = peers.asScala.toSeq.diff(peersReceivedMsg)
     msgToPeers.put(msg, peersReceivedMsg ++ peersToSendMessage)
     peerTransport.sendMsg(msg, peersToSendMessage)
+  }
+
+  def sendMsg[T <: Message](msg: T, peer: String)(implicit encoder: Encoder[T]): Future[Result] = {
+    if (!msgToPeers.getOrElse(msg, Nil).contains(peer)) {
+      peerTransport.sendMsg(msg, Seq(peer))
+    } else {
+      Future.successful(Result(HttpStatus.SC_OK, "Msg sent already."))
+    }
   }
 }

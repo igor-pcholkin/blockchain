@@ -1,13 +1,11 @@
 package core
 
-import io.circe.Encoder
 import keys.KeysFileOps
 import org.mockito.Matchers
 import org.scalatest.FlatSpec
 import org.scalatest.mockito.MockitoSugar
 import org.mockito.Mockito.{never, verify, when}
 import org.scalatest
-import io.circe.generic.semiauto._
 
 class SignedStatementTest extends FlatSpec with scalatest.Matchers with MockitoSugar {
   "Statement" should "sign itself by public key present locally which was not used yet" in {
@@ -92,22 +90,13 @@ class SignedStatementTest extends FlatSpec with scalatest.Matchers with MockitoS
     statement.couldBeSignedByLocalPublicKey("Riga", keysFileOps) shouldBe true
   }
 
-
-  class TestStatement extends Statement {
-
-    override def dataToSign: Array[Byte] = "blabla".getBytes
-
-    override def encoder: Encoder[Statement] = deriveEncoder[TestStatement].asInstanceOf[Encoder[Statement]]
-
-  }
-  
   def createStatement(signatures: Seq[(String, String)]): SignedStatement = {
-    val statement = new TestStatement
+    val statement = new TestStatement("a")
     SignedStatement(statement, Seq("pubKA", "pubKB"), signatures)
   }
 
   def createStatement(neededKeys: Seq[String], providedSignatures: Seq[(String, String)]): SignedStatement = {
-    val statement = new TestStatement
+    val statement = new TestStatement("b")
     SignedStatement(statement, neededKeys, providedSignatures)
   }
 

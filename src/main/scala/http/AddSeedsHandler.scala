@@ -3,7 +3,7 @@ package http
 import java.io.IOException
 
 import com.sun.net.httpserver.{HttpExchange, HttpHandler}
-import messages.AddPeersMessage
+import messages.{AddPeersMessage, RequestAllStatementsMessage}
 import org.apache.http.HttpStatus.SC_CREATED
 import peers.PeerAccess
 import util.HttpUtil
@@ -19,6 +19,7 @@ class AddSeedsHandler(bcHttpServer: BCHttpServer, peerAccess: PeerAccess) extend
       val seeds = source.getLines.mkString(",").split(",").map(_.trim)
       peerAccess.addAll(seeds)
       peerAccess.sendMsg(AddPeersMessage(seeds :+ bcHttpServer.localServerAddress))
+      peerAccess.sendMsg(RequestAllStatementsMessage(bcHttpServer.localServerAddress))
       source.close()
       bcHttpServer.sendHttpResponse(exchange, SC_CREATED, "New seeds have been added.")
     }

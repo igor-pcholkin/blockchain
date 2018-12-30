@@ -6,7 +6,7 @@ import java.time.LocalDateTime
 import com.sun.net.httpserver.HttpExchange
 import core.Block.CURRENT_BLOCK_VERSION
 import core._
-import messages._
+import messages.{RequestAllStatementsMessage, _}
 import io.circe.Encoder
 import keys.KeysFileOps
 import org.apache.http.HttpStatus
@@ -147,7 +147,7 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
     val mockExchange = mock[HttpExchange]
     val mockBcHttpServer = mock[BCHttpServer]
     val blockChain = new TestBlockChain
-    val initPayments = new StatementsCache()
+    val statementsCache = new StatementsCache()
     val keysFileOps = mock[KeysFileOps]
     val peerAccess = mock[PeerAccess]
 
@@ -163,7 +163,7 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
 
     blockChain.chain.size() shouldBe 1
 
-    new MsgHandler("Riga", mockBcHttpServer, initPayments, blockChain, keysFileOps, peerAccess).handle(mockExchange)
+    new MsgHandler("Riga", mockBcHttpServer, statementsCache, blockChain, keysFileOps, peerAccess).handle(mockExchange)
 
     blockChain.chain.size() shouldBe 2
 
@@ -178,7 +178,7 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
     val mockExchange = mock[HttpExchange]
     val mockBcHttpServer = mock[BCHttpServer]
     val blockChain = new TestBlockChain
-    val initPayments = new StatementsCache()
+    val statementsCache = new StatementsCache()
     val keysFileOps = mock[KeysFileOps]
     val peerAccess = mock[PeerAccess]
 
@@ -189,11 +189,40 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
     when(mockExchange.getRequestMethod).thenReturn("POST")
     when(mockExchange.getRequestBody).thenReturn(is)
 
-    new MsgHandler("Riga", mockBcHttpServer, initPayments, blockChain, keysFileOps, peerAccess).handle(mockExchange)
+    new MsgHandler("Riga", mockBcHttpServer, statementsCache, blockChain, keysFileOps, peerAccess).handle(mockExchange)
 
     verify(peerAccess, times(1)).addAll(Matchers.eq(peers))
     verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange),
       Matchers.eq("New peers received and added to the node."))
+  }
+
+  "Message handler" should "accept RequestAllStatementsMessage when it arrives from another node" in {
+    val mockExchange = mock[HttpExchange]
+    val mockBcHttpServer = mock[BCHttpServer]
+    val blockChain = new TestBlockChain
+    val statementsCache = new StatementsCache()
+    val keysFileOps = mock[KeysFileOps]
+    val peerAccess = mock[PeerAccess]
+
+    val peer = "blabla123.com"
+    val requestAllStatementsMessage = RequestAllStatementsMessage(peer)
+    val is = new ByteArrayInputStream(Message.serialize(requestAllStatementsMessage).getBytes)
+
+    when(mockExchange.getRequestMethod).thenReturn("POST")
+    when(mockExchange.getRequestBody).thenReturn(is)
+
+    val statement1 = new SignedStatement(new TestStatement("a"), Nil)
+    val statement2 = new SignedStatement(new TestStatement("b"), Nil)
+
+    statementsCache.add(statement1)
+    statementsCache.add(statement2)
+
+    new MsgHandler("Riga", mockBcHttpServer, statementsCache, blockChain, keysFileOps, peerAccess).handle(mockExchange)
+
+    verify(peerAccess, times(1)).sendMsg(Matchers.eq(statement1), Matchers.eq(peer))(Matchers.eq(SignedStatement.encoder))
+    verify(peerAccess, times(1)).sendMsg(Matchers.eq(statement2), Matchers.eq(peer))(Matchers.eq(SignedStatement.encoder))
+    verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange),
+      Matchers.eq(s"All statements have been sent to node: ${peer}."))
   }
 
 }

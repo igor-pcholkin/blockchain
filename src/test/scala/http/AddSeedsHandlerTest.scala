@@ -3,7 +3,7 @@ package http
 import java.io.ByteArrayInputStream
 
 import com.sun.net.httpserver.HttpExchange
-import messages.AddPeersMessage
+import messages.{AddPeersMessage, RequestAllStatementsMessage}
 import io.circe.Encoder
 import org.apache.http.HttpStatus
 import org.mockito.Matchers
@@ -30,6 +30,7 @@ class AddSeedsHandlerTest extends FlatSpec with org.scalatest.Matchers with Mock
     val peers = Seq("blabla.com:6001", "lala.com:6002", "localhost:6001", "localhost:6002")
     verify(peerAccess, times(1)).addAll(peers)
     verify(peerAccess, times(1)).sendMsg(Matchers.eq(AddPeersMessage(peers :+ "123.233.22.44:1234")))(Matchers.any[Encoder[AddPeersMessage]])
+    verify(peerAccess, times(1)).sendMsg(Matchers.eq(RequestAllStatementsMessage("123.233.22.44:1234")))(Matchers.any[Encoder[RequestAllStatementsMessage]])
 
     verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange), Matchers.eq(HttpStatus.SC_CREATED),
       Matchers.eq("New seeds have been added."))

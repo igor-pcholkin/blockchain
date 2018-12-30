@@ -13,6 +13,8 @@ import org.apache.http.HttpStatus.SC_BAD_REQUEST
 import peers.PeerAccess
 import io.circe.generic.auto._
 
+import scala.collection.JavaConverters._
+
 class MsgHandler(nodeName: String, bcHttpServer: BCHttpServer, statementsCache: StatementsCache, bc: BlockChain, val keysFileOps: KeysFileOps,
                  peerAccess: PeerAccess) extends HttpHandler with HttpUtil
   with StringConverter with KeysSerializator {
@@ -29,6 +31,8 @@ class MsgHandler(nodeName: String, bcHttpServer: BCHttpServer, statementsCache: 
           handle(newBlockMessage, exchange, peerAccess)
         case addPeersMessage: AddPeersMessage =>
           handle(addPeersMessage, exchange)
+        case requestAllMessages: RequestAllStatementsMessage =>
+          handle(requestAllMessages, exchange)
         case _ =>
           throw new RuntimeException(s"Unexpected message: $msgAsString")
       }
@@ -63,6 +67,13 @@ class MsgHandler(nodeName: String, bcHttpServer: BCHttpServer, statementsCache: 
   private def handle(addPeersMessage: AddPeersMessage, exchange: HttpExchange): Unit = {
     peerAccess.addAll(addPeersMessage.peers)
     bcHttpServer.sendHttpResponse(exchange, "New peers received and added to the node.")
+  }
+
+  private def handle(requestAllStatementsMessage: RequestAllStatementsMessage, exchange: HttpExchange): Unit = {
+    statementsCache.statements.values.asScala foreach { statement =>
+      peerAccess.sendMsg(statement, requestAllStatementsMessage.toIPAddress)(SignedStatement.encoder)
+    }
+    bcHttpServer.sendHttpResponse(exchange, s"All statements have been sent to node: ${requestAllStatementsMessage.toIPAddress}.")
   }
 
   def verifySignatures(signedStatement: SignedStatement): Boolean = {
