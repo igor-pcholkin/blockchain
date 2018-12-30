@@ -41,7 +41,7 @@ class MsgHandler(nodeName: String, bcHttpServer: BCHttpServer, statementsCache: 
       val enhancedStatement = signedStatement.addSignatures(newSignatures)
       statementsCache.add(enhancedStatement)
       if (enhancedStatement.isSignedByAllKeys) {
-        addFactToNewBlock(enhancedStatement)
+        bc.addFactToNewBlock(enhancedStatement)
         peerAccess.sendMsg(NewBlockMessage(bc.getLatestBlock))
         bcHttpServer.sendHttpResponse(exchange, "Payment transaction created and added to blockchain.")
       } else {
@@ -63,13 +63,6 @@ class MsgHandler(nodeName: String, bcHttpServer: BCHttpServer, statementsCache: 
   private def handle(addPeersMessage: AddPeersMessage, exchange: HttpExchange): Unit = {
     peerAccess.addAll(addPeersMessage.peers)
     bcHttpServer.sendHttpResponse(exchange, "New peers received and added to the node.")
-  }
-
-  def addFactToNewBlock(signedStatement: SignedStatement): Unit = {
-    val fact = Fact(signedStatement.statement, signedStatement.providedSignaturesForKeys)
-    val serializedFact = Message.serialize(fact)(Fact.encoder).getBytes
-    val newBlock = bc.genNextBlock(serializedFact)
-    bc.add(newBlock)
   }
 
   def verifySignatures(signedStatement: SignedStatement): Boolean = {

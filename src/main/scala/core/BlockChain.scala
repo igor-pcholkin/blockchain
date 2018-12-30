@@ -77,5 +77,12 @@ abstract class BlockChain(nodeName: String) {
     }
   }
 
+  def addFactToNewBlock(signedStatement: SignedStatement): Unit = {
+    val fact = Fact(signedStatement.statement, signedStatement.providedSignaturesForKeys)
+    val serializedFact = Message.serialize(fact)(Fact.encoder).getBytes
+    val newBlock = genNextBlock(serializedFact)
+    add(newBlock)
+  }
+
 
 }
