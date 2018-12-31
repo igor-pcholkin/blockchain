@@ -1,6 +1,7 @@
 package http
 
 import java.io.ByteArrayInputStream
+import java.util.concurrent.ConcurrentLinkedQueue
 
 import com.sun.net.httpserver.HttpExchange
 import messages.{AddPeersMessage, RequestAllStatementsMessage}
@@ -11,6 +12,8 @@ import org.mockito.Mockito.{times, verify, when}
 import org.scalatest.FlatSpec
 import org.scalatest.mockito.MockitoSugar
 import peers.PeerAccess
+import util.FileOps
+import scala.collection.JavaConverters._
 
 class AddSeedsHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSugar {
   "AddSeedsHandler" should "add seeds to blockchain" in {
@@ -25,11 +28,18 @@ class AddSeedsHandlerTest extends FlatSpec with org.scalatest.Matchers with Mock
     when(mockBcHttpServer.localServerAddress).thenReturn("123.233.22.44:1234")
 
     val peerAccess = mock[PeerAccess]
-    new AddSeedsHandler(mockBcHttpServer, peerAccess).handle(mockExchange)
-
+    val fileOps = mock[FileOps]
     val peers = Seq("blabla.com:6001", "lala.com:6002", "localhost:6001", "localhost:6002")
+    val peersAsQueue = new ConcurrentLinkedQueue[String]()
+    peersAsQueue.addAll(peers.asJava)
+    when(peerAccess.peers).thenReturn(peersAsQueue)
+
+    new AddSeedsHandler(mockBcHttpServer, peerAccess, "Riga", fileOps).handle(mockExchange)
+
     verify(peerAccess, times(1)).addAll(peers)
-    verify(peerAccess, times(1)).sendMsg(Matchers.eq(AddPeersMessage(peers :+ "123.233.22.44:1234")))(Matchers.any[Encoder[AddPeersMessage]])
+    verify(fileOps, times(1)).createDirIfNotExists(Matchers.eq("Riga"))
+    verify(fileOps, times(1)).writeFile(Matchers.eq("Riga/config"), Matchers.anyString)
+    verify(peerAccess, times(1)).sendMsg(Matchers.eq(AddPeersMessage(peers, "123.233.22.44:1234")))(Matchers.any[Encoder[AddPeersMessage]])
     verify(peerAccess, times(1)).sendMsg(Matchers.eq(RequestAllStatementsMessage("123.233.22.44:1234")))(Matchers.any[Encoder[RequestAllStatementsMessage]])
 
     verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange), Matchers.eq(HttpStatus.SC_CREATED),

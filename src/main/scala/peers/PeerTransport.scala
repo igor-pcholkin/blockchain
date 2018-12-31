@@ -1,6 +1,6 @@
 package peers
 
-import core.Message
+import core.{Message, Serializator}
 import io.circe.Encoder
 import org.apache.http.HttpStatus
 import org.apache.http.client.methods.HttpPost
@@ -19,10 +19,10 @@ abstract class PeerTransport {
 
 class HttpPeerTransport extends PeerTransport {
   override def sendMsg[T <: Message](msg: T, peers: Seq[String])(implicit encoder: Encoder[T]): Future[Result] = {
-    val f = Future.sequence(
+    Future.sequence(
       peers map { peer =>
         Future {
-          postRequest(Message.serialize(msg), peer)
+          postRequest(Serializator.serialize(msg), peer)
         }
       }).withTimeout
     Future.successful(Result(HttpStatus.SC_OK, "Msg sent to all peers."))

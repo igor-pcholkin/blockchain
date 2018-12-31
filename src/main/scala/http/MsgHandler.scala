@@ -22,10 +22,10 @@ class MsgHandler(nodeName: String, bcHttpServer: BCHttpServer, statementsCache: 
   def handle(exchange: HttpExchange): Unit = {
     withHttpMethod ("POST", exchange, bcHttpServer) {
       val msgAsString = Source.fromInputStream(exchange.getRequestBody).getLines().mkString("\n")
-      Message.deserialize(msgAsString).getOrElse {
+      val msg = Serializator.deserialize(msgAsString).getOrElse {
         bcHttpServer.sendHttpResponse(exchange, SC_BAD_REQUEST, s"Invalid message received: $msgAsString")
       } match {
-        case signedStatement: SignedStatement =>
+        case signedStatement: SignedStatementMessage =>
           handle(signedStatement, exchange)
         case newBlockMessage: NewBlockMessage =>
           handle(newBlockMessage, exchange, peerAccess)
@@ -36,53 +36,58 @@ class MsgHandler(nodeName: String, bcHttpServer: BCHttpServer, statementsCache: 
         case _ =>
           throw new RuntimeException(s"Unexpected message: $msgAsString")
       }
+      peerAccess.add(msg.sentFromIPAddress)
     }
   }
 
-  private def handle(signedStatement: SignedStatement, exchange: HttpExchange): Unit = {
+  private def handle(signedStatement: SignedStatementMessage, exchange: HttpExchange): Message = {
     if (verifySignatures(signedStatement)) {
       val newSignatures = signedStatement.signByLocalPublicKeys(nodeName, keysFileOps)
       val enhancedStatement = signedStatement.addSignatures(newSignatures)
       statementsCache.add(enhancedStatement)
       if (enhancedStatement.isSignedByAllKeys) {
         bc.addFactToNewBlock(enhancedStatement)
-        peerAccess.sendMsg(NewBlockMessage(bc.getLatestBlock))
+        peerAccess.sendMsg(NewBlockMessage(bc.getLatestBlock, bcHttpServer.localServerAddress))
         bcHttpServer.sendHttpResponse(exchange, "Payment transaction created and added to blockchain.")
       } else {
-        peerAccess.sendMsg(signedStatement)(SignedStatement.encoder)
+        peerAccess.sendMsg(signedStatement)(SignedStatementMessage.encoder)
         bcHttpServer.sendHttpResponse(exchange, "Statement has been verified and added to cache.")
       }
     } else {
       bcHttpServer.sendHttpResponse(exchange, SC_BAD_REQUEST, "Initial payment message validation failed.")
     }
+    signedStatement
   }
 
-  private def handle(newBlockMessage: NewBlockMessage, exchange: HttpExchange, peerAccess: PeerAccess): Unit = {
+  private def handle(newBlockMessage: NewBlockMessage, exchange: HttpExchange, peerAccess: PeerAccess): Message = {
     bc.add(newBlockMessage.block)
     bc.writeChain()
     peerAccess.sendMsg(newBlockMessage)
     bcHttpServer.sendHttpResponse(exchange, "New block received and added to blockchain.")
+    newBlockMessage
   }
 
-  private def handle(addPeersMessage: AddPeersMessage, exchange: HttpExchange): Unit = {
+  private def handle(addPeersMessage: AddPeersMessage, exchange: HttpExchange): Message = {
     peerAccess.addAll(addPeersMessage.peers)
     bcHttpServer.sendHttpResponse(exchange, "New peers received and added to the node.")
+    addPeersMessage
   }
 
-  private def handle(requestAllStatementsMessage: RequestAllStatementsMessage, exchange: HttpExchange): Unit = {
+  private def handle(requestAllStatementsMessage: RequestAllStatementsMessage, exchange: HttpExchange): Message = {
     statementsCache.statements.values.asScala foreach { statement =>
-      peerAccess.sendMsg(statement, requestAllStatementsMessage.toIPAddress)(SignedStatement.encoder)
+      peerAccess.sendMsg(statement, requestAllStatementsMessage.sentFromIPAddress)(SignedStatementMessage.encoder)
     }
-    bcHttpServer.sendHttpResponse(exchange, s"All statements have been sent to node: ${requestAllStatementsMessage.toIPAddress}.")
+    bcHttpServer.sendHttpResponse(exchange, s"All statements have been sent to node: ${requestAllStatementsMessage.sentFromIPAddress}.")
+    requestAllStatementsMessage
   }
 
-  def verifySignatures(signedStatement: SignedStatement): Boolean = {
+  def verifySignatures(signedStatement: SignedStatementMessage): Boolean = {
     signedStatement.providedSignaturesForKeys.forall {
       case (encodedPublicKey, signature) => verifySignature(signedStatement, encodedPublicKey, signature)
     }
   }
 
-  def verifySignature(signedStatement: SignedStatement, publicKeyEncoded: String, encodedSignature: String): Boolean = {
+  def verifySignature(signedStatement: SignedStatementMessage, publicKeyEncoded: String, encodedSignature: String): Boolean = {
     val decodedSignature = base64StrToBytes(encodedSignature)
     val decodedPublicKey = deserializePublic(publicKeyEncoded)
     Signer.verify(decodedSignature, signedStatement.statement.dataToSign, decodedPublicKey)

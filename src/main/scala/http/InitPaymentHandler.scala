@@ -3,8 +3,8 @@ package http
 import java.io.IOException
 
 import com.sun.net.httpserver.{HttpExchange, HttpHandler}
-import messages.{InitPaymentMessage, NewBlockMessage}
-import core.{BlockChain, Money, SignedStatement, StatementsCache}
+import messages.{NewBlockMessage, SignedStatementMessage}
+import core.{BlockChain, Money, StatementsCache}
 import keys.KeysFileOps
 import peers.PeerAccess
 
@@ -12,6 +12,7 @@ import scala.io.Source
 import io.circe.generic.auto._
 import io.circe.parser._
 import org.apache.http.HttpStatus.{SC_BAD_REQUEST, SC_CREATED}
+import statements.InitPayment
 import util.HttpUtil
 
 case class InitPaymentRequest(from: String, to: String, currency: String, amount: Double)
@@ -39,16 +40,18 @@ class InitPaymentHandler(nodeName: String, bcHttpServer: BCHttpServer, statement
 
   private def processPaymentRequest(initPaymentRequest: InitPaymentRequest, exchange: HttpExchange): Unit = {
     val asset = Money (initPaymentRequest.currency, (BigDecimal (initPaymentRequest.amount) * 100).toLong)
-    InitPaymentMessage.apply(nodeName, initPaymentRequest.from, initPaymentRequest.to, asset, keysFileOps) match {
-      case Right(initPaymentMessage) =>
-        val signedStatement = SignedStatement(initPaymentMessage, Seq(initPaymentRequest.from, initPaymentRequest.to), nodeName, keysFileOps)
+    InitPayment.apply(nodeName, initPaymentRequest.from, initPaymentRequest.to, asset,
+      keysFileOps) match {
+      case Right(initPayment) =>
+        val signedStatement = SignedStatementMessage(initPayment, Seq(initPaymentRequest.from, initPaymentRequest.to), nodeName,
+          keysFileOps, bcHttpServer.localServerAddress)
         processSignedStatement(signedStatement, initPaymentRequest.from, exchange)
       case Left(error) =>
         bcHttpServer.sendHttpResponse (exchange, SC_BAD_REQUEST, error)
     }
   }
 
-  private def processSignedStatement(signedStatement: SignedStatement, fromPublicKey: String, exchange: HttpExchange): Unit = {
+  private def processSignedStatement(signedStatement: SignedStatementMessage, fromPublicKey: String, exchange: HttpExchange): Unit = {
     signedStatement.providedSignaturesForKeys.find(_._1 == fromPublicKey) match {
       case Some(_) =>
         if (signedStatement.isSignedByAllKeys) {
@@ -61,15 +64,15 @@ class InitPaymentHandler(nodeName: String, bcHttpServer: BCHttpServer, statement
     }
   }
 
-  private def createAndAddTransactionToBlockchain(signedStatement: SignedStatement, exchange: HttpExchange): Unit = {
+  private def createAndAddTransactionToBlockchain(signedStatement: SignedStatementMessage, exchange: HttpExchange): Unit = {
     bc.addFactToNewBlock(signedStatement)
-    peerAccess.sendMsg(NewBlockMessage(bc.getLatestBlock))
+    peerAccess.sendMsg(NewBlockMessage(bc.getLatestBlock, bcHttpServer.localServerAddress))
     bcHttpServer.sendHttpResponse(exchange, "Payment transaction created and added to blockchain.")
   }
 
-  private def initiatePayment(signedStatement: SignedStatement, exchange: HttpExchange): Unit = {
+  private def initiatePayment(signedStatement: SignedStatementMessage, exchange: HttpExchange): Unit = {
     statementsCache.add(signedStatement)
-    peerAccess.sendMsg(signedStatement)(SignedStatement.encoder)
+    peerAccess.sendMsg(signedStatement)(SignedStatementMessage.encoder)
     bcHttpServer.sendHttpResponse(exchange, SC_CREATED, "New Payment has been initiated.")
   }
 

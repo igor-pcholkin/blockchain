@@ -2,15 +2,17 @@ package core
 
 import java.util.concurrent.ConcurrentHashMap
 
-class StatementsCache {
-  val statements = new ConcurrentHashMap[Int, SignedStatement]()
+import messages.SignedStatementMessage
 
-  def add(statement: SignedStatement): Unit = {
+class StatementsCache {
+  val statements = new ConcurrentHashMap[Int, SignedStatementMessage]()
+
+  def add(statement: SignedStatementMessage): Unit = {
     val statementHashCode = statement.hashCode()
     if (!statements.contains(statementHashCode)) {
       statements.put(statementHashCode, statement)
     }
   }
 
-  def addAll(statements: Seq[SignedStatement]): Unit = statements foreach add
+  def addAll(statements: Seq[SignedStatementMessage]): Unit = statements foreach add
 }

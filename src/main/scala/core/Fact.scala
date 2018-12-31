@@ -5,7 +5,7 @@ import io.circe.{Decoder, Encoder, HCursor, Json}
 import io.circe.parser.decode
 import io.circe.syntax._
 
-object Fact extends MsgDeserializator {
+object Fact extends Deserializator {
   override def deserialize(s: String): Either[circe.Error, Fact] = decode[Fact](s)(decoder)
 
   lazy val encoder: Encoder[Fact] = (fact: Fact) => {
@@ -30,4 +30,4 @@ object Fact extends MsgDeserializator {
   * Fact is a statement signed by all users which are required to sign it.
   * Facts are stored in blockchain.
   */
-case class Fact(statement: Statement, providedSignaturesForKeys: Seq[(String, String)]) extends Message
+case class Fact(statement: Statement, providedSignaturesForKeys: Seq[(String, String)]) extends Serializable

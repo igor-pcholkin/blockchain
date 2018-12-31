@@ -1,13 +1,14 @@
 package core
 
 import keys.KeysFileOps
+import messages.SignedStatementMessage
 import org.mockito.Matchers
 import org.scalatest.FlatSpec
 import org.scalatest.mockito.MockitoSugar
 import org.mockito.Mockito.{never, verify, when}
 import org.scalatest
 
-class SignedStatementTest extends FlatSpec with scalatest.Matchers with MockitoSugar {
+class SignedStatementMessageTest extends FlatSpec with scalatest.Matchers with MockitoSugar {
   "Statement" should "sign itself by public key present locally which was not used yet" in {
     val publicKey = "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEDibd8O5I928ZnTU7RYTy6Od3K3SrGlC+V8lkMYrdJuzT9Ig/Iq8JciaukxCYmVSO1mZuC65xMkxSb5Q0rNZ8og=="
     val statement = createStatement(Seq("pubKA", publicKey), Seq(("pubKA", "sign")))
@@ -90,14 +91,14 @@ class SignedStatementTest extends FlatSpec with scalatest.Matchers with MockitoS
     statement.couldBeSignedByLocalPublicKey("Riga", keysFileOps) shouldBe true
   }
 
-  def createStatement(signatures: Seq[(String, String)]): SignedStatement = {
-    val statement = new TestStatement("a")
-    SignedStatement(statement, Seq("pubKA", "pubKB"), signatures)
+  def createStatement(signatures: Seq[(String, String)]): SignedStatementMessage = {
+    val statement = TestStatement("a")
+    SignedStatementMessage(statement, Seq("pubKA", "pubKB"), "localhost", signatures)
   }
 
-  def createStatement(neededKeys: Seq[String], providedSignatures: Seq[(String, String)]): SignedStatement = {
-    val statement = new TestStatement("b")
-    SignedStatement(statement, neededKeys, providedSignatures)
+  def createStatement(neededKeys: Seq[String], providedSignatures: Seq[(String, String)]): SignedStatementMessage = {
+    val statement = TestStatement("b")
+    SignedStatementMessage(statement, neededKeys, "localhost", providedSignatures)
   }
 
 }

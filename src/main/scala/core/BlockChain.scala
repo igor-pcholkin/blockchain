@@ -3,6 +3,8 @@ package core
 import java.time.LocalDateTime
 import java.util.concurrent.ConcurrentLinkedDeque
 
+import messages.SignedStatementMessage
+
 import scala.collection.JavaConverters._
 
 class ProdBlockChain(nodeName: String) extends BlockChain(nodeName) {
@@ -77,9 +79,9 @@ abstract class BlockChain(nodeName: String) {
     }
   }
 
-  def addFactToNewBlock(signedStatement: SignedStatement): Unit = {
+  def addFactToNewBlock(signedStatement: SignedStatementMessage): Unit = {
     val fact = Fact(signedStatement.statement, signedStatement.providedSignaturesForKeys)
-    val serializedFact = Message.serialize(fact)(Fact.encoder).getBytes
+    val serializedFact = Serializator.serialize(fact)(Fact.encoder).getBytes
     val newBlock = genNextBlock(serializedFact)
     add(newBlock)
   }

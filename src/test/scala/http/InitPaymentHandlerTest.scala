@@ -4,7 +4,7 @@ import java.io.ByteArrayInputStream
 import java.time.LocalDateTime
 
 import com.sun.net.httpserver.HttpExchange
-import messages.{InitPaymentMessage, NewBlockMessage}
+import messages.{NewBlockMessage, SignedStatementMessage}
 import core._
 import keys.{KeysFileOps, KeysGenerator}
 import org.apache.http.HttpStatus.SC_CREATED
@@ -18,6 +18,7 @@ import util.{DateTimeUtil, StringConverter}
 import scala.collection.JavaConverters._
 import io.circe._
 import org.apache.http.HttpStatus
+import statements.InitPayment
 
 class InitPaymentHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSugar with DateTimeUtil with KeysGenerator with StringConverter {
   val keysFileOps: KeysFileOps = mock[KeysFileOps]
@@ -52,7 +53,7 @@ class InitPaymentHandlerTest extends FlatSpec with org.scalatest.Matchers with M
     statementsCache.statements.size shouldBe 1
     blockChain.chain.size shouldBe 1
     val signedStatement = statementsCache.statements.asScala.head._2
-    val createdInitPayment = signedStatement.statement.asInstanceOf[InitPaymentMessage]
+    val createdInitPayment = signedStatement.statement.asInstanceOf[InitPayment]
     createdInitPayment.createdByNode shouldBe "Riga"
     createdInitPayment.fromPublicKeyEncoded shouldBe "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEDibd8O5I928ZnTU7RYTy6Od3K3SrGlC+V8lkMYrdJuzT9Ig/Iq8JciaukxCYmVSO1mZuC65xMkxSb5Q0rNZ8og=="
     createdInitPayment.toPublicKeyEncoded shouldBe "(publicKeyTo)"
@@ -64,7 +65,7 @@ class InitPaymentHandlerTest extends FlatSpec with org.scalatest.Matchers with M
 
     verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange), Matchers.eq(SC_CREATED),
       Matchers.eq("New Payment has been initiated."))
-    verify(peerAccess.peerTransport, times(1)).sendMsg(Matchers.eq(signedStatement), Matchers.eq(Seq("blabla.com", "another.com")))(Matchers.any[Encoder[SignedStatement]])
+    verify(peerAccess.peerTransport, times(1)).sendMsg(Matchers.eq(signedStatement), Matchers.eq(Seq("blabla.com", "another.com")))(Matchers.any[Encoder[SignedStatementMessage]])
   }
 
   "InitPaymentHandler" should "create new fact (transaction) in a new block if it could be signed by users on the same node at once" in {
@@ -150,6 +151,6 @@ class InitPaymentHandlerTest extends FlatSpec with org.scalatest.Matchers with M
     blockChain.chain.size shouldBe 1
     verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange), Matchers.eq(HttpStatus.SC_BAD_REQUEST),
       Matchers.eq("No user with given (from) public key found."))
-    verify(peerAccess.peerTransport, never).sendMsg(Matchers.any[SignedStatement], Matchers.any[Seq[String]])(Matchers.any[Encoder[SignedStatement]])
+    verify(peerAccess.peerTransport, never).sendMsg(Matchers.any[SignedStatementMessage], Matchers.any[Seq[String]])(Matchers.any[Encoder[SignedStatementMessage]])
   }
 }

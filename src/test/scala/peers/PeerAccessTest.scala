@@ -14,8 +14,8 @@ class PeerAccessTest extends FlatSpec with scalatest.Matchers with MockitoSugar 
     val transport = mock[PeerTransport]
     val peerAccess = new PeerAccess(transport)
     peerAccess.add("p1")
-    val addPeersMessage1 = AddPeersMessage(Seq("1"))
-    val addPeersMessage2 = AddPeersMessage(Seq("2"))
+    val addPeersMessage1 = AddPeersMessage(Seq("1"), "localhost")
+    val addPeersMessage2 = AddPeersMessage(Seq("2"), "localhost")
     peerAccess.sendMsg(addPeersMessage1)
     peerAccess.sendMsg(addPeersMessage1)
     peerAccess.sendMsg(addPeersMessage2)

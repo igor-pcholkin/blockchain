@@ -17,6 +17,7 @@ import org.scalatest.mockito.MockitoSugar
 import peers.PeerAccess
 import util.StringConverter
 import io.circe.generic.auto._
+import statements.InitPayment
 
 class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSugar with StringConverter {
 
@@ -39,9 +40,9 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
     // whether payment transaction could be created and signed
     when(keysFileOps.getUserByKey("Riga", toPublicKey)).thenReturn(None)
 
-    val initPaymentMessage = InitPaymentMessage("Riga", fromPublicKey, toPublicKey, Money("EUR", 2025), keysFileOps).right.get
-    val signedStatement = SignedStatement(initPaymentMessage, Seq(fromPublicKey, toPublicKey), "Riga", keysFileOps)
-    val is = new ByteArrayInputStream(Message.serialize(signedStatement)(SignedStatement.encoder).getBytes)
+    val initPayment = InitPayment("Riga", fromPublicKey, toPublicKey, Money("EUR", 2025), keysFileOps).right.get
+    val signedStatement = SignedStatementMessage(initPayment, Seq(fromPublicKey, toPublicKey), "Riga", keysFileOps, "localhost")
+    val is = new ByteArrayInputStream(Serializator.serialize(signedStatement)(SignedStatementMessage.encoder).getBytes)
 
     when(mockExchange.getRequestMethod).thenReturn("POST")
     when(mockExchange.getRequestBody).thenReturn(is)
@@ -50,9 +51,10 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
 
     verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange),
       Matchers.eq("Statement has been verified and added to cache."))
-    verify(peerAccess, times(1)).sendMsg(Matchers.eq(signedStatement))(Matchers.any[Encoder[SignedStatement]])
-    // it doesn't make disctinction between InitPaymentMessage and NewBlockMessage, so commented out
+    verify(peerAccess, times(1)).sendMsg(Matchers.eq(signedStatement))(Matchers.any[Encoder[SignedStatementMessage]])
+    // it doesn't make disctinction between SignedStatementMessage and NewBlockMessage, so commented out
     //verify(peerAccess, never).sendMsg(Matchers.any[NewBlockMessage])(Matchers.any[Encoder[NewBlockMessage]])
+    verify(peerAccess, times(1)).add(Matchers.eq("localhost"))
 
     statements.statements.containsValue(signedStatement) shouldBe true
     blockChain.chain.size() shouldBe 1
@@ -77,11 +79,11 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
     // whether payment transaction could be created and signed
     when(keysFileOps.getUserByKey("Riga", toPublicKey)).thenReturn(None)
 
-    val initPaymentMessage = InitPaymentMessage("Riga", fromPublicKey, toPublicKey, Money("EUR", 2025), keysFileOps).right.get
-    val signedStatement = SignedStatement(initPaymentMessage, Seq(fromPublicKey, toPublicKey), "Riga", keysFileOps)
-    val tamperedMessage = initPaymentMessage.copy(money = Money("EUR", 202500))
+    val initPayment = InitPayment("Riga", fromPublicKey, toPublicKey, Money("EUR", 2025), keysFileOps).right.get
+    val signedStatement = SignedStatementMessage(initPayment, Seq(fromPublicKey, toPublicKey), "Riga", keysFileOps, "localhost")
+    val tamperedMessage = initPayment.copy(money = Money("EUR", 202500))
     val tamperedStatement = signedStatement.copy(statement = tamperedMessage)
-    val is = new ByteArrayInputStream(Message.serialize(tamperedStatement)(SignedStatement.encoder).getBytes)
+    val is = new ByteArrayInputStream(Serializator.serialize(tamperedStatement)(SignedStatementMessage.encoder).getBytes)
 
     when(mockExchange.getRequestMethod).thenReturn("POST")
     when(mockExchange.getRequestBody).thenReturn(is)
@@ -91,6 +93,7 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
     verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange), Matchers.eq(HttpStatus.SC_BAD_REQUEST),
       Matchers.eq("Initial payment message validation failed."))
     verify(peerAccess, never).sendMsg(Matchers.any[NewBlockMessage])(Matchers.any[Encoder[NewBlockMessage]])
+    verify(peerAccess, times(1)).add(Matchers.eq("localhost"))
 
     statementsCache.statements.containsValue(tamperedStatement) shouldBe false
     blockChain.chain.size() shouldBe 1
@@ -118,9 +121,9 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
     when(keysFileOps.readKeyFromFile("Riga", "John", "privateKey")).thenReturn("MEECAQAwEwYHKoZIzj0CAQYIKoZIzj0DAQcEJzAlAgEBBCAimtA53n1kVMdG1OleLJtfbFnjr1zU5smd04yfbdWpUw==")
     when(keysFileOps.readKeyFromFile("Riga", "John", "publicKey")).thenReturn(toPublicKey)
 
-    val paymentMessage = InitPaymentMessage("Riga", fromPublicKey, toPublicKey, Money("EUR", 2025), keysFileOps).right.get
-    val signedStatement = SignedStatement(paymentMessage, Seq(fromPublicKey, toPublicKey), "Riga", keysFileOps)
-    val is = new ByteArrayInputStream(Message.serialize(signedStatement)(SignedStatement.encoder).getBytes)
+    val initPayment = InitPayment("Riga", fromPublicKey, toPublicKey, Money("EUR", 2025), keysFileOps).right.get
+    val signedStatement = SignedStatementMessage(initPayment, Seq(fromPublicKey, toPublicKey), "Riga", keysFileOps, "localhost")
+    val is = new ByteArrayInputStream(Serializator.serialize(signedStatement)(SignedStatementMessage.encoder).getBytes)
 
     when(mockExchange.getRequestMethod).thenReturn("POST")
     when(mockExchange.getRequestBody).thenReturn(is)
@@ -130,6 +133,7 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
     verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange),
       Matchers.eq("Payment transaction created and added to blockchain."))
     verify(peerAccess, times(1)).sendMsg(Matchers.any[NewBlockMessage])(Matchers.any[Encoder[NewBlockMessage]])
+    verify(peerAccess, times(1)).add(Matchers.eq("localhost"))
 
     statementsCache.statements.containsValue(signedStatement) shouldBe true
     blockChain.chain.size() shouldBe 2
@@ -152,8 +156,8 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
     val peerAccess = mock[PeerAccess]
 
     val block = Block(CURRENT_BLOCK_VERSION, blockChain.getLatestBlock.hash, LocalDateTime.of(2018, 12, 21, 15, 0, 0), "Hi".getBytes)
-    val newBlockMessage = NewBlockMessage(block)
-    val is = new ByteArrayInputStream(Message.serialize(newBlockMessage).getBytes)
+    val newBlockMessage = NewBlockMessage(block, "localhost")
+    val is = new ByteArrayInputStream(Serializator.serialize(newBlockMessage).getBytes)
 
     when(mockExchange.getRequestMethod).thenReturn("POST")
     when(mockExchange.getRequestBody).thenReturn(is)
@@ -170,6 +174,7 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
     verify(blockChain.chainFileOps, times(1)).writeBlock(Matchers.eq(0), Matchers.any[Block], Matchers.any[String])
     verify(blockChain.chainFileOps, times(1)).writeBlock(Matchers.eq(1), Matchers.any[Block], Matchers.any[String])
     verify(peerAccess, times(1)).sendMsg(Matchers.eq(newBlockMessage))(Matchers.any[Encoder[NewBlockMessage]])
+    verify(peerAccess, times(1)).add(Matchers.eq("localhost"))
     verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange),
       Matchers.eq("New block received and added to blockchain."))
   }
@@ -183,8 +188,8 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
     val peerAccess = mock[PeerAccess]
 
     val peers = Seq("localhost:6789", "blabla123.com")
-    val addPeersMessage = AddPeersMessage(peers)
-    val is = new ByteArrayInputStream(Message.serialize(addPeersMessage).getBytes)
+    val addPeersMessage = AddPeersMessage(peers, "localhost")
+    val is = new ByteArrayInputStream(Serializator.serialize(addPeersMessage).getBytes)
 
     when(mockExchange.getRequestMethod).thenReturn("POST")
     when(mockExchange.getRequestBody).thenReturn(is)
@@ -192,6 +197,7 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
     new MsgHandler("Riga", mockBcHttpServer, statementsCache, blockChain, keysFileOps, peerAccess).handle(mockExchange)
 
     verify(peerAccess, times(1)).addAll(Matchers.eq(peers))
+    verify(peerAccess, times(1)).add(Matchers.eq("localhost"))
     verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange),
       Matchers.eq("New peers received and added to the node."))
   }
@@ -206,23 +212,24 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
 
     val peer = "blabla123.com"
     val requestAllStatementsMessage = RequestAllStatementsMessage(peer)
-    val is = new ByteArrayInputStream(Message.serialize(requestAllStatementsMessage).getBytes)
+    val is = new ByteArrayInputStream(Serializator.serialize(requestAllStatementsMessage).getBytes)
 
     when(mockExchange.getRequestMethod).thenReturn("POST")
     when(mockExchange.getRequestBody).thenReturn(is)
 
-    val statement1 = new SignedStatement(new TestStatement("a"), Nil)
-    val statement2 = new SignedStatement(new TestStatement("b"), Nil)
+    val statement1 = new SignedStatementMessage(TestStatement("a"), Nil, "localhost")
+    val statement2 = new SignedStatementMessage(TestStatement("b"), Nil, "localhost")
 
     statementsCache.add(statement1)
     statementsCache.add(statement2)
 
     new MsgHandler("Riga", mockBcHttpServer, statementsCache, blockChain, keysFileOps, peerAccess).handle(mockExchange)
 
-    verify(peerAccess, times(1)).sendMsg(Matchers.eq(statement1), Matchers.eq(peer))(Matchers.eq(SignedStatement.encoder))
-    verify(peerAccess, times(1)).sendMsg(Matchers.eq(statement2), Matchers.eq(peer))(Matchers.eq(SignedStatement.encoder))
+    verify(peerAccess, times(1)).sendMsg(Matchers.eq(statement1), Matchers.eq(peer))(Matchers.eq(SignedStatementMessage.encoder))
+    verify(peerAccess, times(1)).sendMsg(Matchers.eq(statement2), Matchers.eq(peer))(Matchers.eq(SignedStatementMessage.encoder))
+    verify(peerAccess, times(1)).add(Matchers.eq("blabla123.com"))
     verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange),
-      Matchers.eq(s"All statements have been sent to node: ${peer}."))
+      Matchers.eq(s"All statements have been sent to node: $peer."))
   }
 
 }

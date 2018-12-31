@@ -5,9 +5,12 @@ import java.net.{InetSocketAddress, Socket}
 import com.sun.net.httpserver.{HttpExchange, HttpServer}
 import core.{BlockChain, StatementsCache}
 import keys.ProdKeysFileOps
+import messages.RequestAllStatementsMessage
 import org.apache.http.HttpStatus
 import org.slf4j.{Logger, LoggerFactory}
 import peers.PeerAccess
+import util.ProdFileOps
+import io.circe.generic.auto._
 
 class BCHttpServer(port: Int, bc: BlockChain, peerAccess: PeerAccess, statementsCache: StatementsCache) {
 
@@ -20,10 +23,12 @@ class BCHttpServer(port: Int, bc: BlockChain, peerAccess: PeerAccess, statements
     server.createContext("/dumpchain", new GetChainHandler(this, bc))
     server.createContext("/genkeys", new GenKeysHandler(nodeName, ProdKeysFileOps, this))
     server.createContext("/nodeinfo", new NodeInfoHandler(nodeName, this, peerAccess))
-    server.createContext("/addseeds", new AddSeedsHandler(this, peerAccess))
+    server.createContext("/addseeds", new AddSeedsHandler(this, peerAccess, nodeName, ProdFileOps))
     server.createContext("/initpayment", new InitPaymentHandler(nodeName, this, statementsCache, ProdKeysFileOps, peerAccess, bc))
     server.createContext("/msgHandler", new MsgHandler(nodeName, this, statementsCache, bc, ProdKeysFileOps, peerAccess))
     server.start()
+
+    peerAccess.sendMsg(RequestAllStatementsMessage(localServerAddress))
   }
 
   def sendHttpResponse(exchange: HttpExchange, response: String): Unit = {

@@ -1,15 +1,15 @@
 package core
 
 import io.circe.generic.auto._
-import messages.InitPaymentMessage
 import keys.{KeysFileOps, KeysGenerator, KeysSerializator}
 import org.mockito.Matchers
 import org.mockito.Mockito.{never, verify, when}
 import org.scalatest
 import org.scalatest.mockito.MockitoSugar
 import org.scalatest.FlatSpec
+import statements.InitPayment
 
-class InitPaymentMessageTest extends FlatSpec with scalatest.Matchers with MockitoSugar with KeysGenerator {
+class InitPaymentTest extends FlatSpec with scalatest.Matchers with MockitoSugar with KeysGenerator {
   "InitPaymentMessage" should "serialize message to json with non empty signature" in {
     val keyPair = generateKeyPair()
     val ks = new KeysSerializator {
@@ -22,9 +22,9 @@ class InitPaymentMessageTest extends FlatSpec with scalatest.Matchers with Mocki
     when(ks.keysFileOps.readKeyFromFile("Riga", "Igor", "publicKey")).thenReturn(fromPublicKey)
 
     val asset = Money("EUR", 2025)
-    val message = InitPaymentMessage("Riga", fromPublicKey, toPublicKey, asset, ks.keysFileOps).right.get
+    val message = InitPayment("Riga", fromPublicKey, toPublicKey, asset, ks.keysFileOps).right.get
 
-    val jsonMessage = Message.serialize(message)
+    val jsonMessage = Serializator.serialize(message)
     println(jsonMessage)
     jsonMessage.startsWith(s"""{"createdByNode":"Riga","fromPublicKeyEncoded":"$fromPublicKey","toPublicKeyEncoded":"$toPublicKey","money":{"currency":"EUR","amountInCents":2025},"timestamp":""") shouldBe true
     jsonMessage.contains("\"encodedSignature\":{}") shouldBe false
@@ -38,7 +38,7 @@ class InitPaymentMessageTest extends FlatSpec with scalatest.Matchers with Mocki
     val serializedPublicKey = ks.serialize(keyPair.getPublic)
 
     val asset = Money("EUR", 2025)
-    InitPaymentMessage("Riga", serializedPublicKey, serializedPublicKey, asset, ks.keysFileOps ) shouldBe Left("Sender and receiver of payment can't be the same person")
+    InitPayment("Riga", serializedPublicKey, serializedPublicKey, asset, ks.keysFileOps) shouldBe Left("Sender and receiver of payment can't be the same person")
 
     verify(ks.keysFileOps, never).getUserByKey(Matchers.any[String], Matchers.any[String])
   }
