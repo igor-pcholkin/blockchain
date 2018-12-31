@@ -47,7 +47,7 @@ class MsgHandler(nodeName: String, bcHttpServer: BCHttpServer, statementsCache: 
       statementsCache.add(enhancedStatement)
       if (enhancedStatement.isSignedByAllKeys) {
         bc.addFactToNewBlock(enhancedStatement)
-        peerAccess.sendMsg(NewBlockMessage(bc.getLatestBlock, bcHttpServer.localServerAddress))
+        peerAccess.sendMsg(NewBlockMessage(bc.getLatestBlock, peerAccess.localHost.localServerAddress))
         bcHttpServer.sendHttpResponse(exchange, "Payment transaction created and added to blockchain.")
       } else {
         peerAccess.sendMsg(signedStatement)(SignedStatementMessage.encoder)

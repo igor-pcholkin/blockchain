@@ -44,7 +44,7 @@ class InitPaymentHandler(nodeName: String, bcHttpServer: BCHttpServer, statement
       keysFileOps) match {
       case Right(initPayment) =>
         val signedStatement = SignedStatementMessage(initPayment, Seq(initPaymentRequest.from, initPaymentRequest.to), nodeName,
-          keysFileOps, bcHttpServer.localServerAddress)
+          keysFileOps, peerAccess.localHost.localServerAddress)
         processSignedStatement(signedStatement, initPaymentRequest.from, exchange)
       case Left(error) =>
         bcHttpServer.sendHttpResponse (exchange, SC_BAD_REQUEST, error)
@@ -66,7 +66,7 @@ class InitPaymentHandler(nodeName: String, bcHttpServer: BCHttpServer, statement
 
   private def createAndAddTransactionToBlockchain(signedStatement: SignedStatementMessage, exchange: HttpExchange): Unit = {
     bc.addFactToNewBlock(signedStatement)
-    peerAccess.sendMsg(NewBlockMessage(bc.getLatestBlock, bcHttpServer.localServerAddress))
+    peerAccess.sendMsg(NewBlockMessage(bc.getLatestBlock, peerAccess.localHost.localServerAddress))
     bcHttpServer.sendHttpResponse(exchange, "Payment transaction created and added to blockchain.")
   }
 

@@ -12,7 +12,8 @@ class NodeInfoHandlerTest extends FlatSpec with org.scalatest.Matchers with Mock
   "NodeInfoHandler" should "respond with rudimentary node info" in {
     val mockExchange = mock[HttpExchange]
     val mockBcHttpServer = mock[BCHttpServer]
-    val peerAccess = PeerAccess()
+    val mockLocalHost = mock[LocalHost]
+    val peerAccess = PeerAccess(mockLocalHost)
 
     new NodeInfoHandler("Riga", mockBcHttpServer, peerAccess).handle(mockExchange)
 
@@ -24,7 +25,9 @@ class NodeInfoHandlerTest extends FlatSpec with org.scalatest.Matchers with Mock
   "NodeInfoHandler" should "respond with enhanced node info" in {
     val mockExchange = mock[HttpExchange]
     val mockBcHttpServer = mock[BCHttpServer]
-    val peerAccess = PeerAccess()
+    val mockLocalHost = mock[LocalHost]
+    val peerAccess = PeerAccess(mockLocalHost)
+
     peerAccess.add("localhost:9001,localhost:9002")
 
     new NodeInfoHandler("Riga", mockBcHttpServer, peerAccess).handle(mockExchange)

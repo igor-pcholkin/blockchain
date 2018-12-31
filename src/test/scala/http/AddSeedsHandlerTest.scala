@@ -19,13 +19,15 @@ class AddSeedsHandlerTest extends FlatSpec with org.scalatest.Matchers with Mock
   "AddSeedsHandler" should "add seeds to blockchain" in {
     val mockBcHttpServer = mock[BCHttpServer]
     val mockExchange = mock[HttpExchange]
+    val mockLocalHost = mock[LocalHost]
 
     val seeds = """blabla.com:6001, lala.com:6002, localhost:6001, localhost:6002""".stripMargin
     val is = new ByteArrayInputStream(seeds.getBytes)
 
     when(mockExchange.getRequestMethod).thenReturn("PUT")
     when(mockExchange.getRequestBody).thenReturn(is)
-    when(mockBcHttpServer.localServerAddress).thenReturn("123.233.22.44:1234")
+    when(mockLocalHost.localServerAddress).thenReturn("123.233.22.44:1234")
+    when(mockBcHttpServer.localHost).thenReturn(mockLocalHost)
 
     val peerAccess = mock[PeerAccess]
     val fileOps = mock[FileOps]
@@ -33,6 +35,8 @@ class AddSeedsHandlerTest extends FlatSpec with org.scalatest.Matchers with Mock
     val peersAsQueue = new ConcurrentLinkedQueue[String]()
     peersAsQueue.addAll(peers.asJava)
     when(peerAccess.peers).thenReturn(peersAsQueue)
+
+    when(peerAccess.localHost).thenReturn(mockLocalHost)
 
     new AddSeedsHandler(mockBcHttpServer, peerAccess, "Riga", fileOps).handle(mockExchange)
 

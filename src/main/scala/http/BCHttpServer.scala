@@ -12,14 +12,14 @@ import peers.PeerAccess
 import util.ProdFileOps
 import io.circe.generic.auto._
 
-class BCHttpServer(port: Int, bc: BlockChain, peerAccess: PeerAccess, statementsCache: StatementsCache) {
+class BCHttpServer(val localHost: LocalHost, bc: BlockChain, peerAccess: PeerAccess, statementsCache: StatementsCache) {
 
   val logger: Logger = LoggerFactory.getLogger(this.getClass)
 
   val server: HttpServer = HttpServer.create()
 
   def start(nodeName: String): Unit = {
-    server.bind(new InetSocketAddress(port), 0)
+    server.bind(new InetSocketAddress(localHost.localPort), 0)
     server.createContext("/dumpchain", new GetChainHandler(this, bc))
     server.createContext("/genkeys", new GenKeysHandler(nodeName, ProdKeysFileOps, this))
     server.createContext("/nodeinfo", new NodeInfoHandler(nodeName, this, peerAccess))
@@ -28,7 +28,7 @@ class BCHttpServer(port: Int, bc: BlockChain, peerAccess: PeerAccess, statements
     server.createContext("/msgHandler", new MsgHandler(nodeName, this, statementsCache, bc, ProdKeysFileOps, peerAccess))
     server.start()
 
-    peerAccess.sendMsg(RequestAllStatementsMessage(localServerAddress))
+    peerAccess.sendMsg(RequestAllStatementsMessage(localHost.localServerAddress))
   }
 
   def sendHttpResponse(exchange: HttpExchange, response: String): Unit = {
@@ -49,10 +49,4 @@ class BCHttpServer(port: Int, bc: BlockChain, peerAccess: PeerAccess, statements
     os.close()
   }
 
-  lazy val localServerAddress: String = {
-    // ugly, but it works... a better way?
-    val socket = new Socket()
-    socket.connect(new InetSocketAddress("google.com", 80))
-    socket.getLocalAddress.toString.split("/")(1) + ":" + port
-  }
 }

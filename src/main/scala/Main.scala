@@ -1,6 +1,6 @@
 import config.Config
 import core.{ProdBlockChain, StatementsCache}
-import http.BCHttpServer
+import http.{BCHttpServer, LocalHost}
 import org.slf4j.LoggerFactory
 import peers.{HttpPeerTransport, PeerAccess}
 import util.ProdFileOps
@@ -21,8 +21,9 @@ object Main extends App {
 
   val config = Config.read(nodeName, ProdFileOps)
   val bc = new ProdBlockChain(nodeName)
-  val peerAccess = new PeerAccess(new HttpPeerTransport, config.seeds)
+  val localHost = LocalHost(port)
+  val peerAccess = new PeerAccess(new HttpPeerTransport, localHost, config.seeds)
   val statementsCache = new StatementsCache
 
-  new BCHttpServer(port, bc, peerAccess, statementsCache).start(nodeName)
+  new BCHttpServer(localHost, bc, peerAccess, statementsCache).start(nodeName)
 }

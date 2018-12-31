@@ -26,8 +26,8 @@ class InitPaymentHandlerTest extends FlatSpec with org.scalatest.Matchers with M
   "InitPaymentHandler" should "initialize new payment to node and send it to another peers" in {
     val mockBcHttpServer = mock[BCHttpServer]
     val mockExchange = mock[HttpExchange]
-    val peerAccess = new PeerAccess(mock[PeerTransport])
-    peerAccess.addAll(Seq("blabla.com", "another.com"))
+    val localHost = mock[LocalHost]
+    val peerAccess = mock[PeerAccess]
     val statementsCache = new StatementsCache
     val blockChain = new TestBlockChain
     val fromPublicKey = "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEDibd8O5I928ZnTU7RYTy6Od3K3SrGlC+V8lkMYrdJuzT9Ig/Iq8JciaukxCYmVSO1mZuC65xMkxSb5Q0rNZ8og=="
@@ -43,6 +43,8 @@ class InitPaymentHandlerTest extends FlatSpec with org.scalatest.Matchers with M
 
     when(mockExchange.getRequestMethod).thenReturn("POST")
     when(mockExchange.getRequestBody).thenReturn(is)
+
+    when(peerAccess.localHost).thenReturn(localHost)
 
     when(keysFileOps.getUserByKey("Riga", fromPublicKey)).thenReturn(Some("Igor"))
     when(keysFileOps.getUserByKey("Riga", "(publicKeyTo)")).thenReturn(None)
@@ -65,12 +67,13 @@ class InitPaymentHandlerTest extends FlatSpec with org.scalatest.Matchers with M
 
     verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange), Matchers.eq(SC_CREATED),
       Matchers.eq("New Payment has been initiated."))
-    verify(peerAccess.peerTransport, times(1)).sendMsg(Matchers.eq(signedStatement), Matchers.eq(Seq("blabla.com", "another.com")))(Matchers.any[Encoder[SignedStatementMessage]])
+    verify(peerAccess, times(1)).sendMsg(Matchers.eq(signedStatement))(Matchers.any[Encoder[SignedStatementMessage]])
   }
 
   "InitPaymentHandler" should "create new fact (transaction) in a new block if it could be signed by users on the same node at once" in {
     val mockBcHttpServer = mock[BCHttpServer]
     val mockExchange = mock[HttpExchange]
+    val mockLocalHost = mock[LocalHost]
     val peerAccess = mock[PeerAccess]
     val blockChain = new TestBlockChain
     peerAccess.addAll(Seq("blabla.com", "another.com"))
@@ -91,6 +94,7 @@ class InitPaymentHandlerTest extends FlatSpec with org.scalatest.Matchers with M
     when(mockExchange.getRequestMethod).thenReturn("POST")
     when(mockExchange.getRequestBody).thenReturn(is)
 
+    when(peerAccess.localHost).thenReturn(mockLocalHost)
 
     when(keysFileOps.getUserByKey("Riga", fromPublicKey)).thenReturn(Some("Igor"))
     // needed to sign payment request message by public key of creator
@@ -125,7 +129,8 @@ class InitPaymentHandlerTest extends FlatSpec with org.scalatest.Matchers with M
   "InitPaymentHandler" should "refuse payment request if user signing the message is not found for given (from) public key" in {
     val mockBcHttpServer = mock[BCHttpServer]
     val mockExchange = mock[HttpExchange]
-    val peerAccess = new PeerAccess(mock[PeerTransport])
+    val mockLocalHost = mock[LocalHost]
+    val peerAccess = new PeerAccess(mock[PeerTransport], mockLocalHost)
     peerAccess.addAll(Seq("blabla.com", "another.com"))
     val statementsCache = new StatementsCache
     val blockChain = new TestBlockChain
@@ -151,6 +156,6 @@ class InitPaymentHandlerTest extends FlatSpec with org.scalatest.Matchers with M
     blockChain.chain.size shouldBe 1
     verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange), Matchers.eq(HttpStatus.SC_BAD_REQUEST),
       Matchers.eq("No user with given (from) public key found."))
-    verify(peerAccess.peerTransport, never).sendMsg(Matchers.any[SignedStatementMessage], Matchers.any[Seq[String]])(Matchers.any[Encoder[SignedStatementMessage]])
+    verify(peerAccess.peerTransport, never).sendMsg(Matchers.any[SignedStatementMessage], Matchers.any[String])(Matchers.any[Encoder[SignedStatementMessage]])
   }
 }

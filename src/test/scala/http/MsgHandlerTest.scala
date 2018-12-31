@@ -106,6 +106,7 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
     val blockChain = new TestBlockChain
     val statementsCache = new StatementsCache()
     val keysFileOps = mock[KeysFileOps]
+    val mockLocalHost = mock[LocalHost]
     val peerAccess = mock[PeerAccess]
 
     val fromPublicKey = "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEDibd8O5I928ZnTU7RYTy6Od3K3SrGlC+V8lkMYrdJuzT9Ig/Iq8JciaukxCYmVSO1mZuC65xMkxSb5Q0rNZ8og=="
@@ -127,6 +128,9 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
 
     when(mockExchange.getRequestMethod).thenReturn("POST")
     when(mockExchange.getRequestBody).thenReturn(is)
+
+    when(peerAccess.localHost).thenReturn(mockLocalHost)
+    when(mockLocalHost.localServerAddress).thenReturn("localhost")
 
     new MsgHandler("Riga", mockBcHttpServer, statementsCache, blockChain, keysFileOps, peerAccess).handle(mockExchange)
 
