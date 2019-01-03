@@ -236,4 +236,39 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
       Matchers.eq(s"All statements have been sent to node: $peer."))
   }
 
+  "Message handler" should "accept RequestBlocksMessage when it arrives from another node" in {
+    val mockExchange = mock[HttpExchange]
+    val mockBcHttpServer = mock[BCHttpServer]
+    val blockChain = new TestBlockChain
+    val statementsCache = new StatementsCache()
+    val keysFileOps = mock[KeysFileOps]
+    val peerAccess = mock[PeerAccess]
+    val mockLocalHost = mock[LocalHost]
+
+    val peer = "blabla123.com"
+    val requestBlocksMessage = RequestBlocksMessage(2, peer)
+    val is = new ByteArrayInputStream(Serializator.serialize(requestBlocksMessage).getBytes)
+
+    when(mockExchange.getRequestMethod).thenReturn("POST")
+    when(mockExchange.getRequestBody).thenReturn(is)
+
+    val newBlock1 = blockChain.genNextBlock("Fund transfer from A to B".getBytes)
+    blockChain.add(newBlock1)
+    val newBlock2 = blockChain.genNextBlock("Fund transfer from B to C".getBytes)
+    blockChain.add(newBlock2)
+    val newBlock3 = blockChain.genNextBlock("Fund transfer from C to D".getBytes)
+    blockChain.add(newBlock3)
+
+    when(peerAccess.localHost).thenReturn(mockLocalHost)
+    when(mockLocalHost.localServerAddress).thenReturn("localhost")
+
+    new MsgHandler("Riga", mockBcHttpServer, statementsCache, blockChain, keysFileOps, peerAccess).handle(mockExchange)
+
+    verify(peerAccess, times(1)).sendMsg(Matchers.eq(ResponseBlocksMessage(2, newBlock2, "localhost")), Matchers.eq(peer))(Matchers.any[Encoder[ResponseBlocksMessage]])
+    verify(peerAccess, times(1)).sendMsg(Matchers.eq(ResponseBlocksMessage(3, newBlock3, "localhost")), Matchers.eq(peer))(Matchers.any[Encoder[ResponseBlocksMessage]])
+    verify(peerAccess, times(1)).add(Matchers.eq("blabla123.com"))
+    verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange),
+      Matchers.eq(s"All requested blocks have been sent to node: $peer."))
+  }
+
 }

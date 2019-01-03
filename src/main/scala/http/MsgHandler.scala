@@ -4,6 +4,7 @@ import java.io.IOException
 
 import com.sun.net.httpserver.{HttpExchange, HttpHandler}
 import core._
+import io.circe.Encoder
 import messages._
 import keys.{KeysFileOps, KeysSerializator}
 import util.{HttpUtil, StringConverter}
@@ -33,6 +34,8 @@ class MsgHandler(nodeName: String, bcHttpServer: BCHttpServer, statementsCache: 
           handle(addPeersMessage, exchange)
         case requestAllMessages: RequestAllStatementsMessage =>
           handle(requestAllMessages, exchange)
+        case requestBlocksMessage: RequestBlocksMessage =>
+          handle(requestBlocksMessage, exchange)
         case _ =>
           throw new RuntimeException(s"Unexpected message: $msgAsString")
       }
@@ -79,6 +82,15 @@ class MsgHandler(nodeName: String, bcHttpServer: BCHttpServer, statementsCache: 
     }
     bcHttpServer.sendHttpResponse(exchange, s"All statements have been sent to node: ${requestAllStatementsMessage.sentFromIPAddress}.")
     requestAllStatementsMessage
+  }
+
+  private def handle(requestBlocksMessage: RequestBlocksMessage, exchange: HttpExchange): Message = {
+    bc.chain.iterator().asScala.drop(requestBlocksMessage.fromBlockNo).zipWithIndex foreach { case (block, i) =>
+      peerAccess.sendMsg(ResponseBlocksMessage(requestBlocksMessage.fromBlockNo + i, block, peerAccess.localHost.localServerAddress),
+        requestBlocksMessage.sentFromIPAddress)(Encoder[ResponseBlocksMessage])
+    }
+    bcHttpServer.sendHttpResponse(exchange, s"All requested blocks have been sent to node: ${requestBlocksMessage.sentFromIPAddress}.")
+    requestBlocksMessage
   }
 
   def verifySignatures(signedStatement: SignedStatementMessage): Boolean = {

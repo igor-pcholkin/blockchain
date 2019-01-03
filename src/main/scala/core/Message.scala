@@ -3,7 +3,7 @@ package core
 import io.circe
 import io.circe.syntax._
 import io.circe.{Encoder, Printer}
-import messages.{AddPeersMessage, NewBlockMessage, RequestAllStatementsMessage, SignedStatementMessage}
+import messages._
 
 object Serializator {
   def serialize[T <: Serializable](msg: T)(implicit encoder: Encoder[T]): String = {
@@ -13,7 +13,7 @@ object Serializator {
 
   def deserialize(s: String): Option[Serializable] = {
 
-    val deserializers = Stream(SignedStatementMessage, NewBlockMessage, AddPeersMessage, RequestAllStatementsMessage)
+    val deserializers = Stream(SignedStatementMessage, NewBlockMessage, AddPeersMessage, RequestBlocksMessage, RequestAllStatementsMessage)
 
     deserializers.map { d =>
       d.deserialize(s)

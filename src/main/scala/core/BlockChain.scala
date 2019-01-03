@@ -34,8 +34,9 @@ abstract class BlockChain(nodeName: String) {
   }
 
   def isValid(block: Block): Boolean = {
-    block.version <= Block.CURRENT_BLOCK_VERSION && block.version > 0 && block.prevHash.toSeq == getLatestBlock.hash.toSeq &&
-      block.timestamp.compareTo(getLatestBlock.timestamp) > 0
+    val latestBlock = getLatestBlock
+    block.version <= Block.CURRENT_BLOCK_VERSION && block.version > 0 && block.prevHash.toSeq == latestBlock.hash.toSeq &&
+      block.timestamp.compareTo(latestBlock.timestamp) >= 0
   }
 
   def getLatestBlock: Block = chain.peekLast()

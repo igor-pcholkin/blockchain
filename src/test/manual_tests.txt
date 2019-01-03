@@ -39,3 +39,9 @@ New transaction block should be created on (Paris) and propagated to both other 
 Scenario 6.
 
 Like Scenario 5, but transaction/block should be created on Paris when the node is just started (seeds already have been set for the node).
+
+Scenario 7.
+
+Like scenario 5, but Riga node is shut down after transaction is initiated and before Paris node is started.
+After Paris node confirms payment and creates new block Riga node is started again.
+Riga node should receive that new block after start.
