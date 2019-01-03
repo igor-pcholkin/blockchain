@@ -4,7 +4,8 @@ import java.io.ByteArrayInputStream
 import java.util.concurrent.ConcurrentLinkedQueue
 
 import com.sun.net.httpserver.HttpExchange
-import messages.{AddPeersMessage, RequestAllStatementsMessage}
+import core.TestBlockChain
+import messages.{AddPeersMessage, RequestAllStatementsMessage, RequestBlocksMessage}
 import io.circe.Encoder
 import org.apache.http.HttpStatus
 import org.mockito.Matchers
@@ -13,6 +14,7 @@ import org.scalatest.FlatSpec
 import org.scalatest.mockito.MockitoSugar
 import peers.PeerAccess
 import util.FileOps
+
 import scala.collection.JavaConverters._
 
 class AddSeedsHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSugar {
@@ -20,6 +22,7 @@ class AddSeedsHandlerTest extends FlatSpec with org.scalatest.Matchers with Mock
     val mockBcHttpServer = mock[BCHttpServer]
     val mockExchange = mock[HttpExchange]
     val mockLocalHost = mock[LocalHost]
+    val bc = new TestBlockChain
 
     val seeds = """blabla.com:6001, lala.com:6002, localhost:6001, localhost:6002""".stripMargin
     val is = new ByteArrayInputStream(seeds.getBytes)
@@ -38,13 +41,14 @@ class AddSeedsHandlerTest extends FlatSpec with org.scalatest.Matchers with Mock
 
     when(peerAccess.localHost).thenReturn(mockLocalHost)
 
-    new AddSeedsHandler(mockBcHttpServer, peerAccess, "Riga", fileOps).handle(mockExchange)
+    new AddSeedsHandler(mockBcHttpServer, peerAccess, "Riga", fileOps, bc).handle(mockExchange)
 
     verify(peerAccess, times(1)).addAll(peers)
     verify(fileOps, times(1)).createDirIfNotExists(Matchers.eq("Riga"))
     verify(fileOps, times(1)).writeFile(Matchers.eq("Riga/config"), Matchers.anyString)
     verify(peerAccess, times(1)).sendMsg(Matchers.eq(AddPeersMessage(peers, "123.233.22.44:1234")))(Matchers.any[Encoder[AddPeersMessage]])
     verify(peerAccess, times(1)).sendMsg(Matchers.eq(RequestAllStatementsMessage("123.233.22.44:1234")))(Matchers.any[Encoder[RequestAllStatementsMessage]])
+    verify(peerAccess, times(1)).sendMsg(Matchers.eq(RequestBlocksMessage(bc.chain.size, "123.233.22.44:1234")))(Matchers.any[Encoder[RequestBlocksMessage]])
 
     verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange), Matchers.eq(HttpStatus.SC_CREATED),
       Matchers.eq("New seeds have been added."))

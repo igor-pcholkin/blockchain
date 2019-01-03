@@ -11,8 +11,3 @@ object RequestBlocksMessage extends Deserializator {
 
 case class RequestBlocksMessage(fromBlockNo: Int, sentFromIPAddress: String) extends Message
 
-object ResponseBlocksMessage extends Deserializator {
-  override def deserialize(s: String): Either[circe.Error, ResponseBlocksMessage] = decode[ResponseBlocksMessage](s)
-}
-
-case class ResponseBlocksMessage(fromBlockNo: Int, block: Block, sentFromIPAddress: String) extends Message

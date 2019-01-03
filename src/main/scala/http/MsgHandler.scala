@@ -50,7 +50,7 @@ class MsgHandler(nodeName: String, bcHttpServer: BCHttpServer, statementsCache: 
       statementsCache.add(enhancedStatement)
       if (enhancedStatement.isSignedByAllKeys) {
         bc.addFactToNewBlock(enhancedStatement)
-        peerAccess.sendMsg(NewBlockMessage(bc.getLatestBlock, peerAccess.localHost.localServerAddress))
+        peerAccess.sendMsg(NewBlockMessage(bc.getLatestBlock, bc.chain.size() - 1, peerAccess.localHost.localServerAddress))
         bcHttpServer.sendHttpResponse(exchange, "Payment transaction created and added to blockchain.")
       } else {
         peerAccess.sendMsg(signedStatement)(SignedStatementMessage.encoder)
@@ -86,8 +86,8 @@ class MsgHandler(nodeName: String, bcHttpServer: BCHttpServer, statementsCache: 
 
   private def handle(requestBlocksMessage: RequestBlocksMessage, exchange: HttpExchange): Message = {
     bc.chain.iterator().asScala.drop(requestBlocksMessage.fromBlockNo).zipWithIndex foreach { case (block, i) =>
-      peerAccess.sendMsg(ResponseBlocksMessage(requestBlocksMessage.fromBlockNo + i, block, peerAccess.localHost.localServerAddress),
-        requestBlocksMessage.sentFromIPAddress)(Encoder[ResponseBlocksMessage])
+      peerAccess.sendMsg(NewBlockMessage(block, requestBlocksMessage.fromBlockNo + i, peerAccess.localHost.localServerAddress),
+        requestBlocksMessage.sentFromIPAddress)(Encoder[NewBlockMessage])
     }
     bcHttpServer.sendHttpResponse(exchange, s"All requested blocks have been sent to node: ${requestBlocksMessage.sentFromIPAddress}.")
     requestBlocksMessage

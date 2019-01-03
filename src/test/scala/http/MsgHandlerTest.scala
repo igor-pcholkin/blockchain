@@ -160,7 +160,7 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
     val peerAccess = mock[PeerAccess]
 
     val block = Block(CURRENT_BLOCK_VERSION, blockChain.getLatestBlock.hash, LocalDateTime.of(2018, 12, 21, 15, 0, 0), "Hi".getBytes)
-    val newBlockMessage = NewBlockMessage(block, "localhost")
+    val newBlockMessage = NewBlockMessage(block, 1, "localhost")
     val is = new ByteArrayInputStream(Serializator.serialize(newBlockMessage).getBytes)
 
     when(mockExchange.getRequestMethod).thenReturn("POST")
@@ -264,11 +264,12 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
 
     new MsgHandler("Riga", mockBcHttpServer, statementsCache, blockChain, keysFileOps, peerAccess).handle(mockExchange)
 
-    verify(peerAccess, times(1)).sendMsg(Matchers.eq(ResponseBlocksMessage(2, newBlock2, "localhost")), Matchers.eq(peer))(Matchers.any[Encoder[ResponseBlocksMessage]])
-    verify(peerAccess, times(1)).sendMsg(Matchers.eq(ResponseBlocksMessage(3, newBlock3, "localhost")), Matchers.eq(peer))(Matchers.any[Encoder[ResponseBlocksMessage]])
+    verify(peerAccess, times(1)).sendMsg(Matchers.eq(NewBlockMessage(newBlock2, 2, "localhost")), Matchers.eq(peer))(Matchers.any[Encoder[NewBlockMessage]])
+    verify(peerAccess, times(1)).sendMsg(Matchers.eq(NewBlockMessage(newBlock3, 3, "localhost")), Matchers.eq(peer))(Matchers.any[Encoder[NewBlockMessage]])
     verify(peerAccess, times(1)).add(Matchers.eq("blabla123.com"))
     verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange),
       Matchers.eq(s"All requested blocks have been sent to node: $peer."))
   }
+
 
 }
