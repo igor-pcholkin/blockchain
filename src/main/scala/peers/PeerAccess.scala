@@ -38,7 +38,7 @@ class PeerAccess(val peerTransport: PeerTransport, val localHost: LocalHost, see
     peers foreach add
   }
 
-  def sendMsg[T <: Message](msg: T)(implicit encoder: Encoder[T]): Unit = {
+  def sendMsg[T <: Message](msg: T)(implicit encoder: Encoder[T]): Future[Seq[String]] = {
     logger.debug(s"Sending message: $msg to all peers")
     logger.debug(s"Message to peers ${msgToPeers.toString}")
 
@@ -47,9 +47,10 @@ class PeerAccess(val peerTransport: PeerTransport, val localHost: LocalHost, see
 
     Future.sequence(peersToSendMessage map { peer =>
       logger.debug(s"Message sent to peer $peer")
-      peerTransport.sendMsg(msg, peer) map (_ => peer)
-    }) map { peersReceivedMessageNow =>
-      msgToPeers.put(msg, peersReceivedMsgBefore ++ peersReceivedMessageNow)
+      peerTransport.sendMsg(msg, peer).map (_ => Some(peer)).recover { case ex => None }
+    }) map (_.flatten) map { peersReceivedMsgNow =>
+      logger.debug(s"Adding to (Message to peers) peers $peersReceivedMsgNow for msg $msg")
+      msgToPeers.put(msg, peersReceivedMsgBefore ++ peersReceivedMsgNow)
     }
   }
 

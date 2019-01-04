@@ -23,7 +23,7 @@ class HttpPeerTransport extends PeerTransport {
         postRequest(Serializator.serialize(msg), peer)
       },
       Future {
-        Thread.sleep(2000)
+        Thread.sleep(500)
         throw new TimeoutException
       }
     ))

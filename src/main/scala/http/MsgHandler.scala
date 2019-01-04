@@ -44,7 +44,9 @@ class MsgHandler(nodeName: String, bcHttpServer: BCHttpServer, statementsCache: 
   }
 
   private def handle(signedStatement: SignedStatementMessage, exchange: HttpExchange): Message = {
-    if (verifySignatures(signedStatement)) {
+    if (statementsCache.contains(signedStatement)) {
+      bcHttpServer.sendHttpResponse(exchange, SC_BAD_REQUEST, "The statement has been received before.")
+    } else if (verifySignatures(signedStatement)) {
       val newSignatures = signedStatement.signByLocalPublicKeys(nodeName, keysFileOps)
       val enhancedStatement = signedStatement.addSignatures(newSignatures)
       statementsCache.add(enhancedStatement)

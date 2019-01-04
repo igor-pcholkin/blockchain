@@ -45,3 +45,8 @@ Scenario 7.
 Like scenario 5, but Riga node is shut down after transaction is initiated and before Paris node is started.
 After Paris node confirms payment and creates new block Riga node is started again.
 Riga node should receive that new block after start.
+
+Scenario 8.
+
+Like scenario 7, but 4 payments are started at Riga node.
+London and Riga nodes should receive all 4 blocks in a correct order (i.e. 4 blocks are added to blockchain).

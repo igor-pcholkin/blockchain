@@ -1,7 +1,7 @@
 package peers
 
 import http.LocalHost
-import messages.AddPeersMessage
+import messages.{AddPeersMessage, RequestBlocksMessage}
 import io.circe.Encoder
 import org.mockito.Matchers
 import org.mockito.Mockito.{times, verify, when}
@@ -12,7 +12,10 @@ import io.circe.generic.auto._
 import org.apache.http.HttpStatus
 
 import scala.collection.JavaConverters._
-import scala.concurrent.Future
+import scala.concurrent.{Await, Future}
+import scala.concurrent.duration._
+
+import scala.concurrent.ExecutionContext.Implicits.global
 
 class PeerAccessTest extends FlatSpec with scalatest.Matchers with MockitoSugar {
   "PeerAccess" should "allow to send the same message to the same peer only once when broadcasting the message" in {
@@ -67,6 +70,28 @@ class PeerAccessTest extends FlatSpec with scalatest.Matchers with MockitoSugar 
     peerAccess.add("localhost:5761")
     peerAccess.add("128.33.45.55:5761")
     peerAccess.peers.asScala.toSeq shouldBe Seq("p1", "p2", "p3", "p4")
+  }
+
+  "PeerAccess" should "mark correctly successful sending message to some of the peers if sending to some peers fails" in {
+    val transport = mock[PeerTransport]
+    val mockLocalHost = mock[LocalHost]
+    val peerAccess = new PeerAccess(transport, mockLocalHost)
+    peerAccess.addAll(Seq("p1", "p2"))
+    val msg = RequestBlocksMessage(1, "localhost")
+
+    when(transport.sendMsg(Matchers.eq(msg), Matchers.eq("p1"))(Matchers.any[Encoder[RequestBlocksMessage]])).thenReturn(Future.successful(Result(HttpStatus.SC_OK, "OK.")))
+    when(transport.sendMsg(Matchers.eq(msg), Matchers.eq("p2"))(Matchers.any[Encoder[RequestBlocksMessage]])).thenReturn(Future.failed(new RuntimeException("timeout")))
+
+    val result = Future.firstCompletedOf(List(
+      peerAccess.sendMsg(msg),
+      Future {
+        Thread.sleep(500)
+        throw new RuntimeException("timeout")
+      }
+    ))
+
+    Await.result(result, 1 second)
+    peerAccess.msgToPeers.get(msg) shouldBe Seq("p1")
   }
 
 }

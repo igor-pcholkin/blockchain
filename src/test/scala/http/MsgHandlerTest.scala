@@ -60,7 +60,7 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
     blockChain.chain.size() shouldBe 1
   }
 
-  "Message handler" should "reject payment message during failed verification" in {
+  it should "reject payment message during failed verification" in {
 
     val mockExchange = mock[HttpExchange]
     val mockBcHttpServer = mock[BCHttpServer]
@@ -99,7 +99,47 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
     blockChain.chain.size() shouldBe 1
   }
 
-  "Message handler" should "create a payment transaction, sign it and add it to newly created block in a blockchain" in {
+  it should "reject repeated payment message" in {
+
+    val mockExchange = mock[HttpExchange]
+    val mockBcHttpServer = mock[BCHttpServer]
+    val blockChain = new TestBlockChain
+    val statementsCache = new StatementsCache()
+    val keysFileOps = mock[KeysFileOps]
+    val peerAccess = mock[PeerAccess]
+
+    val fromPublicKey = "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEDibd8O5I928ZnTU7RYTy6Od3K3SrGlC+V8lkMYrdJuzT9Ig/Iq8JciaukxCYmVSO1mZuC65xMkxSb5Q0rNZ8og=="
+    val toPublicKey = "(publicKeyTo)"
+
+    when(keysFileOps.getUserByKey("Riga", fromPublicKey)).thenReturn(Some("Igor"))
+    // needed to sign payment request message by public key of creator
+    when(keysFileOps.readKeyFromFile("Riga", "Igor", "privateKey")).thenReturn("MEECAQAwEwYHKoZIzj0CAQYIKoZIzj0DAQcEJzAlAgEBBCC94HoY839pqOB/m2D00X4+8vsM6kzUby8gk7Eq8XVsgw==")
+    when(keysFileOps.readKeyFromFile("Riga", "Igor", "publicKey")).thenReturn(fromPublicKey)
+    // whether payment transaction could be created and signed
+    when(keysFileOps.getUserByKey("Riga", toPublicKey)).thenReturn(None)
+
+    val initPayment = InitPayment("Riga", fromPublicKey, toPublicKey, Money("EUR", 2025), keysFileOps).right.get
+    val signedStatement = SignedStatementMessage(initPayment, Seq(fromPublicKey, toPublicKey), "Riga", keysFileOps, "localhost")
+
+    val is = new ByteArrayInputStream(Serializator.serialize(signedStatement)(SignedStatementMessage.encoder).getBytes)
+
+    when(mockExchange.getRequestMethod).thenReturn("POST")
+    when(mockExchange.getRequestBody).thenReturn(is)
+
+    statementsCache.add(signedStatement)
+
+    new MsgHandler("Riga", mockBcHttpServer, statementsCache, blockChain, keysFileOps, peerAccess).handle(mockExchange)
+
+    verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange), Matchers.eq(HttpStatus.SC_BAD_REQUEST),
+      Matchers.eq("The statement has been received before."))
+    verify(peerAccess, never).sendMsg(Matchers.any[NewBlockMessage])(Matchers.any[Encoder[NewBlockMessage]])
+    verify(peerAccess, times(1)).add(Matchers.eq("localhost"))
+
+    blockChain.chain.size() shouldBe 1
+  }
+
+
+  it should "create a payment transaction, sign it and add it to newly created block in a blockchain" in {
 
     val mockExchange = mock[HttpExchange]
     val mockBcHttpServer = mock[BCHttpServer]
@@ -151,7 +191,7 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
     signer.verify("Riga", "Igor", fact.statement.dataToSign, decodedPaymentMessageSignature) shouldBe true
   }
 
-  "Message handler" should "add a new block to blockchain when it arrives from another node" in {
+  it should "add a new block to blockchain when it arrives from another node" in {
     val mockExchange = mock[HttpExchange]
     val mockBcHttpServer = mock[BCHttpServer]
     val blockChain = new TestBlockChain
@@ -183,7 +223,7 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
       Matchers.eq("New block received and added to blockchain."))
   }
 
-  "Message handler" should "accept AddPeersMessage when it arrives from another node" in {
+  it should "accept AddPeersMessage when it arrives from another node" in {
     val mockExchange = mock[HttpExchange]
     val mockBcHttpServer = mock[BCHttpServer]
     val blockChain = new TestBlockChain
@@ -206,7 +246,7 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
       Matchers.eq("New peers received and added to the node."))
   }
 
-  "Message handler" should "accept RequestAllStatementsMessage when it arrives from another node" in {
+  it should "accept RequestAllStatementsMessage when it arrives from another node" in {
     val mockExchange = mock[HttpExchange]
     val mockBcHttpServer = mock[BCHttpServer]
     val blockChain = new TestBlockChain
@@ -236,7 +276,7 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
       Matchers.eq(s"All statements have been sent to node: $peer."))
   }
 
-  "Message handler" should "accept RequestBlocksMessage when it arrives from another node" in {
+  it should "accept RequestBlocksMessage when it arrives from another node" in {
     val mockExchange = mock[HttpExchange]
     val mockBcHttpServer = mock[BCHttpServer]
     val blockChain = new TestBlockChain
