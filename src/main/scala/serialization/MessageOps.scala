@@ -4,25 +4,21 @@ import core.{Message, ObjectDecoder, ObjectEncoder}
 import io.circe.{Decoder, Encoder, HCursor}
 
 import scala.reflect.runtime.universe
+import universe.Mirror
 
 object MessageOps {
-  val runtimeMirror = universe.runtimeMirror(getClass.getClassLoader)
+  val runtimeMirror: Mirror = universe.runtimeMirror(getClass.getClassLoader)
 
-  implicit lazy val messageEncoder = new Encoder[Message] {
-    override final def apply(message: Message) = {
-      val encoderClassName = s"serialization.${message.getClass.getSimpleName}Ops"
-      val concreteEncoder = getInstanceByName(encoderClassName).asInstanceOf[ObjectEncoder[Message]]
-      concreteEncoder.getEncoder(message)
-    }
+  implicit lazy val messageEncoder: Encoder[Message] = (message: Message) => {
+    val encoderClassName = s"serialization.${message.getClass.getSimpleName}Ops"
+    val concreteEncoder = getInstanceByName(encoderClassName).asInstanceOf[ObjectEncoder[Message]]
+    concreteEncoder.encoder(message)
   }
 
-  implicit lazy val messageDecoder = new Decoder[Message] {
-    override final def apply(c: HCursor) = {
-
-      c.downField("messageType").as[String].flatMap { messageType =>
-        implicit val decoder: Decoder[Message] = getInstanceByName(messageType).asInstanceOf[ObjectDecoder[Message]].getDecoder
-        c.downField("message").as
-      }
+  implicit lazy val messageDecoder: Decoder[Message] = (c: HCursor) => {
+    c.downField("decoder").as[String].flatMap { decoderType =>
+      val concreteDecoder = getInstanceByName(decoderType).asInstanceOf[ObjectDecoder[Message]].decoder
+      c.downField("message").as(concreteDecoder)
     }
   }
 
@@ -31,6 +27,5 @@ object MessageOps {
 
     runtimeMirror.reflectModule(module).instance
   }
-
 }
 

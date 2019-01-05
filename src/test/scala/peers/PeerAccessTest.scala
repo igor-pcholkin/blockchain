@@ -1,6 +1,6 @@
 package peers
 
-import core.{MessageEnvelope, Serializator}
+import core.MessageEnvelope
 import http.LocalHost
 import messages.{AddPeersMessage, RequestBlocksMessage}
 import org.mockito.Matchers
@@ -15,6 +15,7 @@ import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
 import serialization.MessageEnvelopeOps._
+import serialization.Serializator
 
 class PeerAccessTest extends FlatSpec with scalatest.Matchers with MockitoSugar {
   "PeerAccess" should "allow to send the same message to the same peer only once when broadcasting the message" in {

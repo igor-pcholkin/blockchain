@@ -15,6 +15,7 @@ import org.mockito.Mockito.{never, times, verify, when}
 import org.scalatest.FlatSpec
 import org.scalatest.mockito.MockitoSugar
 import peers.PeerAccess
+import serialization.{FactOps, Serializator}
 import util.StringConverter
 import statements.InitPayment
 
@@ -184,7 +185,7 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
     statementsCache.statements.containsValue(signedStatement) shouldBe true
     blockChain.chain.size() shouldBe 2
     val lastBlock = blockChain.getLatestBlock
-    val fact = Fact.deserialize(new String(lastBlock.data)).right.get
+    val fact = FactOps.deserialize(new String(lastBlock.data)).right.get
     val secondSignature = base64StrToBytes(fact.providedSignaturesForKeys(1)._2)
     val signer = new Signer(keysFileOps)
     signer.verify("Riga", "John", fact.statement.dataToSign, secondSignature) shouldBe true

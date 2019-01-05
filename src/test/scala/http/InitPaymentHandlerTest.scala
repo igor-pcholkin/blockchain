@@ -4,7 +4,7 @@ import java.io.ByteArrayInputStream
 import java.time.LocalDateTime
 
 import com.sun.net.httpserver.HttpExchange
-import messages.{NewBlockMessage, SignedStatementMessage}
+import messages.NewBlockMessage
 import core._
 import keys.{KeysFileOps, KeysGenerator}
 import org.apache.http.HttpStatus.SC_CREATED
@@ -16,9 +16,9 @@ import peers.{PeerAccess, PeerTransport}
 import util.{DateTimeUtil, StringConverter}
 
 import scala.collection.JavaConverters._
-import io.circe._
 import org.apache.http.HttpStatus
 import statements.InitPayment
+import serialization.FactOps._
 
 class InitPaymentHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSugar with DateTimeUtil with KeysGenerator with StringConverter {
   val keysFileOps: KeysFileOps = mock[KeysFileOps]
@@ -115,7 +115,7 @@ class InitPaymentHandlerTest extends FlatSpec with org.scalatest.Matchers with M
 
     blockChain.chain.size() shouldBe 2
     val lastBlock = blockChain.getLatestBlock
-    val fact = Fact.deserialize(new String(lastBlock.data)).right.get
+    val fact = deserialize(new String(lastBlock.data)).right.get
     val secondSignature = base64StrToBytes(fact.providedSignaturesForKeys(1)._2)
     val signer = new Signer(keysFileOps)
     signer.verify("Riga", "John", fact.statement.dataToSign, secondSignature) shouldBe true

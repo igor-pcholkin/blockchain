@@ -2,13 +2,14 @@ package peers
 
 import java.util.concurrent.{ConcurrentHashMap, ConcurrentLinkedQueue}
 
-import core.{Message, MessageEnvelope, Serializator}
+import core.{Message, MessageEnvelope}
 import http.LocalHost
 import org.slf4j.{Logger, LoggerFactory}
 
 import scala.concurrent.Future
 import scala.collection.JavaConverters._
 import scala.concurrent.ExecutionContext.Implicits.global
+import serialization.Serializator
 import serialization.MessageEnvelopeOps._
 
 case class Result(status: Int, replyMsg: String)

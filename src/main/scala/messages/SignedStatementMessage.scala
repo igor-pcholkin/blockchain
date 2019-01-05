@@ -1,31 +1,16 @@
 package messages
 
 import core._
-import io.circe
-import io.circe.{Decoder, Encoder, HCursor, Json}
-import io.circe.syntax._
-import io.circe.parser.decode
 import keys.KeysFileOps
 import util.StringConverter
 
-object SignedStatementMessage extends Deserializator with ObjectDecoder[Message] {
-  def deserialize(s: String): Either[circe.Error, SignedStatementMessage] = decode[SignedStatementMessage](s)(decoder)
-
-  override def getDecoder: Decoder[Message] = decoder.asInstanceOf[Decoder[Message]]
+object SignedStatementMessage {
 
   def apply(statement: Statement, publicKeysRequiredToSignEncoded: Seq[String],
             nodeName: String, keysFileOps: KeysFileOps): SignedStatementMessage = {
     val signedStatement = new SignedStatementMessage(statement, publicKeysRequiredToSignEncoded)
     val newSignatures = signedStatement.signByLocalPublicKeys(nodeName, keysFileOps)
     signedStatement.addSignatures(newSignatures)
-  }
-
-  lazy val decoder: Decoder[SignedStatementMessage] = (c: HCursor) => for {
-    statement <- c.downField("statement").as[Statement](Statement.decoder)
-    publicKeysRequiredToSignEncoded <- c.downField("publicKeysRequiredToSignEncoded").as[Seq[String]]
-    providedSignaturesForKeys <- c.downField("providedSignaturesForKeys").as[Seq[(String, String)]]
-  } yield {
-    new SignedStatementMessage(statement, publicKeysRequiredToSignEncoded, providedSignaturesForKeys)
   }
 }
 

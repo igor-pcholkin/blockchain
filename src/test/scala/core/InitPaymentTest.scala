@@ -7,6 +7,7 @@ import org.mockito.Mockito.{never, verify, when}
 import org.scalatest
 import org.scalatest.mockito.MockitoSugar
 import org.scalatest.FlatSpec
+import serialization.Serializator
 import statements.InitPayment
 
 class InitPaymentTest extends FlatSpec with scalatest.Matchers with MockitoSugar with KeysGenerator {
