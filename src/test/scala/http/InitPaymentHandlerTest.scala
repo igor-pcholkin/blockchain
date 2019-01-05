@@ -67,7 +67,7 @@ class InitPaymentHandlerTest extends FlatSpec with org.scalatest.Matchers with M
 
     verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange), Matchers.eq(SC_CREATED),
       Matchers.eq("New Payment has been initiated."))
-    verify(peerAccess, times(1)).sendMsg(Matchers.eq(signedStatement))(Matchers.any[Encoder[SignedStatementMessage]])
+    verify(peerAccess, times(1)).sendMsg(Matchers.eq(signedStatement))
   }
 
   "InitPaymentHandler" should "create new fact (transaction) in a new block if it could be signed by users on the same node at once" in {
@@ -111,7 +111,7 @@ class InitPaymentHandlerTest extends FlatSpec with org.scalatest.Matchers with M
     statementsCache.statements.size shouldBe 0
     verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange),
       Matchers.eq("Payment transaction created and added to blockchain."))
-    verify(peerAccess, times(1)).sendMsg(Matchers.any[NewBlockMessage])(Matchers.any[Encoder[NewBlockMessage]])
+    verify(peerAccess, times(1)).sendMsg(Matchers.any[NewBlockMessage])
 
     blockChain.chain.size() shouldBe 2
     val lastBlock = blockChain.getLatestBlock
@@ -156,6 +156,6 @@ class InitPaymentHandlerTest extends FlatSpec with org.scalatest.Matchers with M
     blockChain.chain.size shouldBe 1
     verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange), Matchers.eq(HttpStatus.SC_BAD_REQUEST),
       Matchers.eq("No user with given (from) public key found."))
-    verify(peerAccess.peerTransport, never).sendMsg(Matchers.any[SignedStatementMessage], Matchers.any[String])(Matchers.any[Encoder[SignedStatementMessage]])
+    verify(peerAccess.peerTransport, never).sendMsg(Matchers.any[String], Matchers.any[String])
   }
 }

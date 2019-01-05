@@ -93,12 +93,12 @@ class SignedStatementMessageTest extends FlatSpec with scalatest.Matchers with M
 
   def createStatement(signatures: Seq[(String, String)]): SignedStatementMessage = {
     val statement = TestStatement("a")
-    SignedStatementMessage(statement, Seq("pubKA", "pubKB"), "localhost", signatures)
+    SignedStatementMessage(statement, Seq("pubKA", "pubKB"), signatures)
   }
 
   def createStatement(neededKeys: Seq[String], providedSignatures: Seq[(String, String)]): SignedStatementMessage = {
     val statement = TestStatement("b")
-    SignedStatementMessage(statement, neededKeys, "localhost", providedSignatures)
+    SignedStatementMessage(statement, neededKeys, providedSignatures)
   }
 
 }

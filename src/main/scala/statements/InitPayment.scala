@@ -13,7 +13,7 @@ import keys.KeysFileOps
 import util.StringConverter
 
 
-object InitPayment extends StringConverter with Deserializator with StatementDecoder {
+object InitPayment extends StringConverter with Deserializator with ObjectDecoder[Statement] {
   override def deserialize(s: String): Either[circe.Error, InitPayment] = decode[InitPayment](s)
 
   override def getDecoder: Decoder[Statement] = deriveDecoder[InitPayment].asInstanceOf[Decoder[Statement]]

@@ -1,6 +1,6 @@
 package messages
 
-import core.{Deserializator, Message, Signer, Statement}
+import core._
 import io.circe
 import io.circe.{Decoder, Encoder, HCursor, Json}
 import io.circe.syntax._
@@ -8,43 +8,45 @@ import io.circe.parser.decode
 import keys.KeysFileOps
 import util.StringConverter
 
-object SignedStatementMessage extends Deserializator {
+object SignedStatementMessage extends Deserializator with ObjectDecoder[Message] {
   def deserialize(s: String): Either[circe.Error, SignedStatementMessage] = decode[SignedStatementMessage](s)(decoder)
 
+  override def getDecoder: Decoder[Message] = decoder.asInstanceOf[Decoder[Message]]
+
   def apply(statement: Statement, publicKeysRequiredToSignEncoded: Seq[String],
-            nodeName: String, keysFileOps: KeysFileOps, sentFromIPAddress: String): SignedStatementMessage = {
-    val signedStatement = SignedStatementMessage(statement, publicKeysRequiredToSignEncoded, sentFromIPAddress)
+            nodeName: String, keysFileOps: KeysFileOps): SignedStatementMessage = {
+    val signedStatement = new SignedStatementMessage(statement, publicKeysRequiredToSignEncoded)
     val newSignatures = signedStatement.signByLocalPublicKeys(nodeName, keysFileOps)
     signedStatement.addSignatures(newSignatures)
-  }
-
-  lazy val encoder: Encoder[SignedStatementMessage] = (signedStatement: SignedStatementMessage) => {
-    val statement = signedStatement.statement
-    Json.obj(
-      ("statement", statement.asJson(statement.encoder)),
-      ("publicKeysRequiredToSignEncoded", signedStatement.publicKeysRequiredToSignEncoded.asJson),
-      ("providedSignaturesForKeys", signedStatement.providedSignaturesForKeys.asJson),
-      ("sentFromIPAddress", signedStatement.sentFromIPAddress.asJson)
-    )
   }
 
   lazy val decoder: Decoder[SignedStatementMessage] = (c: HCursor) => for {
     statement <- c.downField("statement").as[Statement](Statement.decoder)
     publicKeysRequiredToSignEncoded <- c.downField("publicKeysRequiredToSignEncoded").as[Seq[String]]
     providedSignaturesForKeys <- c.downField("providedSignaturesForKeys").as[Seq[(String, String)]]
-    sentFromIPAddress <- c.downField("sentFromIPAddress").as[String]
   } yield {
-    new SignedStatementMessage(statement, publicKeysRequiredToSignEncoded, sentFromIPAddress, providedSignaturesForKeys)
+    new SignedStatementMessage(statement, publicKeysRequiredToSignEncoded, providedSignaturesForKeys)
   }
 
+  lazy val encoder: Encoder[SignedStatementMessage] = (signedStatement: SignedStatementMessage) => {
+    val statement = signedStatement.statement
+    Json.obj (
+      ("messageType", "messages.SignedStatementMessage".asJson),
+      ("message", Json.obj(
+
+        ("statement", statement.asJson(statement.encoder)),
+        ("publicKeysRequiredToSignEncoded", signedStatement.publicKeysRequiredToSignEncoded.asJson),
+        ("providedSignaturesForKeys", signedStatement.providedSignaturesForKeys.asJson)
+      ))
+    )
+  }
 }
 
 /**
   * SignedStatement is a wrapper which attaches signatures to statements.
   * As opposed to facts, statements are not stored in blockchain.
   */
-case class SignedStatementMessage(statement: Statement, publicKeysRequiredToSignEncoded: Seq[String], sentFromIPAddress: String,
-                                  providedSignaturesForKeys: Seq[(String, String)] = Nil)
+case class SignedStatementMessage(statement: Statement, publicKeysRequiredToSignEncoded: Seq[String], providedSignaturesForKeys: Seq[(String, String)] = Nil)
   extends Message with StringConverter {
 
   def addSignature(publicKey: String, signature: String): SignedStatementMessage = {
@@ -85,4 +87,5 @@ case class SignedStatementMessage(statement: Statement, publicKeysRequiredToSign
     }
   }
 
+  override lazy val encoder: Encoder[Message] = SignedStatementMessage.encoder.asInstanceOf[Encoder[Message]]
 }

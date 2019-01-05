@@ -2,8 +2,12 @@ package core
 
 import io.circe
 import io.circe.syntax._
-import io.circe.{Encoder, Printer}
+import io.circe._
+import io.circe.parser.decode
 import messages._
+import io.circe.Encoder
+
+import scala.reflect.runtime.universe
 
 object Serializator {
   def serialize[T <: Serializable](msg: T)(implicit encoder: Encoder[T]): String = {
@@ -25,10 +29,50 @@ object Serializator {
 
 }
 
-/** message is anything that is transferred between peers and requires serialization */
+/** message is any service information that peers use and exchange each which other and requires serialization */
 trait Message extends Serializable {
-  def sentFromIPAddress: String
+  def encoder: Encoder[Message]
 }
+
+object Message {
+  private val runtimeMirror = universe.runtimeMirror(getClass.getClassLoader)
+
+  lazy val decoder: Decoder[Message] = (c: HCursor) => c.downField("messageType").as[String].flatMap { messageType =>
+    val module = runtimeMirror.staticModule(messageType)
+
+    val moduleMirror = runtimeMirror.reflectModule(module)
+    implicit val decoder: Decoder[Message] = moduleMirror.instance.asInstanceOf[ObjectDecoder[Message]].getDecoder
+    c.downField("message").as
+  }
+}
+
+/**
+  * Message envelope allows to segregate fields which should not be considered a part of message,
+  * e.g. sentFromIPAddress - in order not to process the same message several times when it comes from different nodes.
+  */
+object MessageEnvelope {
+  def deserialize(s: String): Either[io.circe.Error, MessageEnvelope] = {
+    decode[MessageEnvelope](s)(decoder)
+  }
+
+  lazy val encoder: Encoder[MessageEnvelope] = (messageEnvelope: MessageEnvelope) => {
+    val message = messageEnvelope.message
+    Json.obj(
+      ("message", message.asJson(message.encoder)),
+      ("sentFromIPAddress", messageEnvelope.sentFromIPAddress.asJson)
+    )
+  }
+
+  lazy val decoder: Decoder[MessageEnvelope] = (c: HCursor) => for {
+    message <- c.downField("message").as[Message](Message.decoder)
+    sentFromIPAddress <- c.downField("sentFromIPAddress").as[String]
+  } yield {
+    new MessageEnvelope(message, sentFromIPAddress)
+  }
+
+}
+
+case class MessageEnvelope(message: Message, sentFromIPAddress: String) extends Serializable
 
 trait Deserializator {
   def deserialize(s: String): Either[circe.Error, Serializable]

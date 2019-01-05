@@ -21,11 +21,11 @@ object Statement {
     val module = runtimeMirror.staticModule(statementType)
 
     val moduleMirror = runtimeMirror.reflectModule(module)
-    implicit val decoder: Decoder[Statement] = moduleMirror.instance.asInstanceOf[StatementDecoder].getDecoder
+    implicit val decoder: Decoder[Statement] = moduleMirror.instance.asInstanceOf[ObjectDecoder[Statement]].getDecoder
     c.downField("statement").as
   }
 }
 
-trait StatementDecoder {
-  def getDecoder: Decoder[Statement]
+trait ObjectDecoder[T] {
+  def getDecoder: Decoder[T]
 }

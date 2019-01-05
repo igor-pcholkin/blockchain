@@ -22,9 +22,9 @@ class AddSeedsHandler(bcHttpServer: BCHttpServer, peerAccess: PeerAccess, nodeNa
       val seeds = source.getLines.mkString(",").split(",").map(_.trim)
       peerAccess.addAll(seeds)
       Config(peerAccess.peers.asScala.toSeq).write(nodeName, fileOps)
-      peerAccess.sendMsg(AddPeersMessage(seeds, peerAccess.localHost.localServerAddress))
-      peerAccess.sendMsg(RequestAllStatementsMessage(peerAccess.localHost.localServerAddress))
-      peerAccess.sendMsg(RequestBlocksMessage(bc.chain.size(), peerAccess.localHost.localServerAddress))
+      peerAccess.sendMsg(AddPeersMessage(seeds))
+      peerAccess.sendMsg(RequestAllStatementsMessage())
+      peerAccess.sendMsg(RequestBlocksMessage(bc.chain.size()))
       source.close()
       bcHttpServer.sendHttpResponse(exchange, SC_CREATED, "New seeds have been added.")
     }

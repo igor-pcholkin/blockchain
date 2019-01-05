@@ -28,8 +28,8 @@ class BCHttpServer(val localHost: LocalHost, bc: BlockChain, peerAccess: PeerAcc
     server.createContext("/msgHandler", new MsgHandler(nodeName, this, statementsCache, bc, ProdKeysFileOps, peerAccess))
     server.start()
 
-    peerAccess.sendMsg(RequestAllStatementsMessage(localHost.localServerAddress))
-    peerAccess.sendMsg(RequestBlocksMessage(bc.chain.size(), localHost.localServerAddress))
+    peerAccess.sendMsg(RequestAllStatementsMessage())
+    peerAccess.sendMsg(RequestBlocksMessage(bc.chain.size()))
   }
 
   def sendHttpResponse(exchange: HttpExchange, response: String): Unit = {

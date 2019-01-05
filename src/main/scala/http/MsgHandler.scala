@@ -23,23 +23,25 @@ class MsgHandler(nodeName: String, bcHttpServer: BCHttpServer, statementsCache: 
   def handle(exchange: HttpExchange): Unit = {
     withHttpMethod ("POST", exchange, bcHttpServer) {
       val msgAsString = Source.fromInputStream(exchange.getRequestBody).getLines().mkString("\n")
-      val msg = Serializator.deserialize(msgAsString).getOrElse {
-        bcHttpServer.sendHttpResponse(exchange, SC_BAD_REQUEST, s"Invalid message received: $msgAsString")
-      } match {
-        case signedStatement: SignedStatementMessage =>
-          handle(signedStatement, exchange)
-        case newBlockMessage: NewBlockMessage =>
-          handle(newBlockMessage, exchange, peerAccess)
-        case addPeersMessage: AddPeersMessage =>
-          handle(addPeersMessage, exchange)
-        case requestAllMessages: RequestAllStatementsMessage =>
-          handle(requestAllMessages, exchange)
-        case requestBlocksMessage: RequestBlocksMessage =>
-          handle(requestBlocksMessage, exchange)
-        case _ =>
-          throw new RuntimeException(s"Unexpected message: $msgAsString")
+      MessageEnvelope.deserialize(msgAsString) match {
+        case Right(me) =>
+          me.message match {
+            case signedStatement: SignedStatementMessage =>
+              handle(signedStatement, exchange)
+            case newBlockMessage: NewBlockMessage =>
+              handle(newBlockMessage, exchange, peerAccess)
+            case addPeersMessage: AddPeersMessage =>
+              handle(addPeersMessage, exchange)
+            case requestAllMessages: RequestAllStatementsMessage =>
+              handle(requestAllMessages, exchange, me.sentFromIPAddress)
+            case requestBlocksMessage: RequestBlocksMessage =>
+              handle(requestBlocksMessage, exchange, me.sentFromIPAddress)
+            case _ =>
+              throw new RuntimeException(s"Unexpected message: $msgAsString")
+          }
+          peerAccess.add(me.sentFromIPAddress)
+        case Left(error) => bcHttpServer.sendHttpResponse(exchange, SC_BAD_REQUEST, s"Invalid message envelope received: ${error.getMessage}")
       }
-      peerAccess.add(msg.sentFromIPAddress)
     }
   }
 
@@ -52,10 +54,10 @@ class MsgHandler(nodeName: String, bcHttpServer: BCHttpServer, statementsCache: 
       statementsCache.add(enhancedStatement)
       if (enhancedStatement.isSignedByAllKeys) {
         bc.addFactToNewBlock(enhancedStatement)
-        peerAccess.sendMsg(NewBlockMessage(bc.getLatestBlock, bc.chain.size() - 1, peerAccess.localHost.localServerAddress))
+        peerAccess.sendMsg(NewBlockMessage(bc.getLatestBlock, bc.chain.size() - 1))
         bcHttpServer.sendHttpResponse(exchange, "Payment transaction created and added to blockchain.")
       } else {
-        peerAccess.sendMsg(signedStatement)(SignedStatementMessage.encoder)
+        peerAccess.sendMsg(signedStatement)
         bcHttpServer.sendHttpResponse(exchange, "Statement has been verified and added to cache.")
       }
     } else {
@@ -78,20 +80,19 @@ class MsgHandler(nodeName: String, bcHttpServer: BCHttpServer, statementsCache: 
     addPeersMessage
   }
 
-  private def handle(requestAllStatementsMessage: RequestAllStatementsMessage, exchange: HttpExchange): Message = {
+  private def handle(requestAllStatementsMessage: RequestAllStatementsMessage, exchange: HttpExchange, sentFromIPAddress: String): Message = {
     statementsCache.statements.values.asScala foreach { statement =>
-      peerAccess.sendMsg(statement, requestAllStatementsMessage.sentFromIPAddress)(SignedStatementMessage.encoder)
+      peerAccess.sendMsg(statement, sentFromIPAddress)
     }
-    bcHttpServer.sendHttpResponse(exchange, s"All statements have been sent to node: ${requestAllStatementsMessage.sentFromIPAddress}.")
+    bcHttpServer.sendHttpResponse(exchange, s"All statements have been sent to node: $sentFromIPAddress.")
     requestAllStatementsMessage
   }
 
-  private def handle(requestBlocksMessage: RequestBlocksMessage, exchange: HttpExchange): Message = {
+  private def handle(requestBlocksMessage: RequestBlocksMessage, exchange: HttpExchange, sentFromIPAddress: String): Message = {
     bc.chain.iterator().asScala.drop(requestBlocksMessage.fromBlockNo).zipWithIndex foreach { case (block, i) =>
-      peerAccess.sendMsg(NewBlockMessage(block, requestBlocksMessage.fromBlockNo + i, peerAccess.localHost.localServerAddress),
-        requestBlocksMessage.sentFromIPAddress)(Encoder[NewBlockMessage])
+      peerAccess.sendMsg(NewBlockMessage(block, requestBlocksMessage.fromBlockNo + i), sentFromIPAddress)
     }
-    bcHttpServer.sendHttpResponse(exchange, s"All requested blocks have been sent to node: ${requestBlocksMessage.sentFromIPAddress}.")
+    bcHttpServer.sendHttpResponse(exchange, s"All requested blocks have been sent to node: $sentFromIPAddress.")
     requestBlocksMessage
   }
 

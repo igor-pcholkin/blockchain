@@ -46,9 +46,9 @@ class AddSeedsHandlerTest extends FlatSpec with org.scalatest.Matchers with Mock
     verify(peerAccess, times(1)).addAll(peers)
     verify(fileOps, times(1)).createDirIfNotExists(Matchers.eq("Riga"))
     verify(fileOps, times(1)).writeFile(Matchers.eq("Riga/config"), Matchers.anyString)
-    verify(peerAccess, times(1)).sendMsg(Matchers.eq(AddPeersMessage(peers, "123.233.22.44:1234")))(Matchers.any[Encoder[AddPeersMessage]])
-    verify(peerAccess, times(1)).sendMsg(Matchers.eq(RequestAllStatementsMessage("123.233.22.44:1234")))(Matchers.any[Encoder[RequestAllStatementsMessage]])
-    verify(peerAccess, times(1)).sendMsg(Matchers.eq(RequestBlocksMessage(bc.chain.size, "123.233.22.44:1234")))(Matchers.any[Encoder[RequestBlocksMessage]])
+    verify(peerAccess, times(1)).sendMsg(Matchers.eq(AddPeersMessage(peers)))
+    verify(peerAccess, times(1)).sendMsg(Matchers.eq(RequestAllStatementsMessage()))
+    verify(peerAccess, times(1)).sendMsg(Matchers.eq(RequestBlocksMessage(bc.chain.size)))
 
     verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange), Matchers.eq(HttpStatus.SC_CREATED),
       Matchers.eq("New seeds have been added."))
