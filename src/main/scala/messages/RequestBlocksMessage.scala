@@ -13,16 +13,4 @@ object RequestBlocksMessage extends Deserializator with ObjectDecoder[Message] {
   override def getDecoder: Decoder[Message] = deriveDecoder[RequestBlocksMessage].asInstanceOf[Decoder[Message]]
 }
 
-case class RequestBlocksMessage(fromBlockNo: Int) extends Message {
-
-  override lazy val encoder: Encoder[Message] = new Encoder[RequestBlocksMessage] {
-    final def apply(message: RequestBlocksMessage): Json = {
-      Json.obj(
-        ("messageType", "messages.RequestBlocksMessage".asJson),
-        ("message", message.asJson)
-      )
-    }
-  }.asInstanceOf[Encoder[Message]]
-
-}
-
+case class RequestBlocksMessage(fromBlockNo: Int) extends Message

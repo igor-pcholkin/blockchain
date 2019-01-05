@@ -2,7 +2,6 @@ package peers
 
 import core.{MessageEnvelope, Serializator}
 import http.LocalHost
-import io.circe.Encoder
 import messages.{AddPeersMessage, RequestBlocksMessage}
 import org.mockito.Matchers
 import org.mockito.Mockito.{times, verify, when}
@@ -15,10 +14,9 @@ import scala.collection.JavaConverters._
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
+import serialization.MessageEnvelopeOps._
 
 class PeerAccessTest extends FlatSpec with scalatest.Matchers with MockitoSugar {
-  implicit val envelopeEncoder: Encoder[MessageEnvelope] = MessageEnvelope.encoder
-
   "PeerAccess" should "allow to send the same message to the same peer only once when broadcasting the message" in {
     val transport = mock[PeerTransport]
     val mockLocalHost = mock[LocalHost]
@@ -57,7 +55,11 @@ class PeerAccessTest extends FlatSpec with scalatest.Matchers with MockitoSugar 
     when(transport.sendMsg(Matchers.eq(msg2Serialized), Matchers.eq("p1"))).thenReturn(Future.successful(Result(HttpStatus.SC_OK, "OK.")))
 
     peerAccess.sendMsg(addPeersMessage1, "p1")
+    // give time for the first message copy to be successfully sent
+    Thread.sleep(500)
     peerAccess.sendMsg(addPeersMessage1, "p1")
+    // give time for the second message copy to be successfully sent
+    Thread.sleep(500)
     peerAccess.sendMsg(addPeersMessage2, "p1")
     verify(transport, times(1)).sendMsg(Matchers.eq(msg1Serialized), Matchers.eq("p1"))
     verify(transport, times(1)).sendMsg(Matchers.eq(msg2Serialized), Matchers.eq("p1"))

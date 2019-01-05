@@ -4,7 +4,6 @@ import java.io.IOException
 
 import com.sun.net.httpserver.{HttpExchange, HttpHandler}
 import core._
-import io.circe.Encoder
 import messages._
 import keys.{KeysFileOps, KeysSerializator}
 import util.{HttpUtil, StringConverter}
@@ -12,9 +11,9 @@ import util.{HttpUtil, StringConverter}
 import scala.io.Source
 import org.apache.http.HttpStatus.SC_BAD_REQUEST
 import peers.PeerAccess
-import io.circe.generic.auto._
 
 import scala.collection.JavaConverters._
+import serialization.MessageEnvelopeOps.deserialize
 
 class MsgHandler(nodeName: String, bcHttpServer: BCHttpServer, statementsCache: StatementsCache, bc: BlockChain, val keysFileOps: KeysFileOps,
                  peerAccess: PeerAccess) extends HttpHandler with HttpUtil
@@ -23,7 +22,7 @@ class MsgHandler(nodeName: String, bcHttpServer: BCHttpServer, statementsCache: 
   def handle(exchange: HttpExchange): Unit = {
     withHttpMethod ("POST", exchange, bcHttpServer) {
       val msgAsString = Source.fromInputStream(exchange.getRequestBody).getLines().mkString("\n")
-      MessageEnvelope.deserialize(msgAsString) match {
+      deserialize(msgAsString) match {
         case Right(me) =>
           me.message match {
             case signedStatement: SignedStatementMessage =>

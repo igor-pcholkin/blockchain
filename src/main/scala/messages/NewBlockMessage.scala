@@ -13,15 +13,4 @@ object NewBlockMessage extends Deserializator with ObjectDecoder[Message] {
   override def getDecoder: Decoder[Message] = deriveDecoder[NewBlockMessage].asInstanceOf[Decoder[Message]]
 }
 
-case class NewBlockMessage(block: Block, blockNo: Int) extends Message {
-
-  override lazy val encoder: Encoder[Message] = new Encoder[NewBlockMessage] {
-    final def apply(message: NewBlockMessage): Json = {
-      Json.obj(
-        ("messageType", "messages.NewBlockMessage".asJson),
-        ("message", message.asJson)
-      )
-    }
-  }.asInstanceOf[Encoder[Message]]
-
-}
+case class NewBlockMessage(block: Block, blockNo: Int) extends Message

@@ -29,3 +29,7 @@ object Statement {
 trait ObjectDecoder[T] {
   def getDecoder: Decoder[T]
 }
+
+trait ObjectEncoder[T] {
+  def getEncoder: Encoder[T]
+}

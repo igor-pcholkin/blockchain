@@ -13,15 +13,4 @@ object RequestAllStatementsMessage extends Deserializator with ObjectDecoder[Mes
   override def getDecoder: Decoder[Message] = deriveDecoder[RequestAllStatementsMessage].asInstanceOf[Decoder[Message]]
 }
 
-case class RequestAllStatementsMessage() extends Message {
-
-  override lazy val encoder: Encoder[Message] = new Encoder[RequestAllStatementsMessage] {
-    final def apply(message: RequestAllStatementsMessage): Json = {
-      Json.obj(
-        ("messageType", "messages.RequestAllStatementsMessage".asJson),
-        ("message", message.asJson)
-      )
-    }
-  }.asInstanceOf[Encoder[Message]]
-
-}
+case class RequestAllStatementsMessage() extends Message

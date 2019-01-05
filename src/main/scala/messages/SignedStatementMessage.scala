@@ -27,19 +27,6 @@ object SignedStatementMessage extends Deserializator with ObjectDecoder[Message]
   } yield {
     new SignedStatementMessage(statement, publicKeysRequiredToSignEncoded, providedSignaturesForKeys)
   }
-
-  lazy val encoder: Encoder[SignedStatementMessage] = (signedStatement: SignedStatementMessage) => {
-    val statement = signedStatement.statement
-    Json.obj (
-      ("messageType", "messages.SignedStatementMessage".asJson),
-      ("message", Json.obj(
-
-        ("statement", statement.asJson(statement.encoder)),
-        ("publicKeysRequiredToSignEncoded", signedStatement.publicKeysRequiredToSignEncoded.asJson),
-        ("providedSignaturesForKeys", signedStatement.providedSignaturesForKeys.asJson)
-      ))
-    )
-  }
 }
 
 /**
@@ -87,5 +74,4 @@ case class SignedStatementMessage(statement: Statement, publicKeysRequiredToSign
     }
   }
 
-  override lazy val encoder: Encoder[Message] = SignedStatementMessage.encoder.asInstanceOf[Encoder[Message]]
 }
