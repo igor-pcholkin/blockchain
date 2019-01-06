@@ -26,6 +26,7 @@ class BCHttpServer(val localHost: LocalHost, bc: BlockChain, peerAccess: PeerAcc
     server.createContext("/addseeds", new AddSeedsHandler(this, peerAccess, nodeName, ProdFileOps, bc))
     server.createContext("/initpayment", new InitPaymentHandler(nodeName, this, statementsCache, ProdKeysFileOps, peerAccess, bc))
     server.createContext("/msgHandler", new MsgHandler(nodeName, this, statementsCache, bc, ProdKeysFileOps, peerAccess))
+    server.createContext("/getfacts", new GetFactsHandler(this, bc))
     server.start()
 
     peerAccess.sendMsg(RequestAllStatementsMessage())

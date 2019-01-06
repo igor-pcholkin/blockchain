@@ -2,9 +2,10 @@ package http
 
 import java.io.IOException
 
+import business.Money
 import com.sun.net.httpserver.{HttpExchange, HttpHandler}
 import messages.{NewBlockMessage, SignedStatementMessage}
-import core.{BlockChain, Money, StatementsCache}
+import core.{BlockChain, StatementsCache}
 import keys.KeysFileOps
 import peers.PeerAccess
 

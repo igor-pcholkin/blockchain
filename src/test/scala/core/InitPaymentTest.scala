@@ -1,5 +1,6 @@
 package core
 
+import business.Money
 import io.circe.generic.auto._
 import keys.{KeysFileOps, KeysGenerator, KeysSerializator}
 import org.mockito.Matchers

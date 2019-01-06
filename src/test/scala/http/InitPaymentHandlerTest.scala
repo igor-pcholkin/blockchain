@@ -3,6 +3,7 @@ package http
 import java.io.ByteArrayInputStream
 import java.time.LocalDateTime
 
+import business.Money
 import com.sun.net.httpserver.HttpExchange
 import messages.NewBlockMessage
 import core._

@@ -2,6 +2,7 @@ package statements
 
 import java.time.LocalDateTime
 
+import business.Money
 import core._
 import keys.KeysFileOps
 import util.StringConverter
@@ -9,11 +10,10 @@ import util.StringConverter
 object InitPayment extends StringConverter {
 
   def apply(createdByNode: String, fromPublicKeyEncoded: String, toPublicKeyEncoded: String, money: Money,
-            keysFileOps: KeysFileOps): Either[String, InitPayment] = {
+            keysFileOps: KeysFileOps, timestamp: LocalDateTime = LocalDateTime.now): Either[String, InitPayment] = {
     if (fromPublicKeyEncoded == toPublicKeyEncoded) {
       Left("Sender and receiver of payment can't be the same person")
     } else {
-      val timestamp = LocalDateTime.now
       Right(InitPayment(createdByNode, fromPublicKeyEncoded, toPublicKeyEncoded, money, timestamp))
     }
   }
