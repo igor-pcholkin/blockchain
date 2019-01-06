@@ -13,7 +13,7 @@ import scala.io.Source
 import io.circe.generic.auto._
 import io.circe.parser._
 import org.apache.http.HttpStatus.{SC_BAD_REQUEST, SC_CREATED}
-import statements.InitPayment
+import statements.Payment
 import util.HttpUtil
 
 case class InitPaymentRequest(from: String, to: String, currency: String, amount: Double)
@@ -41,10 +41,9 @@ class InitPaymentHandler(nodeName: String, bcHttpServer: BCHttpServer, statement
 
   private def processPaymentRequest(initPaymentRequest: InitPaymentRequest, exchange: HttpExchange): Unit = {
     val asset = Money (initPaymentRequest.currency, (BigDecimal (initPaymentRequest.amount) * 100).toLong)
-    InitPayment.apply(nodeName, initPaymentRequest.from, initPaymentRequest.to, asset,
-      keysFileOps) match {
-      case Right(initPayment) =>
-        val signedStatement = SignedStatementMessage(initPayment, Seq(initPaymentRequest.from, initPaymentRequest.to), nodeName,
+    Payment.verifyAndCreate(nodeName, initPaymentRequest.from, initPaymentRequest.to, asset) match {
+      case Right(payment) =>
+        val signedStatement = SignedStatementMessage(payment, Seq(initPaymentRequest.from, initPaymentRequest.to), nodeName,
           keysFileOps)
         processSignedStatement(signedStatement, initPaymentRequest.from, exchange)
       case Left(error) =>

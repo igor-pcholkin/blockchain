@@ -18,7 +18,7 @@ import util.{DateTimeUtil, StringConverter}
 
 import scala.collection.JavaConverters._
 import org.apache.http.HttpStatus
-import statements.InitPayment
+import statements.Payment
 import json.FactJson._
 
 class InitPaymentHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSugar with DateTimeUtil with KeysGenerator with StringConverter {
@@ -51,27 +51,28 @@ class InitPaymentHandlerTest extends FlatSpec with org.scalatest.Matchers with M
     when(keysFileOps.getUserByKey("Riga", "(publicKeyTo)")).thenReturn(None)
     when(keysFileOps.readKeyFromFile("Riga", "Igor", "privateKey")).thenReturn("MEECAQAwEwYHKoZIzj0CAQYIKoZIzj0DAQcEJzAlAgEBBCC94HoY839pqOB/m2D00X4+8vsM6kzUby8gk7Eq8XVsgw==")
     when(keysFileOps.readKeyFromFile("Riga", "Igor", "publicKey")).thenReturn(fromPublicKey)
+
     new InitPaymentHandler("Riga", mockBcHttpServer, statementsCache, keysFileOps, peerAccess, blockChain).handle(mockExchange)
 
     statementsCache.statements.size shouldBe 1
     blockChain.chain.size shouldBe 1
     val signedStatement = statementsCache.statements.asScala.head._2
-    val createdInitPayment = signedStatement.statement.asInstanceOf[InitPayment]
-    createdInitPayment.createdByNode shouldBe "Riga"
-    createdInitPayment.fromPublicKeyEncoded shouldBe "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEDibd8O5I928ZnTU7RYTy6Od3K3SrGlC+V8lkMYrdJuzT9Ig/Iq8JciaukxCYmVSO1mZuC65xMkxSb5Q0rNZ8og=="
-    createdInitPayment.toPublicKeyEncoded shouldBe "(publicKeyTo)"
-    createdInitPayment.money shouldBe Money("EUR", 2025)
-    timeStampsAreWithin(createdInitPayment.timestamp, LocalDateTime.now, 1000) shouldBe true
+    val payment = signedStatement.statement.asInstanceOf[Payment]
+    payment.createdByNode shouldBe "Riga"
+    payment.fromPublicKeyEncoded shouldBe "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEDibd8O5I928ZnTU7RYTy6Od3K3SrGlC+V8lkMYrdJuzT9Ig/Iq8JciaukxCYmVSO1mZuC65xMkxSb5Q0rNZ8og=="
+    payment.toPublicKeyEncoded shouldBe "(publicKeyTo)"
+    payment.money shouldBe Money("EUR", 2025)
+    timeStampsAreWithin(payment.timestamp, LocalDateTime.now, 1000) shouldBe true
     val signature = signedStatement.providedSignaturesForKeys.head._2
     val decodedSignature = base64StrToBytes(signature)
-    new Signer(keysFileOps).verify("Riga", "Igor", createdInitPayment.dataToSign, decodedSignature) shouldBe true
+    new Signer(keysFileOps).verify("Riga", "Igor", payment.dataToSign, decodedSignature) shouldBe true
 
     verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange), Matchers.eq(SC_CREATED),
       Matchers.eq("New Payment has been initiated."))
     verify(peerAccess, times(1)).sendMsg(Matchers.eq(signedStatement))
   }
 
-  "InitPaymentHandler" should "create new fact (transaction) in a new block if it could be signed by users on the same node at once" in {
+  it should "create new fact (transaction) in a new block if it could be signed by users on the same node at once" in {
     val mockBcHttpServer = mock[BCHttpServer]
     val mockExchange = mock[HttpExchange]
     val mockLocalHost = mock[LocalHost]
@@ -127,7 +128,7 @@ class InitPaymentHandlerTest extends FlatSpec with org.scalatest.Matchers with M
   }
 
 
-  "InitPaymentHandler" should "refuse payment request if user signing the message is not found for given (from) public key" in {
+  it should "refuse payment request if user signing the message is not found for given (from) public key" in {
     val mockBcHttpServer = mock[BCHttpServer]
     val mockExchange = mock[HttpExchange]
     val mockLocalHost = mock[LocalHost]

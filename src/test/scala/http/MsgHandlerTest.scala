@@ -18,7 +18,7 @@ import org.scalatest.mockito.MockitoSugar
 import peers.PeerAccess
 import json.{FactJson, JsonSerializer}
 import util.StringConverter
-import statements.InitPayment
+import statements.Payment
 
 class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSugar with StringConverter {
 
@@ -41,8 +41,8 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
     // whether payment transaction could be created and signed
     when(keysFileOps.getUserByKey("Riga", toPublicKey)).thenReturn(None)
 
-    val initPayment = InitPayment("Riga", fromPublicKey, toPublicKey, Money("EUR", 2025), keysFileOps).right.get
-    val signedStatement = SignedStatementMessage(initPayment, Seq(fromPublicKey, toPublicKey), "Riga", keysFileOps)
+    val payment = Payment.verifyAndCreate("Riga", fromPublicKey, toPublicKey, Money("EUR", 2025)).right.get
+    val signedStatement = SignedStatementMessage(payment, Seq(fromPublicKey, toPublicKey), "Riga", keysFileOps)
     val messageEnvelope = MessageEnvelope(signedStatement, "localhost")
     val is = new ByteArrayInputStream(JsonSerializer.serialize(messageEnvelope).getBytes)
 
@@ -81,9 +81,9 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
     // whether payment transaction could be created and signed
     when(keysFileOps.getUserByKey("Riga", toPublicKey)).thenReturn(None)
 
-    val initPayment = InitPayment("Riga", fromPublicKey, toPublicKey, Money("EUR", 2025), keysFileOps).right.get
-    val signedStatement = SignedStatementMessage(initPayment, Seq(fromPublicKey, toPublicKey), "Riga", keysFileOps)
-    val tamperedMessage = initPayment.copy(money = Money("EUR", 202500))
+    val payment = Payment.verifyAndCreate("Riga", fromPublicKey, toPublicKey, Money("EUR", 2025)).right.get
+    val signedStatement = SignedStatementMessage(payment, Seq(fromPublicKey, toPublicKey), "Riga", keysFileOps)
+    val tamperedMessage = payment.copy(money = Money("EUR", 202500))
     val tamperedStatement = signedStatement.copy(statement = tamperedMessage)
     val messageEnvelope = MessageEnvelope(tamperedStatement, "localhost")
     val is = new ByteArrayInputStream(JsonSerializer.serialize(messageEnvelope).getBytes)
@@ -121,8 +121,8 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
     // whether payment transaction could be created and signed
     when(keysFileOps.getUserByKey("Riga", toPublicKey)).thenReturn(None)
 
-    val initPayment = InitPayment("Riga", fromPublicKey, toPublicKey, Money("EUR", 2025), keysFileOps).right.get
-    val signedStatement = SignedStatementMessage(initPayment, Seq(fromPublicKey, toPublicKey), "Riga", keysFileOps)
+    val payment = Payment.verifyAndCreate("Riga", fromPublicKey, toPublicKey, Money("EUR", 2025)).right.get
+    val signedStatement = SignedStatementMessage(payment, Seq(fromPublicKey, toPublicKey), "Riga", keysFileOps)
     val messageEnvelope = MessageEnvelope(signedStatement, "localhost")
     val is = new ByteArrayInputStream(JsonSerializer.serialize(messageEnvelope).getBytes)
 
@@ -165,8 +165,8 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
     when(keysFileOps.readKeyFromFile("Riga", "John", "privateKey")).thenReturn("MEECAQAwEwYHKoZIzj0CAQYIKoZIzj0DAQcEJzAlAgEBBCAimtA53n1kVMdG1OleLJtfbFnjr1zU5smd04yfbdWpUw==")
     when(keysFileOps.readKeyFromFile("Riga", "John", "publicKey")).thenReturn(toPublicKey)
 
-    val initPayment = InitPayment("Riga", fromPublicKey, toPublicKey, Money("EUR", 2025), keysFileOps).right.get
-    val signedStatement = SignedStatementMessage(initPayment, Seq(fromPublicKey, toPublicKey), "Riga", keysFileOps)
+    val payment = Payment.verifyAndCreate("Riga", fromPublicKey, toPublicKey, Money("EUR", 2025)).right.get
+    val signedStatement = SignedStatementMessage(payment, Seq(fromPublicKey, toPublicKey), "Riga", keysFileOps)
     val messageEnvelope = MessageEnvelope(signedStatement, "localhost")
     val is = new ByteArrayInputStream(JsonSerializer.serialize(messageEnvelope).getBytes)
 
