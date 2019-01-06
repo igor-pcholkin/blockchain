@@ -7,7 +7,7 @@ import org.mockito.Mockito.{never, verify, when}
 import org.scalatest
 import org.scalatest.mockito.MockitoSugar
 import org.scalatest.FlatSpec
-import serialization.Serializator
+import json.JsonSerializer
 import statements.InitPayment
 
 class InitPaymentTest extends FlatSpec with scalatest.Matchers with MockitoSugar with KeysGenerator {
@@ -25,7 +25,7 @@ class InitPaymentTest extends FlatSpec with scalatest.Matchers with MockitoSugar
     val asset = Money("EUR", 2025)
     val message = InitPayment("Riga", fromPublicKey, toPublicKey, asset, ks.keysFileOps).right.get
 
-    val jsonMessage = Serializator.serialize(message)
+    val jsonMessage = JsonSerializer.serialize(message)
     println(jsonMessage)
     jsonMessage.startsWith(s"""{"createdByNode":"Riga","fromPublicKeyEncoded":"$fromPublicKey","toPublicKeyEncoded":"$toPublicKey","money":{"currency":"EUR","amountInCents":2025},"timestamp":""") shouldBe true
     jsonMessage.contains("\"encodedSignature\":{}") shouldBe false

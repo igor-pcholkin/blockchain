@@ -9,8 +9,8 @@ import org.slf4j.{Logger, LoggerFactory}
 import scala.concurrent.Future
 import scala.collection.JavaConverters._
 import scala.concurrent.ExecutionContext.Implicits.global
-import serialization.Serializator
-import serialization.MessageEnvelopeOps._
+import json.JsonSerializer
+import json.MessageEnvelopeJson._
 
 case class Result(status: Int, replyMsg: String)
 
@@ -72,6 +72,6 @@ class PeerAccess(val peerTransport: PeerTransport, val localHost: LocalHost, see
 
   private def wrapAndSerialize(msg: Message) = {
     val messageEnvelope = MessageEnvelope(msg, localHost.localServerAddress)
-    Serializator.serialize(messageEnvelope)
+    JsonSerializer.serialize(messageEnvelope)
   }
 }

@@ -14,8 +14,8 @@ import scala.collection.JavaConverters._
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
-import serialization.MessageEnvelopeOps._
-import serialization.Serializator
+import json.MessageEnvelopeJson._
+import json.JsonSerializer
 
 class PeerAccessTest extends FlatSpec with scalatest.Matchers with MockitoSugar {
   "PeerAccess" should "allow to send the same message to the same peer only once when broadcasting the message" in {
@@ -25,8 +25,8 @@ class PeerAccessTest extends FlatSpec with scalatest.Matchers with MockitoSugar 
     peerAccess.add("p1")
     val addPeersMessage1 = AddPeersMessage(Seq("1"))
     val addPeersMessage2 = AddPeersMessage(Seq("2"))
-    val msg1Serialized = Serializator.serialize(MessageEnvelope(addPeersMessage1, "localhost"))
-    val msg2Serialized = Serializator.serialize(MessageEnvelope(addPeersMessage2, "localhost"))
+    val msg1Serialized = JsonSerializer.serialize(MessageEnvelope(addPeersMessage1, "localhost"))
+    val msg2Serialized = JsonSerializer.serialize(MessageEnvelope(addPeersMessage2, "localhost"))
 
     when(mockLocalHost.localServerAddress).thenReturn("localhost")
     when(transport.sendMsg(Matchers.eq(msg1Serialized), Matchers.eq("p1"))).thenReturn(Future.successful(Result(HttpStatus.SC_OK, "OK.")))
@@ -48,8 +48,8 @@ class PeerAccessTest extends FlatSpec with scalatest.Matchers with MockitoSugar 
     peerAccess.add("p1")
     val addPeersMessage1 = AddPeersMessage(Seq("1"))
     val addPeersMessage2 = AddPeersMessage(Seq("2"))
-    val msg1Serialized = Serializator.serialize(MessageEnvelope(addPeersMessage1, "localhost"))
-    val msg2Serialized = Serializator.serialize(MessageEnvelope(addPeersMessage2, "localhost"))
+    val msg1Serialized = JsonSerializer.serialize(MessageEnvelope(addPeersMessage1, "localhost"))
+    val msg2Serialized = JsonSerializer.serialize(MessageEnvelope(addPeersMessage2, "localhost"))
 
     when(mockLocalHost.localServerAddress).thenReturn("localhost")
     when(transport.sendMsg(Matchers.eq(msg1Serialized), Matchers.eq("p1"))).thenReturn(Future.successful(Result(HttpStatus.SC_OK, "OK.")))
@@ -90,7 +90,7 @@ class PeerAccessTest extends FlatSpec with scalatest.Matchers with MockitoSugar 
     val peerAccess = new PeerAccess(transport, mockLocalHost)
     peerAccess.addAll(Seq("p1", "p2"))
     val msg = RequestBlocksMessage(1)
-    val msgSerialized = Serializator.serialize(MessageEnvelope(msg, "localhost"))
+    val msgSerialized = JsonSerializer.serialize(MessageEnvelope(msg, "localhost"))
 
     when(mockLocalHost.localServerAddress).thenReturn("localhost")
     when(transport.sendMsg(Matchers.eq(msgSerialized), Matchers.eq("p1"))).thenReturn(Future.successful(Result(HttpStatus.SC_OK, "OK.")))

@@ -1,4 +1,4 @@
-package serialization
+package json
 
 import core.{ObjectDecoder, ObjectEncoder}
 import io.circe.{Decoder, Encoder, Json}
@@ -7,10 +7,10 @@ import io.circe.syntax._
 import io.circe.generic.auto._
 import io.circe.generic.semiauto.deriveDecoder
 
-object InitPaymentOps extends ObjectEncoder[InitPayment] with ObjectDecoder[InitPayment] {
+object InitPaymentJson extends ObjectEncoder[InitPayment] with ObjectDecoder[InitPayment] {
   override lazy val encoder: Encoder[InitPayment] = (statement: InitPayment) => {
     Json.obj(
-      ("decoder", "serialization.InitPaymentOps".asJson),
+      ("decoder", "json.InitPaymentJson".asJson),
       ("statement", statement.asJson)
     )
   }

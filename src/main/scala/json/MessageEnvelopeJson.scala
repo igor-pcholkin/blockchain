@@ -1,4 +1,4 @@
-package serialization
+package json
 
 import core.{Message, MessageEnvelope}
 import io.circe.{Decoder, HCursor, Json}
@@ -6,11 +6,11 @@ import io.circe.Encoder
 import io.circe.syntax._
 import io.circe.parser.decode
 
-import serialization.MessageOps._
+import json.MessageJson._
 
-object MessageEnvelopeOps {
+object MessageEnvelopeJson {
   def deserialize(s: String): Either[io.circe.Error, MessageEnvelope] = {
-    decode[MessageEnvelope](s)
+    decode[MessageEnvelope](s)(envelopeDecoder)
   }
 
   implicit lazy val envelopeEncoder = new Encoder[MessageEnvelope] {

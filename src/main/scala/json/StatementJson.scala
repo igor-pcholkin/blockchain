@@ -1,16 +1,16 @@
-package serialization
+package json
 
 import core.{ObjectDecoder, ObjectEncoder, Statement}
 import io.circe.{Decoder, Encoder, HCursor}
 
 import scala.reflect.runtime.universe
 
-object StatementOps {
+object StatementJson {
   private val runtimeMirror = universe.runtimeMirror(getClass.getClassLoader)
 
   implicit lazy val statementEncoder = new Encoder[Statement] {
     override final def apply(statement: Statement) = {
-      val encoderClassName = s"serialization.${statement.getClass.getSimpleName}Ops"
+      val encoderClassName = s"json.${statement.getClass.getSimpleName}Json"
       val concreteEncoder = getInstanceByName(encoderClassName).asInstanceOf[ObjectEncoder[Statement]]
       concreteEncoder.encoder(statement)
     }

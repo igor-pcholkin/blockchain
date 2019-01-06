@@ -13,7 +13,7 @@ import org.apache.http.HttpStatus.SC_BAD_REQUEST
 import peers.PeerAccess
 
 import scala.collection.JavaConverters._
-import serialization.MessageEnvelopeOps.deserialize
+import json.MessageEnvelopeJson.deserialize
 
 class MsgHandler(nodeName: String, bcHttpServer: BCHttpServer, statementsCache: StatementsCache, bc: BlockChain, val keysFileOps: KeysFileOps,
                  peerAccess: PeerAccess) extends HttpHandler with HttpUtil

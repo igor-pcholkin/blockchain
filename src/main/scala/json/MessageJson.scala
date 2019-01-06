@@ -1,4 +1,4 @@
-package serialization
+package json
 
 import core.{Message, ObjectDecoder, ObjectEncoder}
 import io.circe.{Decoder, Encoder, HCursor}
@@ -6,11 +6,11 @@ import io.circe.{Decoder, Encoder, HCursor}
 import scala.reflect.runtime.universe
 import universe.Mirror
 
-object MessageOps {
+object MessageJson {
   val runtimeMirror: Mirror = universe.runtimeMirror(getClass.getClassLoader)
 
   implicit lazy val messageEncoder: Encoder[Message] = (message: Message) => {
-    val encoderClassName = s"serialization.${message.getClass.getSimpleName}Ops"
+    val encoderClassName = s"json.${message.getClass.getSimpleName}Json"
     val concreteEncoder = getInstanceByName(encoderClassName).asInstanceOf[ObjectEncoder[Message]]
     concreteEncoder.encoder(message)
   }

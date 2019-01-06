@@ -1,4 +1,4 @@
-package serialization
+package json
 
 import core.{ObjectDecoder, ObjectEncoder}
 import io.circe.{Decoder, Encoder, Json}
@@ -7,10 +7,10 @@ import io.circe.generic.semiauto.deriveDecoder
 import io.circe.syntax._
 import messages.AddPeersMessage
 
-object AddPeersMessageOps extends ObjectEncoder[AddPeersMessage] with ObjectDecoder[AddPeersMessage] {
+object AddPeersMessageJson extends ObjectEncoder[AddPeersMessage] with ObjectDecoder[AddPeersMessage] {
   override lazy val encoder: Encoder[AddPeersMessage] = (message: AddPeersMessage) => {
     Json.obj(
-      ("decoder", "serialization.AddPeersMessageOps".asJson),
+      ("decoder", "json.AddPeersMessageJson".asJson),
       ("message", message.asJson)
     )
   }

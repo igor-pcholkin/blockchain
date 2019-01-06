@@ -1,4 +1,4 @@
-package serialization
+package json
 
 import core.{ObjectDecoder, ObjectEncoder}
 import io.circe.generic.auto._
@@ -7,10 +7,10 @@ import io.circe.syntax._
 import io.circe.{Decoder, Encoder, Json}
 import messages.NewBlockMessage
 
-object NewBlockMessageOps extends ObjectEncoder[NewBlockMessage] with ObjectDecoder[NewBlockMessage] {
+object NewBlockMessageJson extends ObjectEncoder[NewBlockMessage] with ObjectDecoder[NewBlockMessage] {
   override lazy val encoder: Encoder[NewBlockMessage] = (message: NewBlockMessage) => {
     Json.obj(
-      ("decoder", "serialization.NewBlockMessageOps".asJson),
+      ("decoder", "json.NewBlockMessageJson".asJson),
       ("message", message.asJson)
     )
   }

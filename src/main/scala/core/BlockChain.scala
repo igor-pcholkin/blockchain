@@ -6,8 +6,8 @@ import java.util.concurrent.ConcurrentLinkedDeque
 import messages.SignedStatementMessage
 
 import scala.collection.JavaConverters._
-import serialization.Serializator
-import serialization.FactOps._
+import json.JsonSerializer
+import json.FactJson._
 
 class ProdBlockChain(nodeName: String) extends BlockChain(nodeName) {
 
@@ -84,7 +84,7 @@ abstract class BlockChain(nodeName: String) {
 
   def addFactToNewBlock(signedStatement: SignedStatementMessage): Unit = {
     val fact = Fact(signedStatement.statement, signedStatement.providedSignaturesForKeys)
-    val serializedFact = Serializator.serialize(fact).getBytes
+    val serializedFact = JsonSerializer.serialize(fact).getBytes
     val newBlock = genNextBlock(serializedFact)
     add(newBlock)
   }

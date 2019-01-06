@@ -18,7 +18,7 @@ import util.{DateTimeUtil, StringConverter}
 import scala.collection.JavaConverters._
 import org.apache.http.HttpStatus
 import statements.InitPayment
-import serialization.FactOps._
+import json.FactJson._
 
 class InitPaymentHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSugar with DateTimeUtil with KeysGenerator with StringConverter {
   val keysFileOps: KeysFileOps = mock[KeysFileOps]

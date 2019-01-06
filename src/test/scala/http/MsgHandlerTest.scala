@@ -7,7 +7,7 @@ import com.sun.net.httpserver.HttpExchange
 import core.Block.CURRENT_BLOCK_VERSION
 import core._
 import messages.{RequestAllStatementsMessage, _}
-import serialization.MessageEnvelopeOps._
+import json.MessageEnvelopeJson._
 import keys.KeysFileOps
 import org.apache.http.HttpStatus
 import org.mockito.Matchers
@@ -15,7 +15,7 @@ import org.mockito.Mockito.{never, times, verify, when}
 import org.scalatest.FlatSpec
 import org.scalatest.mockito.MockitoSugar
 import peers.PeerAccess
-import serialization.{FactOps, Serializator}
+import json.{FactJson, JsonSerializer}
 import util.StringConverter
 import statements.InitPayment
 
@@ -43,7 +43,7 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
     val initPayment = InitPayment("Riga", fromPublicKey, toPublicKey, Money("EUR", 2025), keysFileOps).right.get
     val signedStatement = SignedStatementMessage(initPayment, Seq(fromPublicKey, toPublicKey), "Riga", keysFileOps)
     val messageEnvelope = MessageEnvelope(signedStatement, "localhost")
-    val is = new ByteArrayInputStream(Serializator.serialize(messageEnvelope).getBytes)
+    val is = new ByteArrayInputStream(JsonSerializer.serialize(messageEnvelope).getBytes)
 
     when(mockExchange.getRequestMethod).thenReturn("POST")
     when(mockExchange.getRequestBody).thenReturn(is)
@@ -85,7 +85,7 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
     val tamperedMessage = initPayment.copy(money = Money("EUR", 202500))
     val tamperedStatement = signedStatement.copy(statement = tamperedMessage)
     val messageEnvelope = MessageEnvelope(tamperedStatement, "localhost")
-    val is = new ByteArrayInputStream(Serializator.serialize(messageEnvelope).getBytes)
+    val is = new ByteArrayInputStream(JsonSerializer.serialize(messageEnvelope).getBytes)
 
     when(mockExchange.getRequestMethod).thenReturn("POST")
     when(mockExchange.getRequestBody).thenReturn(is)
@@ -123,7 +123,7 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
     val initPayment = InitPayment("Riga", fromPublicKey, toPublicKey, Money("EUR", 2025), keysFileOps).right.get
     val signedStatement = SignedStatementMessage(initPayment, Seq(fromPublicKey, toPublicKey), "Riga", keysFileOps)
     val messageEnvelope = MessageEnvelope(signedStatement, "localhost")
-    val is = new ByteArrayInputStream(Serializator.serialize(messageEnvelope).getBytes)
+    val is = new ByteArrayInputStream(JsonSerializer.serialize(messageEnvelope).getBytes)
 
     when(mockExchange.getRequestMethod).thenReturn("POST")
     when(mockExchange.getRequestBody).thenReturn(is)
@@ -167,7 +167,7 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
     val initPayment = InitPayment("Riga", fromPublicKey, toPublicKey, Money("EUR", 2025), keysFileOps).right.get
     val signedStatement = SignedStatementMessage(initPayment, Seq(fromPublicKey, toPublicKey), "Riga", keysFileOps)
     val messageEnvelope = MessageEnvelope(signedStatement, "localhost")
-    val is = new ByteArrayInputStream(Serializator.serialize(messageEnvelope).getBytes)
+    val is = new ByteArrayInputStream(JsonSerializer.serialize(messageEnvelope).getBytes)
 
     when(mockExchange.getRequestMethod).thenReturn("POST")
     when(mockExchange.getRequestBody).thenReturn(is)
@@ -185,7 +185,7 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
     statementsCache.statements.containsValue(signedStatement) shouldBe true
     blockChain.chain.size() shouldBe 2
     val lastBlock = blockChain.getLatestBlock
-    val fact = FactOps.deserialize(new String(lastBlock.data)).right.get
+    val fact = FactJson.deserialize(new String(lastBlock.data)).right.get
     val secondSignature = base64StrToBytes(fact.providedSignaturesForKeys(1)._2)
     val signer = new Signer(keysFileOps)
     signer.verify("Riga", "John", fact.statement.dataToSign, secondSignature) shouldBe true
@@ -205,7 +205,7 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
     val block = Block(CURRENT_BLOCK_VERSION, blockChain.getLatestBlock.hash, LocalDateTime.of(2018, 12, 21, 15, 0, 0), "Hi".getBytes)
     val newBlockMessage = NewBlockMessage(block, 1)
     val messageEnvelope = MessageEnvelope(newBlockMessage, "localhost")
-    val is = new ByteArrayInputStream(Serializator.serialize(messageEnvelope).getBytes)
+    val is = new ByteArrayInputStream(JsonSerializer.serialize(messageEnvelope).getBytes)
 
     when(mockExchange.getRequestMethod).thenReturn("POST")
     when(mockExchange.getRequestBody).thenReturn(is)
@@ -238,7 +238,7 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
     val peers = Seq("localhost:6789", "blabla123.com")
     val addPeersMessage = AddPeersMessage(peers)
     val messageEnvelope = MessageEnvelope(addPeersMessage, "localhost")
-    val is = new ByteArrayInputStream(Serializator.serialize(messageEnvelope).getBytes)
+    val is = new ByteArrayInputStream(JsonSerializer.serialize(messageEnvelope).getBytes)
 
     when(mockExchange.getRequestMethod).thenReturn("POST")
     when(mockExchange.getRequestBody).thenReturn(is)
@@ -262,7 +262,7 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
     val peer = "blabla123.com"
     val requestAllStatementsMessage = RequestAllStatementsMessage()
     val messageEnvelope = MessageEnvelope(requestAllStatementsMessage, peer)
-    val is = new ByteArrayInputStream(Serializator.serialize(messageEnvelope).getBytes)
+    val is = new ByteArrayInputStream(JsonSerializer.serialize(messageEnvelope).getBytes)
 
     when(mockExchange.getRequestMethod).thenReturn("POST")
     when(mockExchange.getRequestBody).thenReturn(is)
@@ -294,7 +294,7 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
     val peer = "blabla123.com"
     val requestBlocksMessage = RequestBlocksMessage(2)
     val messageEnvelope = MessageEnvelope(requestBlocksMessage, peer)
-    val is = new ByteArrayInputStream(Serializator.serialize(messageEnvelope).getBytes)
+    val is = new ByteArrayInputStream(JsonSerializer.serialize(messageEnvelope).getBytes)
 
     when(mockExchange.getRequestMethod).thenReturn("POST")
     when(mockExchange.getRequestBody).thenReturn(is)

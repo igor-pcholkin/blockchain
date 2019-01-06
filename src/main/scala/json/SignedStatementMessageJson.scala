@@ -1,16 +1,16 @@
-package serialization
+package json
 
 import core.{ObjectDecoder, ObjectEncoder, Statement}
 import io.circe.syntax._
 import io.circe.{Decoder, Encoder, HCursor, Json}
 import messages.SignedStatementMessage
-import serialization.StatementOps._
+import json.StatementJson._
 
-object SignedStatementMessageOps extends ObjectEncoder[SignedStatementMessage] with ObjectDecoder[SignedStatementMessage] {
+object SignedStatementMessageJson extends ObjectEncoder[SignedStatementMessage] with ObjectDecoder[SignedStatementMessage] {
   override lazy val encoder: Encoder[SignedStatementMessage] = (message: SignedStatementMessage) => {
     val statement = message.statement
     Json.obj (
-      ("decoder", "serialization.SignedStatementMessageOps".asJson),
+      ("decoder", "json.SignedStatementMessageJson".asJson),
       ("message", Json.obj(
 
         ("statement", statement.asJson),

@@ -1,12 +1,12 @@
-package serialization
+package json
 
 import core._
 import io.circe.{Decoder, Encoder, HCursor, Json}
 import io.circe.syntax._
-import serialization.StatementOps._
+import json.StatementJson._
 import io.circe.parser.decode
 
-object FactOps {
+object FactJson {
   def deserialize(s: String): Either[io.circe.Error, Fact] = {
     decode[Fact](s)
   }
