@@ -1,5 +1,7 @@
 package core
 
+import java.time.LocalDateTime
+
 import io.circe.Encoder
 import io.circe._
 
@@ -8,6 +10,8 @@ import io.circe._
   * As opposed to facts, statements are not stored in blockchain.
   * */
 trait Statement {
+  val timestamp: LocalDateTime
+
   def dataToSign: Array[Byte]
 }
 
