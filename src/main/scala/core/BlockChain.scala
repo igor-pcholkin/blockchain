@@ -87,6 +87,7 @@ abstract class BlockChain(nodeName: String) {
     val serializedFact = JsonSerializer.serialize(fact).getBytes
     val newBlock = genNextBlock(serializedFact)
     add(newBlock)
+    writeChain()
   }
 
 

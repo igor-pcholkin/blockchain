@@ -10,7 +10,6 @@ import org.apache.http.HttpStatus
 import org.slf4j.{Logger, LoggerFactory}
 import peers.PeerAccess
 import util.ProdFileOps
-import io.circe.generic.auto._
 
 class BCHttpServer(val localHost: LocalHost, bc: BlockChain, peerAccess: PeerAccess, statementsCache: StatementsCache) {
 
@@ -28,6 +27,7 @@ class BCHttpServer(val localHost: LocalHost, bc: BlockChain, peerAccess: PeerAcc
     server.createContext("/msgHandler", new MsgHandler(nodeName, this, statementsCache, bc, ProdKeysFileOps, peerAccess))
     server.createContext("/getfacts", new GetFactsHandler(this, bc))
     server.createContext("/getstatements", new GetStatementsHandler(this, statementsCache))
+    server.createContext("/registerUser", new RegisterUserHandler(nodeName, this, ProdKeysFileOps, peerAccess, bc))
     server.start()
 
     peerAccess.sendMsg(RequestAllStatementsMessage())

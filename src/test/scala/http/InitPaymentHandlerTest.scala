@@ -22,8 +22,6 @@ import statements.Payment
 import json.FactJson._
 
 class InitPaymentHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSugar with DateTimeUtil with KeysGenerator with StringConverter {
-  val keysFileOps: KeysFileOps = mock[KeysFileOps]
-
   "InitPaymentHandler" should "initialize new payment to node and send it to another peers" in {
     val mockBcHttpServer = mock[BCHttpServer]
     val mockExchange = mock[HttpExchange]
@@ -31,6 +29,8 @@ class InitPaymentHandlerTest extends FlatSpec with org.scalatest.Matchers with M
     val peerAccess = mock[PeerAccess]
     val statementsCache = new StatementsCache
     val blockChain = new TestBlockChain
+    val keysFileOps: KeysFileOps = mock[KeysFileOps]
+
     val fromPublicKey = "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEDibd8O5I928ZnTU7RYTy6Od3K3SrGlC+V8lkMYrdJuzT9Ig/Iq8JciaukxCYmVSO1mZuC65xMkxSb5Q0rNZ8og=="
     val initPaymentRequest =
       s"""{
@@ -70,6 +70,7 @@ class InitPaymentHandlerTest extends FlatSpec with org.scalatest.Matchers with M
     verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange), Matchers.eq(SC_CREATED),
       Matchers.eq("New Payment has been initiated."))
     verify(peerAccess, times(1)).sendMsg(Matchers.eq(signedStatement))
+    verify(blockChain.chainFileOps, never).writeBlock(Matchers.eq(1), Matchers.any[Block], Matchers.any[String])
   }
 
   it should "create new fact (transaction) in a new block if it could be signed by users on the same node at once" in {
@@ -78,6 +79,7 @@ class InitPaymentHandlerTest extends FlatSpec with org.scalatest.Matchers with M
     val mockLocalHost = mock[LocalHost]
     val peerAccess = mock[PeerAccess]
     val blockChain = new TestBlockChain
+    val keysFileOps: KeysFileOps = mock[KeysFileOps]
     peerAccess.addAll(Seq("blabla.com", "another.com"))
     val statementsCache = new StatementsCache
     val fromPublicKey = "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEDibd8O5I928ZnTU7RYTy6Od3K3SrGlC+V8lkMYrdJuzT9Ig/Iq8JciaukxCYmVSO1mZuC65xMkxSb5Q0rNZ8og=="
@@ -115,6 +117,8 @@ class InitPaymentHandlerTest extends FlatSpec with org.scalatest.Matchers with M
       Matchers.eq("Payment transaction created and added to blockchain."))
     verify(peerAccess, times(1)).sendMsg(Matchers.any[NewBlockMessage])
 
+    verify(blockChain.chainFileOps, times(1)).writeBlock(Matchers.eq(1), Matchers.any[Block], Matchers.any[String])
+
     blockChain.chain.size() shouldBe 2
     val lastBlock = blockChain.getLatestBlock
     val fact = deserialize(new String(lastBlock.data)).right.get
@@ -136,6 +140,7 @@ class InitPaymentHandlerTest extends FlatSpec with org.scalatest.Matchers with M
     peerAccess.addAll(Seq("blabla.com", "another.com"))
     val statementsCache = new StatementsCache
     val blockChain = new TestBlockChain
+    val keysFileOps: KeysFileOps = mock[KeysFileOps]
     val fromPublicKey = "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEDibd8O5I928ZnTU7RYTy6Od3K3SrGlC+V8lkMYrdJuzT9Ig/Iq8JciaukxCYmVSO1mZuC65xMkxSb5Q0rNZ8og=="
     val initPaymentRequest =
       s"""{
@@ -159,5 +164,6 @@ class InitPaymentHandlerTest extends FlatSpec with org.scalatest.Matchers with M
     verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange), Matchers.eq(HttpStatus.SC_BAD_REQUEST),
       Matchers.eq("No user with given (from) public key found."))
     verify(peerAccess.peerTransport, never).sendMsg(Matchers.any[String], Matchers.any[String])
+    verify(blockChain.chainFileOps, never).writeBlock(Matchers.eq(1), Matchers.any[Block], Matchers.any[String])
   }
 }

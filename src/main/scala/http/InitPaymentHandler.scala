@@ -64,16 +64,16 @@ class InitPaymentHandler(nodeName: String, bcHttpServer: BCHttpServer, statement
     }
   }
 
-  private def createAndAddTransactionToBlockchain(signedStatement: SignedStatementMessage, exchange: HttpExchange): Unit = {
-    bc.addFactToNewBlock(signedStatement)
-    peerAccess.sendMsg(NewBlockMessage(bc.getLatestBlock, bc.chain.size()))
-    bcHttpServer.sendHttpResponse(exchange, "Payment transaction created and added to blockchain.")
-  }
-
   private def initiatePayment(signedStatement: SignedStatementMessage, exchange: HttpExchange): Unit = {
     statementsCache.add(signedStatement)
     peerAccess.sendMsg(signedStatement)
     bcHttpServer.sendHttpResponse(exchange, SC_CREATED, "New Payment has been initiated.")
+  }
+
+  private def createAndAddTransactionToBlockchain(signedStatement: SignedStatementMessage, exchange: HttpExchange): Unit = {
+    bc.addFactToNewBlock(signedStatement)
+    peerAccess.sendMsg(NewBlockMessage(bc.getLatestBlock, bc.chain.size()))
+    bcHttpServer.sendHttpResponse(exchange, "Payment transaction created and added to blockchain.")
   }
 
   private def correctValidationError(exchange: HttpExchange, error: String) = {

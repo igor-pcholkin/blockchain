@@ -50,3 +50,22 @@ Scenario 8.
 
 Like scenario 7, but 4 payments are started at Riga node.
 London and Riga nodes should receive all 4 blocks in a correct order (i.e. 4 blocks are added to blockchain).
+
+Scenario 9.
+
+Start one node as Riga, 5761.
+Create valid user registration request.
+New block should be created and persisted immediately on that node.
+
+Scenario 10.
+
+Like scenario 9.
+But then the second node (London, which has no peers defined) is started. It should receive new block from Riga in 1 min.
+(Each node should issue RequestAllStatements and RequestBlocks messages to it peers every 1 min).
+
+Scenario 11.
+
+Like scenario 10 however London and Paris nodes are started the same time. After that new payment request is issued immediately
+which should trigger creation of new block on Paris (London and Paris nodes haven't received yet block with user registration request from Riga.
+However Riga receives new block (with confirmed payment) from Paris with the same index as it's block with user registration.
+Riga should resolve block conflict and signal that to other nodes.
