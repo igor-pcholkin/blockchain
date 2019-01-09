@@ -30,7 +30,16 @@ class BCHttpServer(val localHost: LocalHost, bc: BlockChain, peerAccess: PeerAcc
     server.createContext("/registerUser", new RegisterUserHandler(nodeName, this, ProdKeysFileOps, peerAccess, bc))
     server.start()
 
-    peerAccess.sendMsg(PullNewsMessage(bc.chain.size()))
+    scheduleSendingPullNewsMessage()
+
+  }
+
+  private def scheduleSendingPullNewsMessage() = {
+    val t = new java.util.Timer()
+    val task = new java.util.TimerTask {
+      def run() = peerAccess.sendMsg(PullNewsMessage(bc.chain.size()))
+    }
+    t.schedule(task, 0L, 60000L)
   }
 
   def sendHttpResponse(exchange: HttpExchange, response: String): Unit = {
