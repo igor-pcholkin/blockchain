@@ -69,3 +69,7 @@ Like scenario 10 however London and Paris nodes are started the same time. After
 which should trigger creation of new block on Paris (London and Paris nodes haven't received yet block with user registration request from Riga.
 However Riga receives new block (with confirmed payment) from Paris with the same index as it's block with user registration.
 Riga should resolve block conflict and signal that to other nodes.
+
+Scenario 12.
+
+After scenario 9 is executed repeat the same user registration request again. It should be refused (by default).

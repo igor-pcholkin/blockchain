@@ -292,9 +292,36 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
     verify(peerAccess, times(1)).sendMsg(Matchers.eq(NewBlockMessage(newBlock2, 2)), Matchers.eq(peer))
     verify(peerAccess, times(1)).sendMsg(Matchers.eq(NewBlockMessage(newBlock3, 3)), Matchers.eq(peer))
     verify(peerAccess, times(1)).add(Matchers.eq(peer))
+    verify(peerAccess, times(1)).sendMsg(Matchers.eq(PullNewsMessage(4, inReply = true)), Matchers.eq(peer))
     verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange),
       Matchers.eq(s"All statements and blocks have been sent to node: $peer."))
   }
 
+  it should "not reply with PullNewsMessage when PullNewsMessage arrives from another node and that message is marked with inReply flag" in {
+    val mockExchange = mock[HttpExchange]
+    val mockBcHttpServer = mock[BCHttpServer]
+    val blockChain = new TestBlockChain
+    val statementsCache = new StatementsCache()
+    val keysFileOps = mock[KeysFileOps]
+    val peerAccess = mock[PeerAccess]
+    val mockLocalHost = mock[LocalHost]
 
+    val peer = "blabla123.com"
+    val pullNewsMessage = PullNewsMessage(2, inReply = true)
+    val messageEnvelope = MessageEnvelope(pullNewsMessage, peer)
+    val is = new ByteArrayInputStream(JsonSerializer.serialize(messageEnvelope).getBytes)
+
+    when(mockExchange.getRequestMethod).thenReturn("POST")
+    when(mockExchange.getRequestBody).thenReturn(is)
+
+    when(peerAccess.localHost).thenReturn(mockLocalHost)
+    when(mockLocalHost.localServerAddress).thenReturn("localhost")
+
+    new MsgHandler("Riga", mockBcHttpServer, statementsCache, blockChain, keysFileOps, peerAccess).handle(mockExchange)
+
+    verify(peerAccess, times(1)).add(Matchers.eq(peer))
+    verify(peerAccess, never).sendMsg(Matchers.eq(PullNewsMessage(1)), Matchers.eq(peer))
+    verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange),
+      Matchers.eq(s"All statements and blocks have been sent to node: $peer."))
+  }
 }

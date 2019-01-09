@@ -89,7 +89,7 @@ class PeerAccessTest extends FlatSpec with scalatest.Matchers with MockitoSugar 
     val mockLocalHost = mock[LocalHost]
     val peerAccess = new PeerAccess(transport, mockLocalHost)
     peerAccess.addAll(Seq("p1", "p2"))
-    val msg = PullNewsMessage(1)
+    val msg = AddPeersMessage(Seq("1"))
     val msgSerialized = JsonSerializer.serialize(MessageEnvelope(msg, "localhost"))
 
     when(mockLocalHost.localServerAddress).thenReturn("localhost")
@@ -106,6 +106,42 @@ class PeerAccessTest extends FlatSpec with scalatest.Matchers with MockitoSugar 
 
     Await.result(result, 1 second)
     peerAccess.msgToPeers.get(msg) shouldBe Seq("p1")
+  }
+
+  it should "allow to send the same PullNewsMessage message multiple times to the same peer when broadcasting the message" in {
+    val transport = mock[PeerTransport]
+    val mockLocalHost = mock[LocalHost]
+    val peerAccess = new PeerAccess(transport, mockLocalHost)
+    peerAccess.add("p1")
+    val pullNewsMessage = PullNewsMessage(1)
+    val msgSerialized = JsonSerializer.serialize(MessageEnvelope(pullNewsMessage, "localhost"))
+
+    when(mockLocalHost.localServerAddress).thenReturn("localhost")
+    when(transport.sendMsg(Matchers.eq(msgSerialized), Matchers.eq("p1"))).thenReturn(Future.successful(Result(HttpStatus.SC_OK, "OK.")))
+
+    peerAccess.sendMsg(pullNewsMessage)
+    // give time for the first message copy to be successfully sent
+    Thread.sleep(500)
+    peerAccess.sendMsg(pullNewsMessage)
+    verify(transport, times(2)).sendMsg(Matchers.eq(msgSerialized), Matchers.eq("p1"))
+  }
+
+  it should "allow to send the same PullNewsMessage message multiple times to the same peer when sending the message directly to peer" in {
+    val transport = mock[PeerTransport]
+    val mockLocalHost = mock[LocalHost]
+    val peerAccess = new PeerAccess(transport, mockLocalHost)
+    peerAccess.add("p1")
+    val pullNewsMessage = PullNewsMessage(1)
+    val msgSerialized = JsonSerializer.serialize(MessageEnvelope(pullNewsMessage, "localhost"))
+
+    when(mockLocalHost.localServerAddress).thenReturn("localhost")
+    when(transport.sendMsg(Matchers.eq(msgSerialized), Matchers.eq("p1"))).thenReturn(Future.successful(Result(HttpStatus.SC_OK, "OK.")))
+
+    peerAccess.sendMsg(pullNewsMessage, "p1")
+    // give time for the first message copy to be successfully sent
+    Thread.sleep(500)
+    peerAccess.sendMsg(pullNewsMessage, "p1")
+    verify(transport, times(2)).sendMsg(Matchers.eq(msgSerialized), Matchers.eq("p1"))
   }
 
 }

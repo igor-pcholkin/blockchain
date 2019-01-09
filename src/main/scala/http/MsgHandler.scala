@@ -80,6 +80,9 @@ class MsgHandler(nodeName: String, bcHttpServer: BCHttpServer, statementsCache: 
   private def handle(pullNewsMessage: PullNewsMessage, exchange: HttpExchange, sentFromIPAddress: String): Message = {
     sendAllStatementsToPeers(sentFromIPAddress)
     sendAllBlocksToPeers(sentFromIPAddress, pullNewsMessage.fromBlockNo)
+    if (!pullNewsMessage.inReply) {
+      peerAccess.sendMsg(PullNewsMessage(bc.chain.size(), inReply = true), sentFromIPAddress)
+    }
     bcHttpServer.sendHttpResponse(exchange, s"All statements and blocks have been sent to node: $sentFromIPAddress.")
     pullNewsMessage
   }

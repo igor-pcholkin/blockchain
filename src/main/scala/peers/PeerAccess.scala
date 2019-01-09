@@ -11,6 +11,7 @@ import scala.collection.JavaConverters._
 import scala.concurrent.ExecutionContext.Implicits.global
 import json.JsonSerializer
 import json.MessageEnvelopeJson._
+import messages.PullNewsMessage
 
 case class Result(status: Int, replyMsg: String)
 
@@ -52,7 +53,11 @@ class PeerAccess(val peerTransport: PeerTransport, val localHost: LocalHost, see
       peerTransport.sendMsg(envelope, peer).map (_ => Some(peer)).recover { case _ => None }
     }) map (_.flatten) map { peersReceivedMsgNow =>
       logger.debug(s"Adding to (Message to peers) peers $peersReceivedMsgNow for msg $msg")
-      msgToPeers.put(msg, peersReceivedMsgBefore ++ peersReceivedMsgNow)
+      val allPeersReceivedMsg = peersReceivedMsgBefore ++ peersReceivedMsgNow
+      if (!msg.isInstanceOf[PullNewsMessage]) {
+        msgToPeers.put(msg, allPeersReceivedMsg)
+      }
+      allPeersReceivedMsg
     }
   }
 
@@ -65,7 +70,9 @@ class PeerAccess(val peerTransport: PeerTransport, val localHost: LocalHost, see
       logger.debug(s"Message sent to peer $peer")
       val envelope = wrapAndSerialize(msg)
       peerTransport.sendMsg(envelope, peer) map { _ =>
-        msgToPeers.put(msg, peersReceivedMsgBefore :+ peer)
+        if (!msg.isInstanceOf[PullNewsMessage]) {
+          msgToPeers.put(msg, peersReceivedMsgBefore :+ peer)
+        }
       }
     }
   }
