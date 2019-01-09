@@ -5,11 +5,10 @@ import java.io.IOException
 import com.sun.net.httpserver.{HttpExchange, HttpHandler}
 import config.Config
 import core.BlockChain
-import messages.{AddPeersMessage, RequestAllStatementsMessage, RequestBlocksMessage}
+import messages.{AddPeersMessage, PullNewsMessage}
 import org.apache.http.HttpStatus.SC_CREATED
 import peers.PeerAccess
 import util.{FileOps, HttpUtil}
-import io.circe.generic.auto._
 
 import scala.collection.JavaConverters._
 import scala.io.Source
@@ -23,8 +22,7 @@ class AddSeedsHandler(bcHttpServer: BCHttpServer, peerAccess: PeerAccess, nodeNa
       peerAccess.addAll(seeds)
       Config(peerAccess.peers.asScala.toSeq).write(nodeName, fileOps)
       peerAccess.sendMsg(AddPeersMessage(seeds))
-      peerAccess.sendMsg(RequestAllStatementsMessage())
-      peerAccess.sendMsg(RequestBlocksMessage(bc.chain.size()))
+      peerAccess.sendMsg(PullNewsMessage(bc.chain.size()))
       source.close()
       bcHttpServer.sendHttpResponse(exchange, SC_CREATED, "New seeds have been added.")
     }

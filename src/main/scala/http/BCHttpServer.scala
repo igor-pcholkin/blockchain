@@ -5,7 +5,7 @@ import java.net.InetSocketAddress
 import com.sun.net.httpserver.{HttpExchange, HttpServer}
 import core.{BlockChain, StatementsCache}
 import keys.ProdKeysFileOps
-import messages.{RequestAllStatementsMessage, RequestBlocksMessage}
+import messages.PullNewsMessage
 import org.apache.http.HttpStatus
 import org.slf4j.{Logger, LoggerFactory}
 import peers.PeerAccess
@@ -30,8 +30,7 @@ class BCHttpServer(val localHost: LocalHost, bc: BlockChain, peerAccess: PeerAcc
     server.createContext("/registerUser", new RegisterUserHandler(nodeName, this, ProdKeysFileOps, peerAccess, bc))
     server.start()
 
-    peerAccess.sendMsg(RequestAllStatementsMessage())
-    peerAccess.sendMsg(RequestBlocksMessage(bc.chain.size()))
+    peerAccess.sendMsg(PullNewsMessage(bc.chain.size()))
   }
 
   def sendHttpResponse(exchange: HttpExchange, response: String): Unit = {

@@ -5,8 +5,7 @@ import java.util.concurrent.ConcurrentLinkedQueue
 
 import com.sun.net.httpserver.HttpExchange
 import core.TestBlockChain
-import messages.{AddPeersMessage, RequestAllStatementsMessage, RequestBlocksMessage}
-import io.circe.Encoder
+import messages.{AddPeersMessage, PullNewsMessage}
 import org.apache.http.HttpStatus
 import org.mockito.Matchers
 import org.mockito.Mockito.{times, verify, when}
@@ -47,8 +46,7 @@ class AddSeedsHandlerTest extends FlatSpec with org.scalatest.Matchers with Mock
     verify(fileOps, times(1)).createDirIfNotExists(Matchers.eq("Riga"))
     verify(fileOps, times(1)).writeFile(Matchers.eq("Riga/config"), Matchers.anyString)
     verify(peerAccess, times(1)).sendMsg(Matchers.eq(AddPeersMessage(peers)))
-    verify(peerAccess, times(1)).sendMsg(Matchers.eq(RequestAllStatementsMessage()))
-    verify(peerAccess, times(1)).sendMsg(Matchers.eq(RequestBlocksMessage(bc.chain.size)))
+    verify(peerAccess, times(1)).sendMsg(Matchers.eq(PullNewsMessage(bc.chain.size)))
 
     verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange), Matchers.eq(HttpStatus.SC_CREATED),
       Matchers.eq("New seeds have been added."))

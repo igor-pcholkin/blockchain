@@ -7,7 +7,7 @@ import business.Money
 import com.sun.net.httpserver.HttpExchange
 import core.Block.CURRENT_BLOCK_VERSION
 import core._
-import messages.{RequestAllStatementsMessage, _}
+import messages._
 import json.MessageEnvelopeJson._
 import keys.KeysFileOps
 import org.apache.http.HttpStatus
@@ -252,38 +252,7 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
       Matchers.eq("New peers received and added to the node."))
   }
 
-  it should "accept RequestAllStatementsMessage when it arrives from another node" in {
-    val mockExchange = mock[HttpExchange]
-    val mockBcHttpServer = mock[BCHttpServer]
-    val blockChain = new TestBlockChain
-    val statementsCache = new StatementsCache()
-    val keysFileOps = mock[KeysFileOps]
-    val peerAccess = mock[PeerAccess]
-
-    val peer = "blabla123.com"
-    val requestAllStatementsMessage = RequestAllStatementsMessage()
-    val messageEnvelope = MessageEnvelope(requestAllStatementsMessage, peer)
-    val is = new ByteArrayInputStream(JsonSerializer.serialize(messageEnvelope).getBytes)
-
-    when(mockExchange.getRequestMethod).thenReturn("POST")
-    when(mockExchange.getRequestBody).thenReturn(is)
-
-    val statement1 = new SignedStatementMessage(TestStatement("a"), Nil)
-    val statement2 = new SignedStatementMessage(TestStatement("b"), Nil)
-
-    statementsCache.add(statement1)
-    statementsCache.add(statement2)
-
-    new MsgHandler("Riga", mockBcHttpServer, statementsCache, blockChain, keysFileOps, peerAccess).handle(mockExchange)
-
-    verify(peerAccess, times(1)).sendMsg(Matchers.eq(statement1), Matchers.eq(peer))
-    verify(peerAccess, times(1)).sendMsg(Matchers.eq(statement2), Matchers.eq(peer))
-    verify(peerAccess, times(1)).add(Matchers.eq(peer))
-    verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange),
-      Matchers.eq(s"All statements have been sent to node: $peer."))
-  }
-
-  it should "accept RequestBlocksMessage when it arrives from another node" in {
+  it should "accept PullNewsMessage when it arrives from another node" in {
     val mockExchange = mock[HttpExchange]
     val mockBcHttpServer = mock[BCHttpServer]
     val blockChain = new TestBlockChain
@@ -293,12 +262,17 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
     val mockLocalHost = mock[LocalHost]
 
     val peer = "blabla123.com"
-    val requestBlocksMessage = RequestBlocksMessage(2)
-    val messageEnvelope = MessageEnvelope(requestBlocksMessage, peer)
+    val pullNewsMessage = PullNewsMessage(2)
+    val messageEnvelope = MessageEnvelope(pullNewsMessage, peer)
     val is = new ByteArrayInputStream(JsonSerializer.serialize(messageEnvelope).getBytes)
 
     when(mockExchange.getRequestMethod).thenReturn("POST")
     when(mockExchange.getRequestBody).thenReturn(is)
+
+    val statement1 = new SignedStatementMessage(TestStatement("a"), Nil)
+    val statement2 = new SignedStatementMessage(TestStatement("b"), Nil)
+    statementsCache.add(statement1)
+    statementsCache.add(statement2)
 
     val newBlock1 = blockChain.genNextBlock("Fund transfer from A to B".getBytes)
     blockChain.add(newBlock1)
@@ -312,11 +286,14 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
 
     new MsgHandler("Riga", mockBcHttpServer, statementsCache, blockChain, keysFileOps, peerAccess).handle(mockExchange)
 
+    verify(peerAccess, times(1)).sendMsg(Matchers.eq(statement1), Matchers.eq(peer))
+    verify(peerAccess, times(1)).sendMsg(Matchers.eq(statement2), Matchers.eq(peer))
+
     verify(peerAccess, times(1)).sendMsg(Matchers.eq(NewBlockMessage(newBlock2, 2)), Matchers.eq(peer))
     verify(peerAccess, times(1)).sendMsg(Matchers.eq(NewBlockMessage(newBlock3, 3)), Matchers.eq(peer))
     verify(peerAccess, times(1)).add(Matchers.eq(peer))
     verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange),
-      Matchers.eq(s"All requested blocks have been sent to node: $peer."))
+      Matchers.eq(s"All statements and blocks have been sent to node: $peer."))
   }
 
 

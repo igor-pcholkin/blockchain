@@ -2,7 +2,7 @@ package peers
 
 import core.MessageEnvelope
 import http.LocalHost
-import messages.{AddPeersMessage, RequestBlocksMessage}
+import messages.{AddPeersMessage, PullNewsMessage}
 import org.mockito.Matchers
 import org.mockito.Mockito.{times, verify, when}
 import org.scalatest
@@ -89,7 +89,7 @@ class PeerAccessTest extends FlatSpec with scalatest.Matchers with MockitoSugar 
     val mockLocalHost = mock[LocalHost]
     val peerAccess = new PeerAccess(transport, mockLocalHost)
     peerAccess.addAll(Seq("p1", "p2"))
-    val msg = RequestBlocksMessage(1)
+    val msg = PullNewsMessage(1)
     val msgSerialized = JsonSerializer.serialize(MessageEnvelope(msg, "localhost"))
 
     when(mockLocalHost.localServerAddress).thenReturn("localhost")
