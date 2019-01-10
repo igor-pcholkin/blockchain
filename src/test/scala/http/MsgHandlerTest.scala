@@ -46,7 +46,7 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
     val messageEnvelope = MessageEnvelope(signedStatement, "localhost")
     val is = new ByteArrayInputStream(JsonSerializer.serialize(messageEnvelope).getBytes)
 
-    when(mockExchange.getRequestMethod).thenReturn("POST")
+    when(mockExchange.getRequestMethod).thenReturn("PUT")
     when(mockExchange.getRequestBody).thenReturn(is)
 
     new MsgHandler("Riga", mockBcHttpServer, statements, blockChain, keysFileOps, peerAccess).handle(mockExchange)
@@ -88,7 +88,7 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
     val messageEnvelope = MessageEnvelope(tamperedStatement, "localhost")
     val is = new ByteArrayInputStream(JsonSerializer.serialize(messageEnvelope).getBytes)
 
-    when(mockExchange.getRequestMethod).thenReturn("POST")
+    when(mockExchange.getRequestMethod).thenReturn("PUT")
     when(mockExchange.getRequestBody).thenReturn(is)
 
     new MsgHandler("Riga", mockBcHttpServer, statementsCache, blockChain, keysFileOps, peerAccess).handle(mockExchange)
@@ -126,7 +126,7 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
     val messageEnvelope = MessageEnvelope(signedStatement, "localhost")
     val is = new ByteArrayInputStream(JsonSerializer.serialize(messageEnvelope).getBytes)
 
-    when(mockExchange.getRequestMethod).thenReturn("POST")
+    when(mockExchange.getRequestMethod).thenReturn("PUT")
     when(mockExchange.getRequestBody).thenReturn(is)
 
     statementsCache.add(signedStatement)
@@ -165,7 +165,7 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
     val messageEnvelope = MessageEnvelope(signedStatement, "localhost")
     val is = new ByteArrayInputStream(JsonSerializer.serialize(messageEnvelope).getBytes)
 
-    when(mockExchange.getRequestMethod).thenReturn("POST")
+    when(mockExchange.getRequestMethod).thenReturn("PUT")
     when(mockExchange.getRequestBody).thenReturn(is)
 
     statementsCache.add(signedStatement.copy(providedSignaturesForKeys = Nil))
@@ -209,7 +209,7 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
     val messageEnvelope = MessageEnvelope(signedStatement, "localhost")
     val is = new ByteArrayInputStream(JsonSerializer.serialize(messageEnvelope).getBytes)
 
-    when(mockExchange.getRequestMethod).thenReturn("POST")
+    when(mockExchange.getRequestMethod).thenReturn("PUT")
     when(mockExchange.getRequestBody).thenReturn(is)
 
     when(peerAccess.localHost).thenReturn(mockLocalHost)
@@ -247,7 +247,7 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
     val messageEnvelope = MessageEnvelope(newBlockMessage, "localhost")
     val is = new ByteArrayInputStream(JsonSerializer.serialize(messageEnvelope).getBytes)
 
-    when(mockExchange.getRequestMethod).thenReturn("POST")
+    when(mockExchange.getRequestMethod).thenReturn("PUT")
     when(mockExchange.getRequestBody).thenReturn(is)
 
     when(blockChain.chainFileOps.getChainDir("Riga")).thenReturn("Riga/chain")
@@ -280,7 +280,7 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
     val messageEnvelope = MessageEnvelope(addPeersMessage, "localhost")
     val is = new ByteArrayInputStream(JsonSerializer.serialize(messageEnvelope).getBytes)
 
-    when(mockExchange.getRequestMethod).thenReturn("POST")
+    when(mockExchange.getRequestMethod).thenReturn("PUT")
     when(mockExchange.getRequestBody).thenReturn(is)
 
     new MsgHandler("Riga", mockBcHttpServer, statementsCache, blockChain, keysFileOps, peerAccess).handle(mockExchange)
@@ -305,7 +305,7 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
     val messageEnvelope = MessageEnvelope(pullNewsMessage, peer)
     val is = new ByteArrayInputStream(JsonSerializer.serialize(messageEnvelope).getBytes)
 
-    when(mockExchange.getRequestMethod).thenReturn("POST")
+    when(mockExchange.getRequestMethod).thenReturn("PUT")
     when(mockExchange.getRequestBody).thenReturn(is)
 
     val statement1 = new SignedStatementMessage(TestStatement("a"), Nil)
@@ -350,7 +350,7 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
     val messageEnvelope = MessageEnvelope(pullNewsMessage, peer)
     val is = new ByteArrayInputStream(JsonSerializer.serialize(messageEnvelope).getBytes)
 
-    when(mockExchange.getRequestMethod).thenReturn("POST")
+    when(mockExchange.getRequestMethod).thenReturn("PUT")
     when(mockExchange.getRequestBody).thenReturn(is)
 
     when(peerAccess.localHost).thenReturn(mockLocalHost)

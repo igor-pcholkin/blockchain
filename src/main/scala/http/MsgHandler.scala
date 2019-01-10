@@ -20,7 +20,7 @@ class MsgHandler(nodeName: String, bcHttpServer: BCHttpServer, statementsCache: 
   with StringConverter with KeysSerializator {
   @throws[IOException]
   def handle(exchange: HttpExchange): Unit = {
-    withHttpMethod ("POST", exchange, bcHttpServer) {
+    withHttpMethod ("PUT", exchange, bcHttpServer) {
       val msgAsString = Source.fromInputStream(exchange.getRequestBody).getLines().mkString("\n")
       deserialize(msgAsString) match {
         case Right(me) =>

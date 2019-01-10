@@ -9,7 +9,7 @@ trait HttpUtil {
     if (exchange.getRequestMethod == httpMethod) {
       code
     } else {
-      bcHttpServer.sendHttpResponse(exchange, SC_BAD_REQUEST, s"Invalid method, use $httpMethod")
+      bcHttpServer.sendHttpResponse(exchange, SC_BAD_REQUEST, s"Invalid method ${exchange.getRequestMethod}, use $httpMethod")
     }
   }
 
