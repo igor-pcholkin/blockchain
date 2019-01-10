@@ -102,7 +102,7 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
     blockChain.chain.size() shouldBe 1
   }
 
-  it should "reject repeated payment message" in {
+  it should "reject processing the same repeated statement if it is wrapped in the same signed message" in {
 
     val mockExchange = mock[HttpExchange]
     val mockBcHttpServer = mock[BCHttpServer]
@@ -130,6 +130,45 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
     when(mockExchange.getRequestBody).thenReturn(is)
 
     statementsCache.add(signedStatement)
+
+    new MsgHandler("Riga", mockBcHttpServer, statementsCache, blockChain, keysFileOps, peerAccess).handle(mockExchange)
+
+    verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange), Matchers.eq(HttpStatus.SC_BAD_REQUEST),
+      Matchers.eq("The statement has been received before."))
+    verify(peerAccess, never).sendMsg(Matchers.any[NewBlockMessage])
+    verify(peerAccess, times(1)).add(Matchers.eq("localhost"))
+
+    blockChain.chain.size() shouldBe 1
+  }
+
+  it should "reject the same repeated statement if it is wrapped in another signed message" in {
+
+    val mockExchange = mock[HttpExchange]
+    val mockBcHttpServer = mock[BCHttpServer]
+    val blockChain = new TestBlockChain
+    val statementsCache = new StatementsCache()
+    val keysFileOps = mock[KeysFileOps]
+    val peerAccess = mock[PeerAccess]
+
+    val fromPublicKey = "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEDibd8O5I928ZnTU7RYTy6Od3K3SrGlC+V8lkMYrdJuzT9Ig/Iq8JciaukxCYmVSO1mZuC65xMkxSb5Q0rNZ8og=="
+    val toPublicKey = "(publicKeyTo)"
+
+    when(keysFileOps.getUserByKey("Riga", fromPublicKey)).thenReturn(Some("Igor"))
+    // needed to sign payment request message by public key of creator
+    when(keysFileOps.readKeyFromFile("Riga", "Igor", "privateKey")).thenReturn("MEECAQAwEwYHKoZIzj0CAQYIKoZIzj0DAQcEJzAlAgEBBCC94HoY839pqOB/m2D00X4+8vsM6kzUby8gk7Eq8XVsgw==")
+    when(keysFileOps.readKeyFromFile("Riga", "Igor", "publicKey")).thenReturn(fromPublicKey)
+    // whether payment transaction could be created and signed
+    when(keysFileOps.getUserByKey("Riga", toPublicKey)).thenReturn(None)
+
+    val payment = Payment.verifyAndCreate("Riga", fromPublicKey, toPublicKey, Money("EUR", 2025)).right.get
+    val signedStatement = SignedStatementMessage(payment, Seq(fromPublicKey, toPublicKey), "Riga", keysFileOps)
+    val messageEnvelope = MessageEnvelope(signedStatement, "localhost")
+    val is = new ByteArrayInputStream(JsonSerializer.serialize(messageEnvelope).getBytes)
+
+    when(mockExchange.getRequestMethod).thenReturn("POST")
+    when(mockExchange.getRequestBody).thenReturn(is)
+
+    statementsCache.add(signedStatement.copy(providedSignaturesForKeys = Nil))
 
     new MsgHandler("Riga", mockBcHttpServer, statementsCache, blockChain, keysFileOps, peerAccess).handle(mockExchange)
 

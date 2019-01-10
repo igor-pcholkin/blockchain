@@ -5,17 +5,17 @@ import java.util.concurrent.ConcurrentHashMap
 import messages.SignedStatementMessage
 
 class StatementsCache {
-  val statements = new ConcurrentHashMap[SignedStatementMessage, SignedStatementMessage]()
+  val statements = new ConcurrentHashMap[Statement, SignedStatementMessage]()
 
-  def add(statement: SignedStatementMessage): Unit = {
-    if (!contains(statement)) {
-      statements.put(statement, statement)
+  def add(signedStatementMessage: SignedStatementMessage): Unit = {
+    if (!contains(signedStatementMessage)) {
+      statements.put(signedStatementMessage.statement, signedStatementMessage)
     }
   }
 
   def addAll(statements: Seq[SignedStatementMessage]): Unit = statements foreach add
 
-  def contains(statement: SignedStatementMessage): Boolean = {
-    Option(statements.get(statement)).nonEmpty
+  def contains(sighedStatementMessage: SignedStatementMessage): Boolean = {
+    Option(statements.get(sighedStatementMessage.statement)).nonEmpty
   }
 }
