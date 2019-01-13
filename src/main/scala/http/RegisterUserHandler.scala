@@ -77,7 +77,7 @@ class RegisterUserHandler(nodeName: String, bcHttpServer: BCHttpServer, implicit
 
   private def createAndAddUserToBlockchain(signedStatement: SignedStatementMessage, exchange: HttpExchange): Unit = {
     bc.addFactToNewBlock(signedStatement)
-    peerAccess.sendMsg(NewBlockMessage(bc.getLatestBlock, bc.chain.size()))
+    peerAccess.sendMsg(NewBlockMessage(bc.getLatestBlock, bc.size))
     bcHttpServer.sendHttpResponse (exchange, "User have been registered in blockchain.")
   }
 

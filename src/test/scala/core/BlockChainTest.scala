@@ -11,8 +11,8 @@ import Block.CURRENT_BLOCK_VERSION
 class BlockChainTest extends FlatSpec with scalatest.Matchers {
   "Initial blockchain" should "contain the only origin block" in {
     val bc = new TestBlockChain
-    bc.chain.size() shouldBe 1
-    bc.chain should contain (bc.origin)
+    bc.size shouldBe 1
+    bc.blocksFrom(0) should contain (bc.origin)
     bc.origin shouldBe Block(CURRENT_BLOCK_VERSION, Array[Byte](), LocalDateTime.of(2018, 12, 11, 17, 40, 0), "Future is here".getBytes)
   }
 
@@ -34,7 +34,7 @@ class BlockChainTest extends FlatSpec with scalatest.Matchers {
     val bc = new TestBlockChain
     val newBlock = bc.genNextBlock("Fund transfer from A to B".getBytes)
     bc.add(newBlock)
-    bc.chain.size shouldBe 2
+    bc.size shouldBe 2
     bc.getLatestBlock shouldBe newBlock
   }
 
@@ -50,7 +50,7 @@ class BlockChainTest extends FlatSpec with scalatest.Matchers {
     val newBlock4 = Block(-2, newBlock.prevHash, newBlock.timestamp, newBlock.data)
     bc.add(newBlock4)
 
-    bc.chain.size shouldBe 1
+    bc.size shouldBe 1
     bc.getLatestBlock shouldBe bc.origin
   }
 
@@ -59,7 +59,7 @@ class BlockChainTest extends FlatSpec with scalatest.Matchers {
     val newBlock = bc.genNextBlock("Fund transfer from A to B".getBytes)
     val newBlockIncPrevHash = Block(CURRENT_BLOCK_VERSION, Array[Byte](1.toByte), newBlock.timestamp, newBlock.data)
     bc.add(newBlockIncPrevHash)
-    bc.chain.size shouldBe 1
+    bc.size shouldBe 1
     bc.getLatestBlock shouldBe bc.origin
   }
 
@@ -68,7 +68,7 @@ class BlockChainTest extends FlatSpec with scalatest.Matchers {
     val newBlock = bc.genNextBlock("Fund transfer from A to B".getBytes)
     val newBlockIncTimestamp = Block(CURRENT_BLOCK_VERSION, newBlock.prevHash, LocalDateTime.of(2018, 12, 10, 23, 0, 0), newBlock.data)
     bc.add(newBlockIncTimestamp)
-    bc.chain.size shouldBe 1
+    bc.size shouldBe 1
     bc.getLatestBlock shouldBe bc.origin
   }
 
@@ -76,7 +76,7 @@ class BlockChainTest extends FlatSpec with scalatest.Matchers {
     val bc = new TestBlockChain
     val newBlock = Block(CURRENT_BLOCK_VERSION, bc.getLatestBlock.hash, LocalDateTime.of(2018, 12, 24, 15, 0, 0), "Hi".getBytes)
     bc.add(newBlock)
-    bc.chain.size() shouldBe 2
+    bc.size shouldBe 2
     bc.serialize shouldBe ("1||2018-12-11T17:40|RnV0dXJlIGlzIGhlcmU=," +
       "1|OHLfWn7tKNZEBkLgRnrA3vbFr6zO136VHP1sJM/051c=|2018-12-24T15:00|SGk=")
   }
@@ -84,7 +84,7 @@ class BlockChainTest extends FlatSpec with scalatest.Matchers {
   "reading blockchain from file system" should "add new blocks to blockchain" in {
     val bc = new TestBlockChain
 
-    bc.chain.size() shouldBe 1
+    bc.size shouldBe 1
 
     val block1 = Block(CURRENT_BLOCK_VERSION, bc.getLatestBlock.hash, LocalDateTime.of(2018, 12, 24, 15, 0, 0), "Hi".getBytes)
     val block2 = Block(CURRENT_BLOCK_VERSION, block1.hash, LocalDateTime.of(2018, 12, 24, 16, 0, 0), "Hi again".getBytes)
@@ -97,8 +97,8 @@ class BlockChainTest extends FlatSpec with scalatest.Matchers {
 
     bc.readChain()
 
-    bc.chain.size() shouldBe 3
-    val blocks = bc.chain.toArray
+    bc.size shouldBe 3
+    val blocks = bc.blocksFrom(0)
     blocks(0) shouldBe bc.origin
     blocks(1) shouldBe block1
     blocks(2) shouldBe block2
@@ -107,12 +107,12 @@ class BlockChainTest extends FlatSpec with scalatest.Matchers {
   "reading blockchain from file system" should "not add new blocks to blockchain if it is not exist on disk" in {
     val bc = new TestBlockChain
 
-    bc.chain.size() shouldBe 1
+    bc.size shouldBe 1
     when(bc.chainFileOps.getChainDir("Riga")).thenReturn("chaindir")
     when(bc.chainFileOps.isChainDirExists("Riga")).thenReturn(false)
     bc.readChain()
 
-    bc.chain.size() shouldBe 1
+    bc.size shouldBe 1
   }
 
   "writing blockchain to disk" should "create blockchain directory if it is not exists" in {
@@ -134,7 +134,7 @@ class BlockChainTest extends FlatSpec with scalatest.Matchers {
     bc.add(block1)
     bc.add(block2)
 
-    bc.chain.size() shouldBe 3
+    bc.size shouldBe 3
 
     when(bc.chainFileOps.getChainDir("Riga")).thenReturn("chaindir")
     when(bc.chainFileOps.isChainDirExists("Riga")).thenReturn(true)

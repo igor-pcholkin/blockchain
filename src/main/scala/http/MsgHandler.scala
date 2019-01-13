@@ -51,7 +51,7 @@ class MsgHandler(nodeName: String, bcHttpServer: BCHttpServer, statementsCache: 
       statementsCache.add(enhancedStatement)
       if (enhancedStatement.isSignedByAllKeys) {
         bc.addFactToNewBlock(enhancedStatement)
-        peerAccess.sendMsg(NewBlockMessage(bc.getLatestBlock, bc.chain.size() - 1))
+        peerAccess.sendMsg(NewBlockMessage(bc.getLatestBlock, bc.size - 1))
         bcHttpServer.sendHttpResponse(exchange, "Payment transaction created and added to blockchain.")
       } else {
         peerAccess.sendMsg(signedStatement)
@@ -81,7 +81,7 @@ class MsgHandler(nodeName: String, bcHttpServer: BCHttpServer, statementsCache: 
     sendAllStatementsToPeers(sentFromIPAddress)
     sendAllBlocksToPeers(sentFromIPAddress, pullNewsMessage.fromBlockNo)
     if (!pullNewsMessage.inReply) {
-      peerAccess.sendMsg(PullNewsMessage(bc.chain.size(), inReply = true), sentFromIPAddress)
+      peerAccess.sendMsg(PullNewsMessage(bc.size, inReply = true), sentFromIPAddress)
     }
     bcHttpServer.sendHttpResponse(exchange, s"All statements and blocks have been sent to node: $sentFromIPAddress.")
     pullNewsMessage
@@ -94,7 +94,7 @@ class MsgHandler(nodeName: String, bcHttpServer: BCHttpServer, statementsCache: 
   }
 
   private def sendAllBlocksToPeers(sentFromIPAddress: String, fromBlockNo: Int): Unit = {
-    bc.chain.iterator().asScala.drop(fromBlockNo).zipWithIndex foreach { case (block, i) =>
+    bc.blocksFrom(fromBlockNo).zipWithIndex foreach { case (block, i) =>
       peerAccess.sendMsg(NewBlockMessage(block, fromBlockNo + i), sentFromIPAddress)
     }
   }

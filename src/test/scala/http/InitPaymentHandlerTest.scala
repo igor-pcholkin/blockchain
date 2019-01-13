@@ -55,7 +55,7 @@ class InitPaymentHandlerTest extends FlatSpec with org.scalatest.Matchers with M
     new InitPaymentHandler("Riga", mockBcHttpServer, statementsCache, keysFileOps, peerAccess, blockChain).handle(mockExchange)
 
     statementsCache.statements.size shouldBe 1
-    blockChain.chain.size shouldBe 1
+    blockChain.size shouldBe 1
     val signedStatement = statementsCache.statements.asScala.head._2
     val payment = signedStatement.statement.asInstanceOf[Payment]
     payment.createdByNode shouldBe "Riga"
@@ -119,7 +119,7 @@ class InitPaymentHandlerTest extends FlatSpec with org.scalatest.Matchers with M
 
     verify(blockChain.chainFileOps, times(1)).writeBlock(Matchers.eq(1), Matchers.any[Block], Matchers.any[String])
 
-    blockChain.chain.size() shouldBe 2
+    blockChain.size shouldBe 2
     val lastBlock = blockChain.getLatestBlock
     val fact = deserialize(new String(lastBlock.data)).right.get
     val secondSignature = base64StrToBytes(fact.providedSignaturesForKeys(1)._2)
@@ -160,7 +160,7 @@ class InitPaymentHandlerTest extends FlatSpec with org.scalatest.Matchers with M
     new InitPaymentHandler("Riga", mockBcHttpServer, statementsCache, keysFileOps, peerAccess, blockChain).handle(mockExchange)
 
     statementsCache.statements.size shouldBe 0
-    blockChain.chain.size shouldBe 1
+    blockChain.size shouldBe 1
     verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange), Matchers.eq(HttpStatus.SC_BAD_REQUEST),
       Matchers.eq("No user with given (from) public key found."))
     verify(peerAccess.peerTransport, never).sendMsg(Matchers.any[String], Matchers.any[String])

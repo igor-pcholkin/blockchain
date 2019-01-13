@@ -72,7 +72,7 @@ class InitPaymentHandler(nodeName: String, bcHttpServer: BCHttpServer, statement
 
   private def createAndAddTransactionToBlockchain(signedStatement: SignedStatementMessage, exchange: HttpExchange): Unit = {
     bc.addFactToNewBlock(signedStatement)
-    peerAccess.sendMsg(NewBlockMessage(bc.getLatestBlock, bc.chain.size()))
+    peerAccess.sendMsg(NewBlockMessage(bc.getLatestBlock, bc.size))
     bcHttpServer.sendHttpResponse(exchange, "Payment transaction created and added to blockchain.")
   }
 

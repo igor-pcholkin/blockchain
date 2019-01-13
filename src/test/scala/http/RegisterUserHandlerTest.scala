@@ -60,7 +60,7 @@ class RegisterUserHandlerTest extends FlatSpec with org.scalatest.Matchers with 
     verify(peerAccess, times(1)).sendMsg(Matchers.any[NewBlockMessage])
     verify(blockChain.chainFileOps, times(1)).writeBlock(Matchers.eq(1), Matchers.any[Block], Matchers.any[String])
 
-    blockChain.chain.size() shouldBe 2
+    blockChain.size shouldBe 2
     val lastBlock = blockChain.getLatestBlock
     val fact = deserialize(new String(lastBlock.data)).right.get
     val statement = fact.statement.asInstanceOf[RegisteredUser]
@@ -98,7 +98,7 @@ class RegisterUserHandlerTest extends FlatSpec with org.scalatest.Matchers with 
     verify(peerAccess, never).sendMsg(Matchers.any[NewBlockMessage])
     verify(blockChain.chainFileOps, never).writeBlock(Matchers.eq(1), Matchers.any[Block], Matchers.any[String])
 
-    blockChain.chain.size() shouldBe 1
+    blockChain.size shouldBe 1
   }
 
   it should "refuse to register a user if there are existing keys for user with the same name and no overwriteKeys or useExistingKeys is specified" in {
@@ -130,7 +130,7 @@ class RegisterUserHandlerTest extends FlatSpec with org.scalatest.Matchers with 
     verify(peerAccess, never).sendMsg(Matchers.any[NewBlockMessage])
     verify(blockChain.chainFileOps, never).writeBlock(Matchers.eq(1), Matchers.any[Block], Matchers.any[String])
 
-    blockChain.chain.size() shouldBe 1
+    blockChain.size shouldBe 1
   }
 
   it should "create new fact (registered user) in a new block overwriting existing keys for the user" in {
@@ -174,7 +174,7 @@ class RegisterUserHandlerTest extends FlatSpec with org.scalatest.Matchers with 
     verify(peerAccess, times(1)).sendMsg(Matchers.any[NewBlockMessage])
     verify(blockChain.chainFileOps, times(1)).writeBlock(Matchers.eq(1), Matchers.any[Block], Matchers.any[String])
 
-    blockChain.chain.size() shouldBe 2
+    blockChain.size shouldBe 2
     val lastBlock = blockChain.getLatestBlock
     val fact = deserialize(new String(lastBlock.data)).right.get
     val statement = fact.statement.asInstanceOf[RegisteredUser]
@@ -229,7 +229,7 @@ class RegisterUserHandlerTest extends FlatSpec with org.scalatest.Matchers with 
     verify(peerAccess, times(1)).sendMsg(Matchers.any[NewBlockMessage])
     verify(blockChain.chainFileOps, times(1)).writeBlock(Matchers.eq(1), Matchers.any[Block], Matchers.any[String])
 
-    blockChain.chain.size() shouldBe 2
+    blockChain.size shouldBe 2
     val lastBlock = blockChain.getLatestBlock
     val fact = deserialize(new String(lastBlock.data)).right.get
     val statement = fact.statement.asInstanceOf[RegisteredUser]

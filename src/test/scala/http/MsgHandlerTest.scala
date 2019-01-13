@@ -59,7 +59,7 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
     verify(peerAccess, times(1)).add(Matchers.eq("localhost"))
 
     statements.statements.containsValue(signedStatement) shouldBe true
-    blockChain.chain.size() shouldBe 1
+    blockChain.size shouldBe 1
   }
 
   it should "reject payment message during failed verification" in {
@@ -99,7 +99,7 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
     verify(peerAccess, times(1)).add(Matchers.eq("localhost"))
 
     statementsCache.statements.containsValue(tamperedStatement) shouldBe false
-    blockChain.chain.size() shouldBe 1
+    blockChain.size shouldBe 1
   }
 
   it should "reject processing the same repeated statement if it is wrapped in the same signed message" in {
@@ -138,7 +138,7 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
     verify(peerAccess, never).sendMsg(Matchers.any[NewBlockMessage])
     verify(peerAccess, times(1)).add(Matchers.eq("localhost"))
 
-    blockChain.chain.size() shouldBe 1
+    blockChain.size shouldBe 1
   }
 
   it should "reject the same repeated statement if it is wrapped in another signed message" in {
@@ -177,7 +177,7 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
     verify(peerAccess, never).sendMsg(Matchers.any[NewBlockMessage])
     verify(peerAccess, times(1)).add(Matchers.eq("localhost"))
 
-    blockChain.chain.size() shouldBe 1
+    blockChain.size shouldBe 1
   }
 
 
@@ -223,7 +223,7 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
     verify(peerAccess, times(1)).add(Matchers.eq("localhost"))
 
     statementsCache.statements.containsValue(signedStatement) shouldBe true
-    blockChain.chain.size() shouldBe 2
+    blockChain.size shouldBe 2
     val lastBlock = blockChain.getLatestBlock
     val fact = FactJson.deserialize(new String(lastBlock.data)).right.get
     val secondSignature = base64StrToBytes(fact.providedSignaturesForKeys(1)._2)
@@ -253,11 +253,11 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
     when(blockChain.chainFileOps.getChainDir("Riga")).thenReturn("Riga/chain")
     when(blockChain.chainFileOps.isChainDirExists("Riga")).thenReturn(true)
 
-    blockChain.chain.size() shouldBe 1
+    blockChain.size shouldBe 1
 
     new MsgHandler("Riga", mockBcHttpServer, statementsCache, blockChain, keysFileOps, peerAccess).handle(mockExchange)
 
-    blockChain.chain.size() shouldBe 2
+    blockChain.size shouldBe 2
 
     verify(blockChain.chainFileOps, times(1)).writeBlock(Matchers.eq(0), Matchers.any[Block], Matchers.any[String])
     verify(blockChain.chainFileOps, times(1)).writeBlock(Matchers.eq(1), Matchers.any[Block], Matchers.any[String])

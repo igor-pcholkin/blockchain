@@ -1,13 +1,13 @@
 package core
 
 import java.time.LocalDateTime
-import java.util.concurrent.ConcurrentLinkedDeque
 
 import messages.SignedStatementMessage
 
-import scala.collection.JavaConverters._
 import json.JsonSerializer
 import json.FactJson._
+
+import scala.collection.mutable.ListBuffer
 
 class ProdBlockChain(nodeName: String) extends BlockChain(nodeName) {
 
@@ -18,10 +18,16 @@ class ProdBlockChain(nodeName: String) extends BlockChain(nodeName) {
 
 abstract class BlockChain(nodeName: String) {
   val origin = Block(Block.CURRENT_BLOCK_VERSION, Array[Byte](), LocalDateTime.of(2018, 12, 11, 17, 40, 0), "Future is here".getBytes)
-  val chain = new ConcurrentLinkedDeque[Block]()
-  chain.add(origin)
+  private val chain = ListBuffer[Block]()
+  chain.append(origin)
 
   def chainFileOps: ChainFileOps
+
+  def size: Int = chain.size
+
+  def blocksFrom(fromBlockNo: Int): ListBuffer[Block] = {
+    chain.drop(fromBlockNo)
+  }
 
   def genNextBlock(data: Array[Byte]): Block = {
     val prevBlock = getLatestBlock
@@ -30,9 +36,9 @@ abstract class BlockChain(nodeName: String) {
     Block(Block.CURRENT_BLOCK_VERSION, prevHash, nextTimestamp, data)
   }
 
-  def add(block: Block): Unit = {
+  def add(block: Block): Unit = synchronized {
     if (isValid(block))
-      chain.add(block)
+      chain.append(block)
   }
 
   def isValid(block: Block): Boolean = {
@@ -41,7 +47,7 @@ abstract class BlockChain(nodeName: String) {
       block.timestamp.compareTo(latestBlock.timestamp) >= 0
   }
 
-  def getLatestBlock: Block = chain.peekLast()
+  def getLatestBlock: Block = chain.last
 
   def serialize: String = {
     val sb = new StringBuilder
@@ -54,25 +60,24 @@ abstract class BlockChain(nodeName: String) {
     sb.toString
   }
 
-  def writeChain(): Unit = {
+  def writeChain(): Unit = synchronized {
     val chainDir = chainFileOps.getChainDir(nodeName)
     if (!chainFileOps.isChainDirExists(nodeName)) {
       chainFileOps.createChainDir(nodeName)
     }
 
-    val it = chain.iterator.asScala
-    it.foldLeft(0) { (i, block) =>
+    chain.foldLeft(0) { (i, block) =>
       chainFileOps.writeBlock(i, block, chainDir)
       i + 1
     }
   }
 
-  def readChain(): Unit = {
+  def readChain(): Unit = synchronized {
     val chainDir = chainFileOps.getChainDir(nodeName)
     if (!chainFileOps.isChainDirExists(nodeName)) {
       None
     } else {
-      Stream.from(chain.size()).map { i =>
+      Stream.from(chain.size).map { i =>
         val mayBeBlock = chainFileOps.readBlock(i, chainDir)
         mayBeBlock foreach { block =>
           add(block)

@@ -22,7 +22,7 @@ class AddSeedsHandler(bcHttpServer: BCHttpServer, peerAccess: PeerAccess, nodeNa
       peerAccess.addAll(seeds)
       Config(peerAccess.peers.asScala.toSeq).write(nodeName, fileOps)
       peerAccess.sendMsg(AddPeersMessage(seeds))
-      peerAccess.sendMsg(PullNewsMessage(bc.chain.size()))
+      peerAccess.sendMsg(PullNewsMessage(bc.size))
       source.close()
       bcHttpServer.sendHttpResponse(exchange, SC_CREATED, "New seeds have been added.")
     }
