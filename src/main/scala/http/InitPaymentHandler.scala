@@ -4,7 +4,7 @@ import java.io.IOException
 
 import business.Money
 import com.sun.net.httpserver.{HttpExchange, HttpHandler}
-import messages.{NewBlockMessage, SignedStatementMessage}
+import messages.SignedStatementMessage
 import core.{BlockChain, StatementsCache}
 import keys.KeysFileOps
 import peers.PeerAccess
@@ -18,8 +18,8 @@ import util.HttpUtil
 
 case class InitPaymentRequest(from: String, to: String, currency: String, amount: Double)
 
-class InitPaymentHandler(nodeName: String, bcHttpServer: BCHttpServer, statementsCache: StatementsCache, implicit val keysFileOps: KeysFileOps,
-                         peerAccess: PeerAccess, bc: BlockChain) extends HttpHandler with HttpUtil {
+class InitPaymentHandler(nodeName: String, override val bcHttpServer: BCHttpServer, statementsCache: StatementsCache, implicit val keysFileOps: KeysFileOps,
+                         override val peerAccess: PeerAccess, override val bc: BlockChain) extends HttpHandler with HttpUtil with MsgHandlerOps {
   @throws[IOException]
   def handle(exchange: HttpExchange): Unit = {
     withHttpMethod ("POST", exchange, bcHttpServer) {
@@ -55,7 +55,7 @@ class InitPaymentHandler(nodeName: String, bcHttpServer: BCHttpServer, statement
     signedStatement.providedSignaturesForKeys.find(_._1 == fromPublicKey) match {
       case Some(_) =>
         if (signedStatement.isSignedByAllKeys) {
-          createAndAddTransactionToBlockchain(signedStatement, exchange)
+          processStatementAsFact(signedStatement, exchange)
         } else {
           initiatePayment(signedStatement, exchange)
         }
@@ -68,12 +68,6 @@ class InitPaymentHandler(nodeName: String, bcHttpServer: BCHttpServer, statement
     statementsCache.add(signedStatement)
     peerAccess.sendMsg(signedStatement)
     bcHttpServer.sendHttpResponse(exchange, SC_CREATED, "New Payment has been initiated.")
-  }
-
-  private def createAndAddTransactionToBlockchain(signedStatement: SignedStatementMessage, exchange: HttpExchange): Unit = {
-    bc.addFactToNewBlock(signedStatement)
-    peerAccess.sendMsg(NewBlockMessage(bc.getLatestBlock, bc.size))
-    bcHttpServer.sendHttpResponse(exchange, "Payment transaction created and added to blockchain.")
   }
 
   private def correctValidationError(exchange: HttpExchange, error: String) = {
