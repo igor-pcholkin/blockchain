@@ -3,8 +3,7 @@ package core
 import java.time.LocalDateTime
 
 import messages.SignedStatementMessage
-
-import json.JsonSerializer
+import json.{FactJson, JsonSerializer}
 import json.FactJson._
 
 import scala.collection.mutable.ListBuffer
@@ -25,26 +24,28 @@ abstract class BlockChain(nodeName: String) {
 
   def size: Int = chain.size
 
-  def blocksFrom(fromBlockNo: Int): ListBuffer[Block] = {
-    chain.drop(fromBlockNo)
-  }
+  def blocksFrom(fromBlockNo: Int): ListBuffer[Block] = chain.drop(fromBlockNo)
 
-  def genNextBlock(data: Array[Byte]): Block = {
+  def takeN(n: Int): Unit = chain.remove(n, size - n)
+
+  def blockAt(i: Int): Block = blocksFrom(i).head
+
+  def genNextBlock(data: Array[Byte], timestamp: LocalDateTime = LocalDateTime.now()): Block = {
     val prevBlock = getLatestBlock
     val prevHash = SHA256.hash(prevBlock)
-    val nextTimestamp = LocalDateTime.now()
-    Block(Block.CURRENT_BLOCK_VERSION, prevHash, nextTimestamp, data)
+    Block(Block.CURRENT_BLOCK_VERSION, prevHash, timestamp, data)
   }
 
   def add(block: Block): Unit = synchronized {
-    if (isValid(block))
+    if (isValid(block, size))
       chain.append(block)
   }
 
-  def isValid(block: Block): Boolean = {
-    val latestBlock = getLatestBlock
-    block.version <= Block.CURRENT_BLOCK_VERSION && block.version > 0 && block.prevHash.toSeq == latestBlock.hash.toSeq &&
-      block.timestamp.compareTo(latestBlock.timestamp) >= 0
+  def isValid(block: Block, i: Int = size): Boolean = size >= i && i > 0 && isValidWithPrevBlock(block, blockAt(i - 1))
+
+  private def isValidWithPrevBlock(block: Block, prevBlock: Block) = {
+    block.version <= Block.CURRENT_BLOCK_VERSION && block.version > 0 && block.prevHash.toSeq == prevBlock.hash.toSeq &&
+      block.timestamp.compareTo(prevBlock.timestamp) >= 0
   }
 
   def getLatestBlock: Block = chain.last
@@ -87,6 +88,15 @@ abstract class BlockChain(nodeName: String) {
     }
   }
 
+  def deleteChainFrom(i: Int): Unit = synchronized {
+    val chainDir = chainFileOps.getChainDir(nodeName)
+    if (chainFileOps.isChainDirExists(nodeName)) {
+      i until size map { n =>
+        chainFileOps.deleteBlock(n, chainDir)
+      }
+    }
+  }
+
   def addFactToNewBlock(signedStatement: SignedStatementMessage): Unit = {
     val fact = Fact(signedStatement.statement, signedStatement.providedSignaturesForKeys)
     val serializedFact = JsonSerializer.serialize(fact).getBytes
@@ -95,5 +105,18 @@ abstract class BlockChain(nodeName: String) {
     writeChain()
   }
 
+  def containsFactInside(newBlock: Block): Boolean = {
+    extractFact(newBlock) match {
+      case Right(newFact) =>
+        blocksFrom (0).find { block =>
+          extractFact(block) match {
+            case Right(fact) => newFact.statement == fact.statement
+            case Left(_) => false
+          }
+        } nonEmpty
+      case Left(_) => false
+    }
+  }
 
+  private def extractFact(block: Block) = FactJson.deserialize(new String(block.data))
 }

@@ -114,7 +114,7 @@ class InitPaymentHandlerTest extends FlatSpec with org.scalatest.Matchers with M
 
     statementsCache.statements.size shouldBe 0
     verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange),
-      Matchers.eq("Payment transaction created and added to blockchain."))
+      Matchers.eq("New fact has been created and added to blockchain."))
     verify(peerAccess, times(1)).sendMsg(Matchers.any[NewBlockMessage])
 
     verify(blockChain.chainFileOps, times(1)).writeBlock(Matchers.eq(1), Matchers.any[Block], Matchers.any[String])

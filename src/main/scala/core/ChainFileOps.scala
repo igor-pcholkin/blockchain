@@ -14,6 +14,8 @@ trait ChainFileOps {
   def writeBlock(i: Int, block: Block, chainDir: String): Unit
 
   def readBlock(i: Int, chainDir: String): Option[Block]
+
+  def deleteBlock(i: Int, chainDir: String): Unit
 }
 
 object ProdChainFileOps extends ChainFileOps {
@@ -49,5 +51,9 @@ object ProdChainFileOps extends ChainFileOps {
     } else {
       None
     }
+  }
+
+  override def deleteBlock(i: Int, chainDir: String): Unit = {
+    new File(s"$chainDir/$i").delete()
   }
 }

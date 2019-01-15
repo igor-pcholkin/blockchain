@@ -17,10 +17,11 @@ import org.scalatest.FlatSpec
 import org.scalatest.mockito.MockitoSugar
 import peers.PeerAccess
 import json.{FactJson, JsonSerializer}
-import util.StringConverter
-import statements.Payment
+import util.{DateTimeUtil, StringConverter}
+import statements.{Payment, RegisteredUser}
+import json.FactJson._
 
-class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSugar with StringConverter {
+class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSugar with StringConverter with DateTimeUtil {
 
   "Message handler" should "verify, add initial payment message to message cache and relay to peers, without creation payment transaction" in {
 
@@ -218,7 +219,7 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
     new MsgHandler("Riga", mockBcHttpServer, statementsCache, blockChain, keysFileOps, peerAccess).handle(mockExchange)
 
     verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange),
-      Matchers.eq("Payment transaction created and added to blockchain."))
+      Matchers.eq("New fact has been created and added to blockchain."))
     verify(peerAccess, times(1)).sendMsg(Matchers.any[NewBlockMessage])
     verify(peerAccess, times(1)).add(Matchers.eq("localhost"))
 
@@ -265,6 +266,161 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
     verify(peerAccess, times(1)).add(Matchers.eq("localhost"))
     verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange),
       Matchers.eq("New block received and added to blockchain."))
+  }
+
+  it should "add new block with new index to blockchain when it arrives from another node and it's date is newer than of existing block with the same index" in {
+    val mockExchange = mock[HttpExchange]
+    val mockBcHttpServer = mock[BCHttpServer]
+    val blockChain = new TestBlockChain
+    val statementsCache = new StatementsCache()
+    val keysFileOps = mock[KeysFileOps]
+    val peerAccess = mock[PeerAccess]
+
+    val block = Block(CURRENT_BLOCK_VERSION, blockChain.getLatestBlock.hash, LocalDateTime.of(2018, 12, 21, 15, 0, 0), "Hi".getBytes)
+    val newBlockMessage = NewBlockMessage(block, 1)
+    val messageEnvelope = MessageEnvelope(newBlockMessage, "localhost")
+    val is = new ByteArrayInputStream(JsonSerializer.serialize(messageEnvelope).getBytes)
+
+    when(mockExchange.getRequestMethod).thenReturn("PUT")
+    when(mockExchange.getRequestBody).thenReturn(is)
+
+    when(blockChain.chainFileOps.getChainDir("Riga")).thenReturn("Riga/chain")
+    when(blockChain.chainFileOps.isChainDirExists("Riga")).thenReturn(true)
+
+    val block1 = blockChain.genNextBlock("Fund transfer from A to B".getBytes, LocalDateTime.of(2018, 12, 13, 23, 0, 0))
+    blockChain.add(block1)
+
+    blockChain.size shouldBe 2
+
+    val prevBlock1Hash = blockChain.blockAt(1).hash
+
+    new MsgHandler("Riga", mockBcHttpServer, statementsCache, blockChain, keysFileOps, peerAccess).handle(mockExchange)
+
+    blockChain.size shouldBe 3
+
+    val blocks = blockChain.blocksFrom(0)
+    new String(blocks(1).data) shouldBe "Fund transfer from A to B"
+    new String(blocks(2).data) shouldBe "Hi"
+    blocks(1).hash shouldBe prevBlock1Hash
+    blocks(2).prevHash shouldBe blocks(1).hash
+    timeStampsAreWithin(blocks(2).timestamp, LocalDateTime.now(), 1000) shouldBe true
+
+    verify(blockChain.chainFileOps, times(1)).writeBlock(Matchers.eq(0), Matchers.any[Block], Matchers.any[String])
+    verify(blockChain.chainFileOps, times(1)).writeBlock(Matchers.eq(1), Matchers.any[Block], Matchers.any[String])
+    verify(blockChain.chainFileOps, times(1)).writeBlock(Matchers.eq(2), Matchers.any[Block], Matchers.any[String])
+    verify(peerAccess, times(2)).sendMsg(Matchers.any[NewBlockMessage])
+    verify(peerAccess, times(1)).add(Matchers.eq("localhost"))
+    verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange),
+      Matchers.eq("New block received and added to blockchain with adjusted index."))
+  }
+
+  it should "replace a block in blockchain when another another block with the same index arrives from another node and it's date is older than of existing block with the same index" in {
+    val mockExchange = mock[HttpExchange]
+    val mockBcHttpServer = mock[BCHttpServer]
+    val blockChain = new TestBlockChain
+    val statementsCache = new StatementsCache()
+    val keysFileOps = mock[KeysFileOps]
+    val peerAccess = mock[PeerAccess]
+
+    val block = Block(CURRENT_BLOCK_VERSION, blockChain.getLatestBlock.hash, LocalDateTime.of(2018, 12, 13, 23, 0, 0), "Hi".getBytes)
+    val newBlockMessage = NewBlockMessage(block, 1)
+    val messageEnvelope = MessageEnvelope(newBlockMessage, "localhost")
+    val is = new ByteArrayInputStream(JsonSerializer.serialize(messageEnvelope).getBytes)
+
+    when(mockExchange.getRequestMethod).thenReturn("PUT")
+    when(mockExchange.getRequestBody).thenReturn(is)
+
+    when(blockChain.chainFileOps.getChainDir("Riga")).thenReturn("Riga/chain")
+    when(blockChain.chainFileOps.isChainDirExists("Riga")).thenReturn(true)
+
+    val block1 = blockChain.genNextBlock("Fund transfer from A to B".getBytes, LocalDateTime.of(2018, 12, 21, 15, 0, 0))
+    blockChain.add(block1)
+
+    blockChain.size shouldBe 2
+
+    new MsgHandler("Riga", mockBcHttpServer, statementsCache, blockChain, keysFileOps, peerAccess).handle(mockExchange)
+
+    blockChain.size shouldBe 2
+
+    val blocks = blockChain.blocksFrom(0)
+    new String(blocks(1).data) shouldBe "Hi"
+
+    verify(blockChain.chainFileOps, times(1)).writeBlock(Matchers.eq(0), Matchers.any[Block], Matchers.any[String])
+    verify(blockChain.chainFileOps, times(1)).writeBlock(Matchers.eq(1), Matchers.any[Block], Matchers.any[String])
+    verify(peerAccess, times(2)).sendMsg(Matchers.any[NewBlockMessage])
+    verify(peerAccess, times(1)).add(Matchers.eq("localhost"))
+    verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange),
+      Matchers.eq("New block received and inserted to blockchain adjusting existing blocks."))
+  }
+
+  it should "not add new block to blockchain when it arrives from another node and contains an existing fact" in {
+    val mockExchange = mock[HttpExchange]
+    val mockBcHttpServer = mock[BCHttpServer]
+    val blockChain = new TestBlockChain
+    val statementsCache = new StatementsCache()
+    val keysFileOps = mock[KeysFileOps]
+    val peerAccess = mock[PeerAccess]
+
+    val statement = RegisteredUser("Igor", "ipcholkin@gmail.com")
+    val signedStatement = SignedStatementMessage(statement, Nil)
+    val fact = Fact(signedStatement.statement, signedStatement.providedSignaturesForKeys)
+    val serializedFact = JsonSerializer.serialize(fact).getBytes
+    val block = blockChain.genNextBlock(serializedFact)
+    blockChain.add(block)
+
+    val newBlockMessage = NewBlockMessage(block, 1)
+    val messageEnvelope = MessageEnvelope(newBlockMessage, "localhost")
+    val is = new ByteArrayInputStream(JsonSerializer.serialize(messageEnvelope).getBytes)
+
+    when(mockExchange.getRequestMethod).thenReturn("PUT")
+    when(mockExchange.getRequestBody).thenReturn(is)
+
+    blockChain.size shouldBe 2
+
+    new MsgHandler("Riga", mockBcHttpServer, statementsCache, blockChain, keysFileOps, peerAccess).handle(mockExchange)
+
+    blockChain.size shouldBe 2
+
+    verify(blockChain.chainFileOps, never).writeBlock(Matchers.anyInt, Matchers.any[Block], Matchers.any[String])
+    verify(peerAccess, never).sendMsg(Matchers.any[NewBlockMessage])
+    verify(peerAccess, times(1)).add(Matchers.eq("localhost"))
+    verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange),
+      Matchers.eq("New block refused - contains existing fact."))
+  }
+
+  it should "not reinsert new block with index 0 to blockchain when it arrives from another node and it's date is older" in {
+    val mockExchange = mock[HttpExchange]
+    val mockBcHttpServer = mock[BCHttpServer]
+    val blockChain = new TestBlockChain
+    val statementsCache = new StatementsCache()
+    val keysFileOps = mock[KeysFileOps]
+    val peerAccess = mock[PeerAccess]
+
+    val block = Block(CURRENT_BLOCK_VERSION, blockChain.getLatestBlock.hash, LocalDateTime.of(2018, 12, 1, 23, 0, 0), "Hi".getBytes)
+    val newBlockMessage = NewBlockMessage(block, 1)
+    val messageEnvelope = MessageEnvelope(newBlockMessage, "localhost")
+    val is = new ByteArrayInputStream(JsonSerializer.serialize(messageEnvelope).getBytes)
+
+    when(mockExchange.getRequestMethod).thenReturn("PUT")
+    when(mockExchange.getRequestBody).thenReturn(is)
+
+    when(blockChain.chainFileOps.getChainDir("Riga")).thenReturn("Riga/chain")
+    when(blockChain.chainFileOps.isChainDirExists("Riga")).thenReturn(true)
+
+    blockChain.size shouldBe 1
+
+    new MsgHandler("Riga", mockBcHttpServer, statementsCache, blockChain, keysFileOps, peerAccess).handle(mockExchange)
+
+    blockChain.size shouldBe 1
+
+    val blocks = blockChain.blocksFrom(0)
+    blocks.head shouldBe blockChain.origin
+
+    verify(blockChain.chainFileOps, never).writeBlock(Matchers.anyInt, Matchers.any[Block], Matchers.any[String])
+    verify(peerAccess, never).sendMsg(Matchers.any[NewBlockMessage])
+    verify(peerAccess, times(1)).add(Matchers.eq("localhost"))
+    verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange),
+      Matchers.eq("Invalid block received - rejected."))
   }
 
   it should "accept AddPeersMessage when it arrives from another node" in {
