@@ -108,14 +108,18 @@ abstract class BlockChain(nodeName: String) {
   def containsFactInside(newBlock: Block): Boolean = {
     extractFact(newBlock) match {
       case Right(newFact) =>
-        blocksFrom (0).find { block =>
-          extractFact(block) match {
-            case Right(fact) => newFact.statement == fact.statement
-            case Left(_) => false
-          }
-        } nonEmpty
+        containsFactInside(newFact.statement)
       case Left(_) => false
     }
+  }
+
+  def containsFactInside(statement: Statement): Boolean = {
+    blocksFrom (0).find { block =>
+      extractFact(block) match {
+        case Right(fact) => statement == fact.statement
+        case Left(_) => false
+      }
+    } nonEmpty
   }
 
   private def extractFact(block: Block) = FactJson.deserialize(new String(block.data))

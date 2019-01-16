@@ -21,8 +21,9 @@ case class RegisterUserRequest(name: String, email: String, birthDate: Option[Lo
                 address: Option[String] = None, linkedInURL: Option[String] = None, facebookURL: Option[String] = None,
                 githubURL: Option[String] = None, photo: Option[Photo] = None)
 
-class RegisterUserHandler(nodeName: String, bcHttpServer: BCHttpServer, implicit val keysFileOps: KeysFileOps,
-    val peerAccess: PeerAccess, bc: BlockChain) extends HttpHandler with HttpUtil with KeysGenerator with KeysSerializator {
+class RegisterUserHandler(nodeName: String, override val bcHttpServer: BCHttpServer, implicit val keysFileOps: KeysFileOps,
+    val peerAccess: PeerAccess, override val bc: BlockChain) extends HttpHandler with HttpUtil with KeysGenerator
+  with KeysSerializator with MsgHandlerOps {
   @throws[IOException]
   def handle(exchange: HttpExchange): Unit = {
     withHttpMethod ("POST", exchange, bcHttpServer) {
@@ -48,7 +49,7 @@ class RegisterUserHandler(nodeName: String, bcHttpServer: BCHttpServer, implicit
         val publicKey = serialize(readPublicKey(nodeName, registerUserRequest.name))
         val registeredUser = createRegisteredUser(registerUserRequest)
         val signedStatement = SignedStatementMessage(registeredUser, Seq(publicKey), nodeName, keysFileOps)
-        createAndAddUserToBlockchain(signedStatement, exchange)
+        processStatementAsFact(signedStatement, exchange)
       case Left(error) =>
         bcHttpServer.sendHttpResponse (exchange, SC_BAD_REQUEST, error)
     }
@@ -73,12 +74,6 @@ class RegisterUserHandler(nodeName: String, bcHttpServer: BCHttpServer, implicit
     } else {
       Left("Public or private key already exists, use overwriteKeys=true to overwrite, useExistingKeys=true to attach existing keys.")
     }
-  }
-
-  private def createAndAddUserToBlockchain(signedStatement: SignedStatementMessage, exchange: HttpExchange): Unit = {
-    bc.addFactToNewBlock(signedStatement)
-    peerAccess.sendMsg(NewBlockMessage(bc.getLatestBlock, bc.size))
-    bcHttpServer.sendHttpResponse (exchange, "User have been registered in blockchain.")
   }
 
   private def correctValidationError(exchange: HttpExchange, error: String) = {

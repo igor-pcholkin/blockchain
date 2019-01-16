@@ -61,7 +61,7 @@ Scenario 10.
 
 Like scenario 9.
 But then the second node (London, which has no peers defined) is started. It should receive new block from Riga in 1 min.
-(Each node should issue RequestAllStatements and RequestBlocks messages to it peers every 1 min).
+(Each node should issue PullNewsMessage messages to it peers every 1 min).
 
 Scenario 11.
 

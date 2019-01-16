@@ -7,8 +7,9 @@ import java.time.LocalDateTime
 import com.sun.net.httpserver.HttpExchange
 import core._
 import json.FactJson._
+import json.JsonSerializer
 import keys.{KeysFileOps, KeysGenerator}
-import messages.NewBlockMessage
+import messages.{NewBlockMessage, SignedStatementMessage}
 import org.apache.http.HttpStatus.SC_BAD_REQUEST
 import org.mockito.Matchers
 import org.mockito.Mockito.{never, times, verify, when}
@@ -54,7 +55,7 @@ class RegisterUserHandlerTest extends FlatSpec with org.scalatest.Matchers with 
     new RegisterUserHandler("Riga", mockBcHttpServer, keysFileOps, peerAccess, blockChain).handle(mockExchange)
 
     verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange),
-      Matchers.eq("User have been registered in blockchain."))
+      Matchers.eq("New fact has been created and added to blockchain."))
     verify(keysFileOps, times(1)).writeKeyToFile(Matchers.eq("Riga"), Matchers.eq("Igor"), Matchers.eq("privateKey"), Matchers.any[String])
     verify(keysFileOps, times(1)).writeKeyToFile(Matchers.eq("Riga"), Matchers.eq("Igor"), Matchers.eq("publicKey"), Matchers.any[String])
     verify(peerAccess, times(1)).sendMsg(Matchers.any[NewBlockMessage])
@@ -64,14 +65,66 @@ class RegisterUserHandlerTest extends FlatSpec with org.scalatest.Matchers with 
     val lastBlock = blockChain.getLatestBlock
     val fact = deserialize(new String(lastBlock.data)).right.get
     val statement = fact.statement.asInstanceOf[RegisteredUser]
-    val ts = LocalDateTime.now
-    statement.copy(timestamp = ts) shouldBe RegisteredUser("Igor", "ipcholkin@gmail.com", timestamp = ts)
+    statement shouldBe RegisteredUser("Igor", "ipcholkin@gmail.com")
 
     val signer = new Signer(keysFileOps)
     val signature = fact.providedSignaturesForKeys.head._2
     val decodedSignature = base64StrToBytes(signature)
     signer.verify("Riga", userName, fact.statement.dataToSign, decodedSignature) shouldBe true
 
+  }
+
+  it should "refuse to register the same user twice" in {
+    val mockBcHttpServer = mock[BCHttpServer]
+    val mockExchange = mock[HttpExchange]
+    val mockLocalHost = mock[LocalHost]
+    val keysFileOps = mock[KeysFileOps]
+    val peerAccess = mock[PeerAccess]
+    val blockChain = new TestBlockChain
+    peerAccess.addAll(Seq("blabla.com", "another.com"))
+    val privateKey = "MEECAQAwEwYHKoZIzj0CAQYIKoZIzj0DAQcEJzAlAgEBBCC94HoY839pqOB/m2D00X4+8vsM6kzUby8gk7Eq8XVsgw=="
+    val publicKey = "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEDibd8O5I928ZnTU7RYTy6Od3K3SrGlC+V8lkMYrdJuzT9Ig/Iq8JciaukxCYmVSO1mZuC65xMkxSb5Q0rNZ8og=="
+    val userName = "Igor"
+
+    val existingStatement = RegisteredUser("Igor", "ipcholkin@gmail.com")
+    val signedStatement = SignedStatementMessage(existingStatement, Nil)
+    val fact = Fact(signedStatement.statement, signedStatement.providedSignaturesForKeys)
+    val serializedFact = JsonSerializer.serialize(fact).getBytes
+    val block = blockChain.genNextBlock(serializedFact)
+    blockChain.add(block)
+
+    blockChain.size shouldBe 2
+
+    val registerUserRequest =
+      s"""{
+         | "name": "$userName",
+         | "email": "ipcholkin@gmail.com"
+         | }
+      """.stripMargin
+    val is = new ByteArrayInputStream(registerUserRequest.getBytes)
+
+    when(mockExchange.getRequestURI).thenReturn(new URI("/registerUser"))
+    when(mockExchange.getRequestMethod).thenReturn("POST")
+    when(mockExchange.getRequestBody).thenReturn(is)
+
+    when(peerAccess.localHost).thenReturn(mockLocalHost)
+
+    when(keysFileOps.isKeysDirExists("Riga", userName)).thenReturn(false)
+    when(keysFileOps.getUserByKey("Riga", publicKey)).thenReturn(Some(userName))
+    // needed to sign payment request message by public key of creator
+    when(keysFileOps.readKeyFromFile("Riga", userName, "privateKey")).thenReturn(privateKey)
+    when(keysFileOps.readKeyFromFile("Riga", userName, "publicKey")).thenReturn(publicKey)
+
+    new RegisterUserHandler("Riga", mockBcHttpServer, keysFileOps, peerAccess, blockChain).handle(mockExchange)
+
+    verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange),
+      Matchers.eq("Refused new block creation - existing fact."))
+    verify(keysFileOps, times(1)).writeKeyToFile(Matchers.eq("Riga"), Matchers.eq("Igor"), Matchers.eq("privateKey"), Matchers.any[String])
+    verify(keysFileOps, times(1)).writeKeyToFile(Matchers.eq("Riga"), Matchers.eq("Igor"), Matchers.eq("publicKey"), Matchers.any[String])
+    verify(peerAccess, never).sendMsg(Matchers.any[NewBlockMessage])
+    verify(blockChain.chainFileOps, never).writeBlock(Matchers.eq(1), Matchers.any[Block], Matchers.any[String])
+
+    blockChain.size shouldBe 2
   }
 
   it should "refuse to register new user if request is missing a mandatory (name) field" in {
@@ -168,7 +221,7 @@ class RegisterUserHandlerTest extends FlatSpec with org.scalatest.Matchers with 
     new RegisterUserHandler("Riga", mockBcHttpServer, keysFileOps, peerAccess, blockChain).handle(mockExchange)
 
     verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange),
-      Matchers.eq("User have been registered in blockchain."))
+      Matchers.eq("New fact has been created and added to blockchain."))
     verify(keysFileOps, times(1)).writeKeyToFile(Matchers.eq("Riga"), Matchers.eq("Igor"), Matchers.eq("privateKey"), Matchers.any[String])
     verify(keysFileOps, times(1)).writeKeyToFile(Matchers.eq("Riga"), Matchers.eq("Igor"), Matchers.eq("publicKey"), Matchers.any[String])
     verify(peerAccess, times(1)).sendMsg(Matchers.any[NewBlockMessage])
@@ -178,8 +231,7 @@ class RegisterUserHandlerTest extends FlatSpec with org.scalatest.Matchers with 
     val lastBlock = blockChain.getLatestBlock
     val fact = deserialize(new String(lastBlock.data)).right.get
     val statement = fact.statement.asInstanceOf[RegisteredUser]
-    val ts = LocalDateTime.now
-    statement.copy(timestamp = ts) shouldBe RegisteredUser("Igor", "ipcholkin@gmail.com", timestamp = ts)
+    statement shouldBe RegisteredUser("Igor", "ipcholkin@gmail.com")
 
     val signer = new Signer(keysFileOps)
     val signature = fact.providedSignaturesForKeys.head._2
@@ -223,7 +275,7 @@ class RegisterUserHandlerTest extends FlatSpec with org.scalatest.Matchers with 
     new RegisterUserHandler("Riga", mockBcHttpServer, keysFileOps, peerAccess, blockChain).handle(mockExchange)
 
     verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange),
-      Matchers.eq("User have been registered in blockchain."))
+      Matchers.eq("New fact has been created and added to blockchain."))
     verify(keysFileOps, never).writeKeyToFile(Matchers.eq("Riga"), Matchers.eq("Igor"), Matchers.eq("privateKey"), Matchers.any[String])
     verify(keysFileOps, never).writeKeyToFile(Matchers.eq("Riga"), Matchers.eq("Igor"), Matchers.eq("publicKey"), Matchers.any[String])
     verify(peerAccess, times(1)).sendMsg(Matchers.any[NewBlockMessage])
@@ -233,8 +285,7 @@ class RegisterUserHandlerTest extends FlatSpec with org.scalatest.Matchers with 
     val lastBlock = blockChain.getLatestBlock
     val fact = deserialize(new String(lastBlock.data)).right.get
     val statement = fact.statement.asInstanceOf[RegisteredUser]
-    val ts = LocalDateTime.now
-    statement.copy(timestamp = ts) shouldBe RegisteredUser("Igor", "ipcholkin@gmail.com", timestamp = ts)
+    statement shouldBe RegisteredUser("Igor", "ipcholkin@gmail.com")
 
     val signer = new Signer(keysFileOps)
     val signature = fact.providedSignaturesForKeys.head._2
