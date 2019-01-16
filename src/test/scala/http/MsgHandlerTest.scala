@@ -346,6 +346,7 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
     new String(blocks(1).data) shouldBe "Hi"
 
     verify(blockChain.chainFileOps, times(1)).writeBlock(Matchers.eq(0), Matchers.any[Block], Matchers.any[String])
+    verify(blockChain.chainFileOps, times(1)).deleteBlock(Matchers.eq(1), Matchers.any[String])
     verify(blockChain.chainFileOps, times(1)).writeBlock(Matchers.eq(1), Matchers.any[Block], Matchers.any[String])
     verify(peerAccess, times(2)).sendMsg(Matchers.any[NewBlockMessage])
     verify(peerAccess, times(1)).add(Matchers.eq("localhost"))
