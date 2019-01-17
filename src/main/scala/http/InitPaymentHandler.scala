@@ -18,8 +18,9 @@ import util.HttpUtil
 
 case class InitPaymentRequest(from: String, to: String, currency: String, amount: Double)
 
-class InitPaymentHandler(nodeName: String, override val bcHttpServer: BCHttpServer, statementsCache: StatementsCache, implicit val keysFileOps: KeysFileOps,
-                         override val peerAccess: PeerAccess, override val bc: BlockChain) extends HttpHandler with HttpUtil with MsgHandlerOps {
+class InitPaymentHandler(nodeName: String, override val bcHttpServer: BCHttpServer, override val statementsCache: StatementsCache,
+                         implicit val keysFileOps: KeysFileOps, override val peerAccess: PeerAccess, override val bc: BlockChain)
+    extends HttpHandler with HttpUtil with MsgHandlerOps {
   @throws[IOException]
   def handle(exchange: HttpExchange): Unit = {
     withHttpMethod ("POST", exchange, bcHttpServer) {

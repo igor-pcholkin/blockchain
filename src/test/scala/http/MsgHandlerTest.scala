@@ -8,7 +8,7 @@ import com.sun.net.httpserver.HttpExchange
 import core.Block.CURRENT_BLOCK_VERSION
 import core._
 import messages._
-import json.MessageEnvelopeJson._
+import json.MessageEnvelopeJson.envelopeEncoder
 import keys.KeysFileOps
 import org.apache.http.HttpStatus
 import org.mockito.Matchers
@@ -59,7 +59,7 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
     //verify(peerAccess, never).sendMsg(Matchers.any[NewBlockMessage])(Matchers.any[Encoder[NewBlockMessage]])
     verify(peerAccess, times(1)).add(Matchers.eq("localhost"))
 
-    statements.statements.containsValue(signedStatement) shouldBe true
+    statements.contains(signedStatement) shouldBe true
     blockChain.size shouldBe 1
   }
 
@@ -99,7 +99,7 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
     verify(peerAccess, never).sendMsg(Matchers.any[NewBlockMessage])
     verify(peerAccess, times(1)).add(Matchers.eq("localhost"))
 
-    statementsCache.statements.containsValue(tamperedStatement) shouldBe false
+    statementsCache.contains(tamperedStatement) shouldBe false
     blockChain.size shouldBe 1
   }
 
@@ -223,7 +223,7 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
     verify(peerAccess, times(1)).sendMsg(Matchers.any[NewBlockMessage])
     verify(peerAccess, times(1)).add(Matchers.eq("localhost"))
 
-    statementsCache.statements.containsValue(signedStatement) shouldBe true
+    statementsCache.contains(signedStatement) shouldBe false
     blockChain.size shouldBe 2
     val lastBlock = blockChain.getLatestBlock
     val fact = FactJson.deserialize(new String(lastBlock.data)).right.get
@@ -235,6 +235,40 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
     signer.verify("Riga", "Igor", fact.statement.dataToSign, decodedPaymentMessageSignature) shouldBe true
   }
 
+  it should "refuse to create a payment transaction if related fact is already in blockchain" in {
+
+    val mockExchange = mock[HttpExchange]
+    val mockBcHttpServer = mock[BCHttpServer]
+    val blockChain = new TestBlockChain
+    val statementsCache = new StatementsCache()
+    val keysFileOps = mock[KeysFileOps]
+    val peerAccess = mock[PeerAccess]
+
+    val payment = Payment.verifyAndCreate("Riga", "fromPublicKey", "toPublicKey", Money("EUR", 2025)).right.get
+    val signedStatement = SignedStatementMessage(payment, Nil)
+    val messageEnvelope = MessageEnvelope(signedStatement, "localhost")
+    val is = new ByteArrayInputStream(JsonSerializer.serialize(messageEnvelope).getBytes)
+
+    val fact = Fact(signedStatement.statement, signedStatement.providedSignaturesForKeys)
+    val serializedFact = JsonSerializer.serialize(fact).getBytes
+    val block = Block(CURRENT_BLOCK_VERSION, blockChain.getLatestBlock.hash, LocalDateTime.of(2018, 12, 21, 15, 0, 0), serializedFact)
+    blockChain.add(block)
+    blockChain.size shouldBe 2
+
+    when(mockExchange.getRequestMethod).thenReturn("PUT")
+    when(mockExchange.getRequestBody).thenReturn(is)
+
+    new MsgHandler("Riga", mockBcHttpServer, statementsCache, blockChain, keysFileOps, peerAccess).handle(mockExchange)
+
+    verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange),
+      Matchers.eq("The statement refused: blockchain alrady contains it as a fact."))
+    verify(peerAccess, never).sendMsg(Matchers.any[NewBlockMessage])
+    verify(peerAccess, times(1)).add(Matchers.eq("localhost"))
+
+    statementsCache.contains(signedStatement) shouldBe false
+    blockChain.size shouldBe 2
+  }
+
   it should "add a new block to blockchain when it arrives from another node" in {
     val mockExchange = mock[HttpExchange]
     val mockBcHttpServer = mock[BCHttpServer]
@@ -243,10 +277,17 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
     val keysFileOps = mock[KeysFileOps]
     val peerAccess = mock[PeerAccess]
 
-    val block = Block(CURRENT_BLOCK_VERSION, blockChain.getLatestBlock.hash, LocalDateTime.of(2018, 12, 21, 15, 0, 0), "Hi".getBytes)
+    val payment = Payment.verifyAndCreate("Riga", "fromPublicKey", "toPublicKey", Money("EUR", 2025)).right.get
+    val signedStatement = SignedStatementMessage(payment, Nil)
+    val fact = Fact(signedStatement.statement, signedStatement.providedSignaturesForKeys)
+    val serializedFact = JsonSerializer.serialize(fact).getBytes
+    val block = Block(CURRENT_BLOCK_VERSION, blockChain.getLatestBlock.hash, LocalDateTime.of(2018, 12, 21, 15, 0, 0), serializedFact)
     val newBlockMessage = NewBlockMessage(block, 1)
     val messageEnvelope = MessageEnvelope(newBlockMessage, "localhost")
     val is = new ByteArrayInputStream(JsonSerializer.serialize(messageEnvelope).getBytes)
+
+    statementsCache.add(signedStatement)
+    statementsCache.contains(signedStatement) shouldBe true
 
     when(mockExchange.getRequestMethod).thenReturn("PUT")
     when(mockExchange.getRequestBody).thenReturn(is)
@@ -259,6 +300,7 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
     new MsgHandler("Riga", mockBcHttpServer, statementsCache, blockChain, keysFileOps, peerAccess).handle(mockExchange)
 
     blockChain.size shouldBe 2
+    statementsCache.contains(signedStatement) shouldBe false
 
     verify(blockChain.chainFileOps, times(1)).writeBlock(Matchers.eq(0), Matchers.any[Block], Matchers.any[String])
     verify(blockChain.chainFileOps, times(1)).writeBlock(Matchers.eq(1), Matchers.any[Block], Matchers.any[String])
@@ -276,10 +318,17 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
     val keysFileOps = mock[KeysFileOps]
     val peerAccess = mock[PeerAccess]
 
-    val block = Block(CURRENT_BLOCK_VERSION, blockChain.getLatestBlock.hash, LocalDateTime.of(2018, 12, 21, 15, 0, 0), "Hi".getBytes)
+    val payment = Payment.verifyAndCreate("Riga", "fromPublicKey", "toPublicKey", Money("EUR", 2025)).right.get
+    val signedStatement = SignedStatementMessage(payment, Nil)
+    val fact = Fact(signedStatement.statement, signedStatement.providedSignaturesForKeys)
+    val serializedFact = JsonSerializer.serialize(fact).getBytes
+    val block = Block(CURRENT_BLOCK_VERSION, blockChain.getLatestBlock.hash, LocalDateTime.of(2018, 12, 21, 15, 0, 0), serializedFact)
     val newBlockMessage = NewBlockMessage(block, 1)
     val messageEnvelope = MessageEnvelope(newBlockMessage, "localhost")
     val is = new ByteArrayInputStream(JsonSerializer.serialize(messageEnvelope).getBytes)
+
+    statementsCache.add(signedStatement)
+    statementsCache.contains(signedStatement) shouldBe true
 
     when(mockExchange.getRequestMethod).thenReturn("PUT")
     when(mockExchange.getRequestBody).thenReturn(is)
@@ -298,9 +347,11 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
 
     blockChain.size shouldBe 3
 
+    statementsCache.contains(signedStatement) shouldBe false
+
     val blocks = blockChain.blocksFrom(0)
     new String(blocks(1).data) shouldBe "Fund transfer from A to B"
-    new String(blocks(2).data) shouldBe "Hi"
+    blockChain.extractFact(blocks(2)).right.get.statement shouldBe payment
     blocks(1).hash shouldBe prevBlock1Hash
     blocks(2).prevHash shouldBe blocks(1).hash
     timeStampsAreWithin(blocks(2).timestamp, LocalDateTime.now(), 1000) shouldBe true
@@ -322,10 +373,17 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
     val keysFileOps = mock[KeysFileOps]
     val peerAccess = mock[PeerAccess]
 
-    val block = Block(CURRENT_BLOCK_VERSION, blockChain.getLatestBlock.hash, LocalDateTime.of(2018, 12, 13, 23, 0, 0), "Hi".getBytes)
+    val payment = Payment.verifyAndCreate("Riga", "fromPublicKey", "toPublicKey", Money("EUR", 2025)).right.get
+    val signedStatement = SignedStatementMessage(payment, Nil)
+    val fact = Fact(signedStatement.statement, signedStatement.providedSignaturesForKeys)
+    val serializedFact = JsonSerializer.serialize(fact).getBytes
+    val block = Block(CURRENT_BLOCK_VERSION, blockChain.getLatestBlock.hash, LocalDateTime.of(2018, 12, 13, 23, 0, 0), serializedFact)
     val newBlockMessage = NewBlockMessage(block, 1)
     val messageEnvelope = MessageEnvelope(newBlockMessage, "localhost")
     val is = new ByteArrayInputStream(JsonSerializer.serialize(messageEnvelope).getBytes)
+
+    statementsCache.add(signedStatement)
+    statementsCache.contains(signedStatement) shouldBe true
 
     when(mockExchange.getRequestMethod).thenReturn("PUT")
     when(mockExchange.getRequestBody).thenReturn(is)
@@ -342,8 +400,10 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
 
     blockChain.size shouldBe 2
 
+    statementsCache.contains(signedStatement) shouldBe false
+
     val blocks = blockChain.blocksFrom(0)
-    new String(blocks(1).data) shouldBe "Hi"
+    blockChain.extractFact(blocks(1)).right.get.statement shouldBe payment
 
     verify(blockChain.chainFileOps, times(1)).writeBlock(Matchers.eq(0), Matchers.any[Block], Matchers.any[String])
     verify(blockChain.chainFileOps, times(1)).deleteBlock(Matchers.eq(1), Matchers.any[String])
@@ -520,4 +580,5 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
     verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange),
       Matchers.eq(s"All statements and blocks have been sent to node: $peer."))
   }
+
 }

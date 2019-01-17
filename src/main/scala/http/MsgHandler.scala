@@ -12,10 +12,9 @@ import scala.io.Source
 import org.apache.http.HttpStatus.SC_BAD_REQUEST
 import peers.PeerAccess
 
-import scala.collection.JavaConverters._
 import json.MessageEnvelopeJson.deserialize
 
-class MsgHandler(nodeName: String, override val bcHttpServer: BCHttpServer, statementsCache: StatementsCache,
+class MsgHandler(nodeName: String, override val bcHttpServer: BCHttpServer, override val statementsCache: StatementsCache,
                  override val bc: BlockChain, val keysFileOps: KeysFileOps,
                  override val peerAccess: PeerAccess) extends HttpHandler with HttpUtil with MsgHandlerOps
   with StringConverter with KeysSerializator {
@@ -29,7 +28,7 @@ class MsgHandler(nodeName: String, override val bcHttpServer: BCHttpServer, stat
             case signedStatement: SignedStatementMessage =>
               handle(signedStatement, exchange)
             case newBlockMessage: NewBlockMessage =>
-              handle(newBlockMessage, exchange, peerAccess)
+              handle(newBlockMessage, exchange)
             case addPeersMessage: AddPeersMessage =>
               handle(addPeersMessage, exchange)
             case pullNewsMessage: PullNewsMessage =>
@@ -46,6 +45,8 @@ class MsgHandler(nodeName: String, override val bcHttpServer: BCHttpServer, stat
   private def handle(signedStatement: SignedStatementMessage, exchange: HttpExchange): Unit = {
     if (statementsCache.contains(signedStatement)) {
       bcHttpServer.sendHttpResponse(exchange, SC_BAD_REQUEST, "The statement has been received before.")
+    } else if (bc.containsFactInside(signedStatement.statement)) {
+      bcHttpServer.sendHttpResponse(exchange, "The statement refused: blockchain alrady contains it as a fact.")
     } else if (verifySignatures(signedStatement)) {
       val newSignatures = signedStatement.signByLocalPublicKeys(nodeName, keysFileOps)
       val enhancedStatement = signedStatement.addSignatures(newSignatures)
@@ -61,42 +62,61 @@ class MsgHandler(nodeName: String, override val bcHttpServer: BCHttpServer, stat
     }
   }
 
-  private def handle(newBlockMessage: NewBlockMessage, exchange: HttpExchange, peerAccess: PeerAccess): Unit = {
+  private def handle(newBlockMessage: NewBlockMessage, exchange: HttpExchange): Unit = {
     if (bc.containsFactInside(newBlockMessage.block)) {
       bcHttpServer.sendHttpResponse(exchange, "New block refused - contains existing fact.")
     } else {
       val newBlock = newBlockMessage.block
-
-      if (bc.isValid(newBlock)) {
-        bc.add(newBlock)
-        bc.writeChain()
-        peerAccess.sendMsg(newBlockMessage)
-        bcHttpServer.sendHttpResponse(exchange, "New block received and added to blockchain.")
-      } else if (bc.isValid(newBlock, newBlockMessage.blockNo)) {
-        if (bc.getLatestBlock.timestamp.compareTo(newBlock.timestamp) < 0) {
-          val newBlockRegenerated = bc.genNextBlock(newBlock.data)
-          bc.add(newBlockRegenerated)
-          bc.writeChain()
-          newBlockMessage.blockNo until bc.size foreach { i =>
-            peerAccess.sendMsg(NewBlockMessage(bc.blockAt(i), i))
+      bc.extractFact(newBlock) match {
+        case Right(fact) =>
+          if (bc.isValid(newBlock)) {
+            appendBlock(newBlockMessage, fact.statement, exchange)
+          } else if (bc.isValid(newBlock, newBlockMessage.blockNo)) {
+            if (newBlock.isNewerThan(bc.getLatestBlock)) {
+              appendBlockWithAdjustedIndex(newBlockMessage, fact.statement, exchange)
+            } else {
+              replaceChainTailWithNewBlock(newBlockMessage, fact.statement, exchange)
+            }
+          } else {
+            bcHttpServer.sendHttpResponse(exchange, "Invalid block received - rejected.")
           }
-          bcHttpServer.sendHttpResponse(exchange, "New block received and added to blockchain with adjusted index.")
-        } else {
-          val blocksToResend = bc.blocksFrom(newBlockMessage.blockNo)
-          bc.deleteChainFrom(newBlockMessage.blockNo)
-          bc.takeN(newBlockMessage.blockNo)
-          bc.add(newBlock)
-          bc.writeChain()
-          blocksToResend.prepend(newBlock)
-          blocksToResend.zipWithIndex foreach { case (block, i) =>
-            peerAccess.sendMsg(NewBlockMessage(block, newBlockMessage.blockNo + i))
-          }
-          bcHttpServer.sendHttpResponse(exchange, "New block received and inserted to blockchain adjusting existing blocks.")
-        }
-      } else {
-        bcHttpServer.sendHttpResponse(exchange, "Invalid block received - rejected.")
+        case Left(_) =>
+          bcHttpServer.sendHttpResponse(exchange, "Invalid block received - rejected.")
       }
     }
+  }
+
+  private def appendBlock(newBlockMessage: NewBlockMessage, statement: Statement, exchange: HttpExchange): Unit = {
+    bc.add(newBlockMessage.block)
+    bc.writeChain()
+    statementsCache.remove(statement)
+    peerAccess.sendMsg(newBlockMessage)
+    bcHttpServer.sendHttpResponse(exchange, "New block received and added to blockchain.")
+  }
+
+  private def appendBlockWithAdjustedIndex(newBlockMessage: NewBlockMessage, statement: Statement, exchange: HttpExchange): Unit = {
+    val newBlockRegenerated = bc.genNextBlock(newBlockMessage.block.data)
+    bc.add(newBlockRegenerated)
+    bc.writeChain()
+    statementsCache.remove(statement)
+    newBlockMessage.blockNo until bc.size foreach { i =>
+      peerAccess.sendMsg(NewBlockMessage(bc.blockAt(i), i))
+    }
+    bcHttpServer.sendHttpResponse(exchange, "New block received and added to blockchain with adjusted index.")
+  }
+
+  private def replaceChainTailWithNewBlock(newBlockMessage: NewBlockMessage, statement: Statement, exchange: HttpExchange): Unit = {
+    val blocksToResend = bc.blocksFrom(newBlockMessage.blockNo)
+    bc.deleteChainFrom(newBlockMessage.blockNo)
+    bc.takeN(newBlockMessage.blockNo)
+    bc.add(newBlockMessage.block)
+    bc.writeChain()
+    statementsCache.remove(statement)
+    blocksToResend.prepend(newBlockMessage.block)
+    blocksToResend.zipWithIndex foreach { case (block, i) =>
+      peerAccess.sendMsg(NewBlockMessage(block, newBlockMessage.blockNo + i))
+    }
+    bcHttpServer.sendHttpResponse(exchange, "New block received and inserted to blockchain adjusting existing blocks.")
   }
 
   private def handle(addPeersMessage: AddPeersMessage, exchange: HttpExchange): Unit = {
@@ -114,7 +134,7 @@ class MsgHandler(nodeName: String, override val bcHttpServer: BCHttpServer, stat
   }
 
   private def sendAllStatementsToPeers(sentFromIPAddress: String): Unit = {
-    statementsCache.statements.values.asScala foreach { statement =>
+    statementsCache.allStatementMessages foreach { statement =>
       peerAccess.sendMsg(statement, sentFromIPAddress)
     }
   }

@@ -4,8 +4,8 @@ import java.io.IOException
 import java.time.LocalDateTime
 
 import com.sun.net.httpserver.{HttpExchange, HttpHandler}
-import messages.{NewBlockMessage, SignedStatementMessage}
-import core.BlockChain
+import messages.SignedStatementMessage
+import core.{BlockChain, StatementsCache}
 import keys.{KeysFileOps, KeysGenerator, KeysSerializator}
 import peers.PeerAccess
 
@@ -22,8 +22,8 @@ case class RegisterUserRequest(name: String, email: String, birthDate: Option[Lo
                 githubURL: Option[String] = None, photo: Option[Photo] = None)
 
 class RegisterUserHandler(nodeName: String, override val bcHttpServer: BCHttpServer, implicit val keysFileOps: KeysFileOps,
-    val peerAccess: PeerAccess, override val bc: BlockChain) extends HttpHandler with HttpUtil with KeysGenerator
-  with KeysSerializator with MsgHandlerOps {
+    val peerAccess: PeerAccess, override val bc: BlockChain, override val statementsCache: StatementsCache)
+  extends HttpHandler with HttpUtil with KeysGenerator with KeysSerializator with MsgHandlerOps {
   @throws[IOException]
   def handle(exchange: HttpExchange): Unit = {
     withHttpMethod ("POST", exchange, bcHttpServer) {

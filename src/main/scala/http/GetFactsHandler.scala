@@ -10,7 +10,7 @@ class GetFactsHandler(bcHttpServer: BCHttpServer, bc: BlockChain) extends HttpHa
   @throws[IOException]
   def handle(exchange: HttpExchange): Unit = {
     val facts = bc.blocksFrom(0) flatMap { block =>
-      FactJson.deserialize(new String(block.data)) match {
+      bc.extractFact(block) match {
         case Right(fact) => Some(fact.statement.toString)
         case Left(_) => None
       }

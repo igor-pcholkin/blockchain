@@ -2,7 +2,6 @@ package http
 
 import java.io.ByteArrayInputStream
 import java.net.URI
-import java.time.LocalDateTime
 
 import com.sun.net.httpserver.HttpExchange
 import core._
@@ -27,6 +26,7 @@ class RegisterUserHandlerTest extends FlatSpec with org.scalatest.Matchers with 
     val keysFileOps = mock[KeysFileOps]
     val peerAccess = mock[PeerAccess]
     val blockChain = new TestBlockChain
+    val statementsCache = new StatementsCache
     peerAccess.addAll(Seq("blabla.com", "another.com"))
     val privateKey = "MEECAQAwEwYHKoZIzj0CAQYIKoZIzj0DAQcEJzAlAgEBBCC94HoY839pqOB/m2D00X4+8vsM6kzUby8gk7Eq8XVsgw=="
     val publicKey = "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEDibd8O5I928ZnTU7RYTy6Od3K3SrGlC+V8lkMYrdJuzT9Ig/Iq8JciaukxCYmVSO1mZuC65xMkxSb5Q0rNZ8og=="
@@ -52,7 +52,7 @@ class RegisterUserHandlerTest extends FlatSpec with org.scalatest.Matchers with 
     when(keysFileOps.readKeyFromFile("Riga", userName, "privateKey")).thenReturn(privateKey)
     when(keysFileOps.readKeyFromFile("Riga", userName, "publicKey")).thenReturn(publicKey)
 
-    new RegisterUserHandler("Riga", mockBcHttpServer, keysFileOps, peerAccess, blockChain).handle(mockExchange)
+    new RegisterUserHandler("Riga", mockBcHttpServer, keysFileOps, peerAccess, blockChain, statementsCache).handle(mockExchange)
 
     verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange),
       Matchers.eq("New fact has been created and added to blockchain."))
@@ -81,6 +81,7 @@ class RegisterUserHandlerTest extends FlatSpec with org.scalatest.Matchers with 
     val keysFileOps = mock[KeysFileOps]
     val peerAccess = mock[PeerAccess]
     val blockChain = new TestBlockChain
+    val statementsCache = new StatementsCache
     peerAccess.addAll(Seq("blabla.com", "another.com"))
     val privateKey = "MEECAQAwEwYHKoZIzj0CAQYIKoZIzj0DAQcEJzAlAgEBBCC94HoY839pqOB/m2D00X4+8vsM6kzUby8gk7Eq8XVsgw=="
     val publicKey = "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEDibd8O5I928ZnTU7RYTy6Od3K3SrGlC+V8lkMYrdJuzT9Ig/Iq8JciaukxCYmVSO1mZuC65xMkxSb5Q0rNZ8og=="
@@ -115,7 +116,7 @@ class RegisterUserHandlerTest extends FlatSpec with org.scalatest.Matchers with 
     when(keysFileOps.readKeyFromFile("Riga", userName, "privateKey")).thenReturn(privateKey)
     when(keysFileOps.readKeyFromFile("Riga", userName, "publicKey")).thenReturn(publicKey)
 
-    new RegisterUserHandler("Riga", mockBcHttpServer, keysFileOps, peerAccess, blockChain).handle(mockExchange)
+    new RegisterUserHandler("Riga", mockBcHttpServer, keysFileOps, peerAccess, blockChain, statementsCache).handle(mockExchange)
 
     verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange),
       Matchers.eq("Refused new block creation - existing fact."))
@@ -133,6 +134,7 @@ class RegisterUserHandlerTest extends FlatSpec with org.scalatest.Matchers with 
     val peerAccess = mock[PeerAccess]
     val keysFileOps = mock[KeysFileOps]
     val blockChain = new TestBlockChain
+    val statementsCache = new StatementsCache
 
     val registerUserRequest =
       s"""{
@@ -144,7 +146,7 @@ class RegisterUserHandlerTest extends FlatSpec with org.scalatest.Matchers with 
     when(mockExchange.getRequestMethod).thenReturn("POST")
     when(mockExchange.getRequestBody).thenReturn(is)
 
-    new RegisterUserHandler("Riga", mockBcHttpServer, keysFileOps, peerAccess, blockChain).handle(mockExchange)
+    new RegisterUserHandler("Riga", mockBcHttpServer, keysFileOps, peerAccess, blockChain, statementsCache).handle(mockExchange)
 
     verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange), Matchers.eq(SC_BAD_REQUEST),
       Matchers.eq("\"name\" field in user registration is missing."))
@@ -159,6 +161,7 @@ class RegisterUserHandlerTest extends FlatSpec with org.scalatest.Matchers with 
     val mockExchange = mock[HttpExchange]
     val peerAccess = mock[PeerAccess]
     val blockChain = new TestBlockChain
+    val statementsCache = new StatementsCache
     val keysFileOps = mock[KeysFileOps]
     val userName = "Igor"
 
@@ -176,7 +179,7 @@ class RegisterUserHandlerTest extends FlatSpec with org.scalatest.Matchers with 
 
     when(keysFileOps.isKeysDirExists("Riga", userName)).thenReturn(true)
 
-    new RegisterUserHandler("Riga", mockBcHttpServer, keysFileOps, peerAccess, blockChain).handle(mockExchange)
+    new RegisterUserHandler("Riga", mockBcHttpServer, keysFileOps, peerAccess, blockChain, statementsCache).handle(mockExchange)
 
     verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange), Matchers.eq(SC_BAD_REQUEST),
       Matchers.eq("Public or private key already exists, use overwriteKeys=true to overwrite, useExistingKeys=true to attach existing keys."))
@@ -192,6 +195,7 @@ class RegisterUserHandlerTest extends FlatSpec with org.scalatest.Matchers with 
     val mockLocalHost = mock[LocalHost]
     val peerAccess = mock[PeerAccess]
     val blockChain = new TestBlockChain
+    val statementsCache = new StatementsCache
     val keysFileOps = mock[KeysFileOps]
     peerAccess.addAll(Seq("blabla.com", "another.com"))
     val privateKey = "MEECAQAwEwYHKoZIzj0CAQYIKoZIzj0DAQcEJzAlAgEBBCC94HoY839pqOB/m2D00X4+8vsM6kzUby8gk7Eq8XVsgw=="
@@ -218,7 +222,7 @@ class RegisterUserHandlerTest extends FlatSpec with org.scalatest.Matchers with 
     when(keysFileOps.readKeyFromFile("Riga", userName, "privateKey")).thenReturn(privateKey)
     when(keysFileOps.readKeyFromFile("Riga", userName, "publicKey")).thenReturn(publicKey)
 
-    new RegisterUserHandler("Riga", mockBcHttpServer, keysFileOps, peerAccess, blockChain).handle(mockExchange)
+    new RegisterUserHandler("Riga", mockBcHttpServer, keysFileOps, peerAccess, blockChain, statementsCache).handle(mockExchange)
 
     verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange),
       Matchers.eq("New fact has been created and added to blockchain."))
@@ -246,6 +250,7 @@ class RegisterUserHandlerTest extends FlatSpec with org.scalatest.Matchers with 
     val mockLocalHost = mock[LocalHost]
     val peerAccess = mock[PeerAccess]
     val blockChain = new TestBlockChain
+    val statementsCache = new StatementsCache
     val keysFileOps = mock[KeysFileOps]
     peerAccess.addAll(Seq("blabla.com", "another.com"))
     val privateKey = "MEECAQAwEwYHKoZIzj0CAQYIKoZIzj0DAQcEJzAlAgEBBCC94HoY839pqOB/m2D00X4+8vsM6kzUby8gk7Eq8XVsgw=="
@@ -272,7 +277,7 @@ class RegisterUserHandlerTest extends FlatSpec with org.scalatest.Matchers with 
     when(keysFileOps.readKeyFromFile("Riga", userName, "privateKey")).thenReturn(privateKey)
     when(keysFileOps.readKeyFromFile("Riga", userName, "publicKey")).thenReturn(publicKey)
 
-    new RegisterUserHandler("Riga", mockBcHttpServer, keysFileOps, peerAccess, blockChain).handle(mockExchange)
+    new RegisterUserHandler("Riga", mockBcHttpServer, keysFileOps, peerAccess, blockChain, statementsCache).handle(mockExchange)
 
     verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange),
       Matchers.eq("New fact has been created and added to blockchain."))

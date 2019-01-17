@@ -54,9 +54,9 @@ class InitPaymentHandlerTest extends FlatSpec with org.scalatest.Matchers with M
 
     new InitPaymentHandler("Riga", mockBcHttpServer, statementsCache, keysFileOps, peerAccess, blockChain).handle(mockExchange)
 
-    statementsCache.statements.size shouldBe 1
+    statementsCache.size shouldBe 1
     blockChain.size shouldBe 1
-    val signedStatement = statementsCache.statements.asScala.head._2
+    val signedStatement = statementsCache.allStatementMessages.head
     val payment = signedStatement.statement.asInstanceOf[Payment]
     payment.createdByNode shouldBe "Riga"
     payment.fromPublicKeyEncoded shouldBe "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEDibd8O5I928ZnTU7RYTy6Od3K3SrGlC+V8lkMYrdJuzT9Ig/Iq8JciaukxCYmVSO1mZuC65xMkxSb5Q0rNZ8og=="
@@ -112,7 +112,7 @@ class InitPaymentHandlerTest extends FlatSpec with org.scalatest.Matchers with M
 
     new InitPaymentHandler("Riga", mockBcHttpServer, statementsCache, keysFileOps, peerAccess, blockChain).handle(mockExchange)
 
-    statementsCache.statements.size shouldBe 0
+    statementsCache.size shouldBe 0
     verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange),
       Matchers.eq("New fact has been created and added to blockchain."))
     verify(peerAccess, times(1)).sendMsg(Matchers.any[NewBlockMessage])
@@ -159,7 +159,7 @@ class InitPaymentHandlerTest extends FlatSpec with org.scalatest.Matchers with M
     when(keysFileOps.getUserByKey("Riga", "(publicKeyTo)")).thenReturn(None)
     new InitPaymentHandler("Riga", mockBcHttpServer, statementsCache, keysFileOps, peerAccess, blockChain).handle(mockExchange)
 
-    statementsCache.statements.size shouldBe 0
+    statementsCache.size shouldBe 0
     blockChain.size shouldBe 1
     verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange), Matchers.eq(HttpStatus.SC_BAD_REQUEST),
       Matchers.eq("No user with given (from) public key found."))

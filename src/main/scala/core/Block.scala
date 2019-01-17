@@ -47,4 +47,5 @@ case class Block(version: Byte, prevHash: Array[Byte], timestamp: LocalDateTime,
     s"$version|${bytesToBase64Str(prevHash)}|$timestamp|${bytesToBase64Str(data)}"
   }
 
+  def isNewerThan(anotherBlock: Block) = timestamp.compareTo(anotherBlock.timestamp) > 0
 }

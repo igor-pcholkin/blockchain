@@ -122,5 +122,5 @@ abstract class BlockChain(nodeName: String) {
     } nonEmpty
   }
 
-  private def extractFact(block: Block) = FactJson.deserialize(new String(block.data))
+  def extractFact(block: Block) = FactJson.deserialize(new String(block.data))
 }
