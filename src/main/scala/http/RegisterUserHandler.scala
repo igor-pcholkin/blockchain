@@ -47,7 +47,7 @@ class RegisterUserHandler(nodeName: String, override val bcHttpServer: BCHttpSer
     generateKeys(registerUserRequest.name, exchange) match {
       case Right(()) =>
         val publicKey = serialize(readPublicKey(nodeName, registerUserRequest.name))
-        val registeredUser = createRegisteredUser(registerUserRequest)
+        val registeredUser = createRegisteredUser(registerUserRequest, publicKey)
         val signedStatement = SignedStatementMessage(registeredUser, Seq(publicKey), nodeName, keysFileOps)
         processStatementAsFact(signedStatement, exchange)
       case Left(error) =>
@@ -55,8 +55,8 @@ class RegisterUserHandler(nodeName: String, override val bcHttpServer: BCHttpSer
     }
   }
 
-  private def createRegisteredUser(ru: RegisterUserRequest) = {
-    RegisteredUser(ru.name, ru.email, ru.birthDate, ru.phone, ru.address, ru.linkedInURL, ru.facebookURL, ru.githubURL, ru.photo)
+  private def createRegisteredUser(ru: RegisterUserRequest, publicKey: String) = {
+    RegisteredUser(ru.name, ru.email, publicKey, ru.birthDate, ru.phone, ru.address, ru.linkedInURL, ru.facebookURL, ru.githubURL, ru.photo)
   }
 
   private def generateKeys(userName: String, exchange: HttpExchange) = {

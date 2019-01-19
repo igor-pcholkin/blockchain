@@ -101,6 +101,7 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
 
     statementsCache.contains(tamperedStatement) shouldBe false
     blockChain.size shouldBe 1
+
   }
 
   it should "reject processing the same repeated statement if it is wrapped in the same signed message" in {
@@ -422,7 +423,7 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
     val keysFileOps = mock[KeysFileOps]
     val peerAccess = mock[PeerAccess]
 
-    val statement = RegisteredUser("Igor", "ipcholkin@gmail.com")
+    val statement = RegisteredUser("Igor", "ipcholkin@gmail.com", "(UserPublicKey)")
     val signedStatement = SignedStatementMessage(statement, Nil)
     val fact = Fact(signedStatement.statement, signedStatement.providedSignaturesForKeys)
     val serializedFact = JsonSerializer.serialize(fact).getBytes

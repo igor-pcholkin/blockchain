@@ -65,7 +65,7 @@ class RegisterUserHandlerTest extends FlatSpec with org.scalatest.Matchers with 
     val lastBlock = blockChain.getLatestBlock
     val fact = deserialize(new String(lastBlock.data)).right.get
     val statement = fact.statement.asInstanceOf[RegisteredUser]
-    statement shouldBe RegisteredUser("Igor", "ipcholkin@gmail.com")
+    statement shouldBe RegisteredUser("Igor", "ipcholkin@gmail.com", publicKey)
 
     val signer = new Signer(keysFileOps)
     val signature = fact.providedSignaturesForKeys.head._2
@@ -87,7 +87,7 @@ class RegisterUserHandlerTest extends FlatSpec with org.scalatest.Matchers with 
     val publicKey = "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEDibd8O5I928ZnTU7RYTy6Od3K3SrGlC+V8lkMYrdJuzT9Ig/Iq8JciaukxCYmVSO1mZuC65xMkxSb5Q0rNZ8og=="
     val userName = "Igor"
 
-    val existingStatement = RegisteredUser("Igor", "ipcholkin@gmail.com")
+    val existingStatement = RegisteredUser("Igor", "ipcholkin@gmail.com", publicKey)
     val signedStatement = SignedStatementMessage(existingStatement, Nil)
     val fact = Fact(signedStatement.statement, signedStatement.providedSignaturesForKeys)
     val serializedFact = JsonSerializer.serialize(fact).getBytes
@@ -235,7 +235,7 @@ class RegisterUserHandlerTest extends FlatSpec with org.scalatest.Matchers with 
     val lastBlock = blockChain.getLatestBlock
     val fact = deserialize(new String(lastBlock.data)).right.get
     val statement = fact.statement.asInstanceOf[RegisteredUser]
-    statement shouldBe RegisteredUser("Igor", "ipcholkin@gmail.com")
+    statement shouldBe RegisteredUser("Igor", "ipcholkin@gmail.com", publicKey)
 
     val signer = new Signer(keysFileOps)
     val signature = fact.providedSignaturesForKeys.head._2
@@ -290,7 +290,7 @@ class RegisterUserHandlerTest extends FlatSpec with org.scalatest.Matchers with 
     val lastBlock = blockChain.getLatestBlock
     val fact = deserialize(new String(lastBlock.data)).right.get
     val statement = fact.statement.asInstanceOf[RegisteredUser]
-    statement shouldBe RegisteredUser("Igor", "ipcholkin@gmail.com")
+    statement shouldBe RegisteredUser("Igor", "ipcholkin@gmail.com", publicKey)
 
     val signer = new Signer(keysFileOps)
     val signature = fact.providedSignaturesForKeys.head._2
