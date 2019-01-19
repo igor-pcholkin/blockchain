@@ -4,7 +4,7 @@ import java.time.LocalDateTime
 
 import business.Money
 import com.sun.net.httpserver.HttpExchange
-import core.TestBlockChain
+import core.{SHA256, TestBlockChain}
 import keys.KeysFileOps
 import messages.SignedStatementMessage
 import org.mockito.Matchers
@@ -13,8 +13,9 @@ import org.scalatest.FlatSpec
 import org.scalatest.mockito.MockitoSugar
 import org.slf4j.Logger
 import statements.Payment
+import util.StringConverter
 
-class GetFactsHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSugar {
+class GetFactsHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSugar with StringConverter {
   "GetFactsHandler" should "return facts on request" in {
     val mockExchange = mock[HttpExchange]
     val mockBcHttpServer = mock[BCHttpServer]
@@ -37,10 +38,12 @@ class GetFactsHandlerTest extends FlatSpec with org.scalatest.Matchers with Mock
     val payment1 = Payment.verifyAndCreate("Riga", fromPublicKey, toPublicKey, Money("EUR", 2025), LocalDateTime.of(2018, 12, 1, 15, 0)).right.get
     val signedStatement1 = SignedStatementMessage(payment1, Seq(fromPublicKey, toPublicKey), "Riga", keysFileOps)
     blockChain.addFactToNewBlock(signedStatement1)
+    val paymentHash1 = bytesToBase64Str(SHA256.hash(payment1.dataToSign))
 
     val payment2 = Payment.verifyAndCreate("Riga", toPublicKey, fromPublicKey, Money("EUR", 3035), LocalDateTime.of(2019, 1, 6, 12, 5)).right.get
     val signedStatement2 = SignedStatementMessage(payment2, Seq(toPublicKey, fromPublicKey), "Riga", keysFileOps)
     blockChain.addFactToNewBlock(signedStatement2)
+    val paymentHash2 = bytesToBase64Str(SHA256.hash(payment2.dataToSign))
 
     val newBlock = blockChain.genNextBlock("brokenFact".getBytes)
     blockChain.add(newBlock)
@@ -51,8 +54,8 @@ class GetFactsHandlerTest extends FlatSpec with org.scalatest.Matchers with Mock
     getFactsHandler.handle(mockExchange)
 
     verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange), Matchers.eq(
-      s"""Payment(Riga,MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEDibd8O5I928ZnTU7RYTy6Od3K3SrGlC+V8lkMYrdJuzT9Ig/Iq8JciaukxCYmVSO1mZuC65xMkxSb5Q0rNZ8og==,MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEp0qOMxie16K1oArb+FGKB6YSbl+Hz3pLsVI4r6zWMXmtuD6QFZxGDhbvPO6c969SFEW5VmOSelb8ck+2TysK/Q==,EUR20.25,2018-12-01T15:00)
-         |Payment(Riga,MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEp0qOMxie16K1oArb+FGKB6YSbl+Hz3pLsVI4r6zWMXmtuD6QFZxGDhbvPO6c969SFEW5VmOSelb8ck+2TysK/Q==,MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEDibd8O5I928ZnTU7RYTy6Od3K3SrGlC+V8lkMYrdJuzT9Ig/Iq8JciaukxCYmVSO1mZuC65xMkxSb5Q0rNZ8og==,EUR30.35,2019-01-06T12:05)"""
+      s"""Payment(Riga,MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEDibd8O5I928ZnTU7RYTy6Od3K3SrGlC+V8lkMYrdJuzT9Ig/Iq8JciaukxCYmVSO1mZuC65xMkxSb5Q0rNZ8og==,MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEp0qOMxie16K1oArb+FGKB6YSbl+Hz3pLsVI4r6zWMXmtuD6QFZxGDhbvPO6c969SFEW5VmOSelb8ck+2TysK/Q==,EUR20.25,2018-12-01T15:00):$paymentHash1
+         |Payment(Riga,MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEp0qOMxie16K1oArb+FGKB6YSbl+Hz3pLsVI4r6zWMXmtuD6QFZxGDhbvPO6c969SFEW5VmOSelb8ck+2TysK/Q==,MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEDibd8O5I928ZnTU7RYTy6Od3K3SrGlC+V8lkMYrdJuzT9Ig/Iq8JciaukxCYmVSO1mZuC65xMkxSb5Q0rNZ8og==,EUR30.35,2019-01-06T12:05):$paymentHash2"""
         .stripMargin))
 
     verify(getFactsHandler.logger, times(1)).error("Cannot extract fact: brokenFact")
