@@ -11,6 +11,7 @@ import org.mockito.Matchers
 import org.mockito.Mockito.{times, verify, when}
 import org.scalatest.FlatSpec
 import org.scalatest.mockito.MockitoSugar
+import org.slf4j.Logger
 import statements.Payment
 
 class GetFactsHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSugar {
@@ -41,12 +42,19 @@ class GetFactsHandlerTest extends FlatSpec with org.scalatest.Matchers with Mock
     val signedStatement2 = SignedStatementMessage(payment2, Seq(toPublicKey, fromPublicKey), "Riga", keysFileOps)
     blockChain.addFactToNewBlock(signedStatement2)
 
-    new GetFactsHandler(mockBcHttpServer, blockChain).handle(mockExchange)
+    val newBlock = blockChain.genNextBlock("brokenFact".getBytes)
+    blockChain.add(newBlock)
+
+    val getFactsHandler = new GetFactsHandler(mockBcHttpServer, blockChain) {
+      override val logger = mock[Logger]
+    }
+    getFactsHandler.handle(mockExchange)
 
     verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange), Matchers.eq(
       s"""Payment(Riga,MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEDibd8O5I928ZnTU7RYTy6Od3K3SrGlC+V8lkMYrdJuzT9Ig/Iq8JciaukxCYmVSO1mZuC65xMkxSb5Q0rNZ8og==,MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEp0qOMxie16K1oArb+FGKB6YSbl+Hz3pLsVI4r6zWMXmtuD6QFZxGDhbvPO6c969SFEW5VmOSelb8ck+2TysK/Q==,EUR20.25,2018-12-01T15:00)
          |Payment(Riga,MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEp0qOMxie16K1oArb+FGKB6YSbl+Hz3pLsVI4r6zWMXmtuD6QFZxGDhbvPO6c969SFEW5VmOSelb8ck+2TysK/Q==,MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEDibd8O5I928ZnTU7RYTy6Od3K3SrGlC+V8lkMYrdJuzT9Ig/Iq8JciaukxCYmVSO1mZuC65xMkxSb5Q0rNZ8og==,EUR30.35,2019-01-06T12:05)"""
         .stripMargin))
 
+    verify(getFactsHandler.logger, times(1)).error("Cannot extract fact: brokenFact")
   }
 }
