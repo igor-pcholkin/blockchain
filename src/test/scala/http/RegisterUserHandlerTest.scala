@@ -66,7 +66,6 @@ class RegisterUserHandlerTest extends FlatSpec with org.scalatest.Matchers with 
     val fact = deserialize(new String(lastBlock.data)).right.get
     val statement = fact.statement.asInstanceOf[RegisteredUser]
     statement shouldBe RegisteredUser("Igor", "ipcholkin@gmail.com", publicKey)
-    fact.statementHash.toSeq shouldBe SHA256.hash(statement.dataToSign).toSeq
 
     val signer = new Signer(keysFileOps)
     val signature = fact.providedSignaturesForKeys.head._2

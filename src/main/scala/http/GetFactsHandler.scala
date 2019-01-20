@@ -15,7 +15,7 @@ class GetFactsHandler(bcHttpServer: BCHttpServer, bc: BlockChain) extends HttpHa
   def handle(exchange: HttpExchange): Unit = {
     val facts = bc.blocksFrom(0) flatMap { block =>
       bc.extractFact(block) match {
-        case Right(fact) => Some(fact.statement.toString + ":" + bytesToBase64Str(fact.statementHash))
+        case Right(fact) => Some(fact.statement.toString + ":" + bytesToBase64Str(block.hash))
         case Left(_) =>
           logger.error(s"Cannot extract fact: ${new String(block.data)}")
           None

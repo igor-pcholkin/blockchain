@@ -38,12 +38,12 @@ class GetFactsHandlerTest extends FlatSpec with org.scalatest.Matchers with Mock
     val payment1 = Payment.verifyAndCreate("Riga", fromPublicKey, toPublicKey, Money("EUR", 2025), LocalDateTime.of(2018, 12, 1, 15, 0)).right.get
     val signedStatement1 = SignedStatementMessage(payment1, Seq(fromPublicKey, toPublicKey), "Riga", keysFileOps)
     blockChain.addFactToNewBlock(signedStatement1)
-    val paymentHash1 = bytesToBase64Str(SHA256.hash(payment1.dataToSign))
+    val paymentHash1 = bytesToBase64Str(blockChain.getLatestBlock.hash)
 
     val payment2 = Payment.verifyAndCreate("Riga", toPublicKey, fromPublicKey, Money("EUR", 3035), LocalDateTime.of(2019, 1, 6, 12, 5)).right.get
     val signedStatement2 = SignedStatementMessage(payment2, Seq(toPublicKey, fromPublicKey), "Riga", keysFileOps)
     blockChain.addFactToNewBlock(signedStatement2)
-    val paymentHash2 = bytesToBase64Str(SHA256.hash(payment2.dataToSign))
+    val paymentHash2 = bytesToBase64Str(blockChain.getLatestBlock.hash)
 
     val newBlock = blockChain.genNextBlock("brokenFact".getBytes)
     blockChain.add(newBlock)
