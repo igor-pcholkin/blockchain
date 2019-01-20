@@ -25,14 +25,12 @@ trait KeysSerializator extends StringConverter {
     ecKeyFac.generatePublic(x509EncodedKeySpec)
   }
 
-  def readPrivateKey(nodeName: String, userName: String): PrivateKey = {
-    val buffer = keysFileOps.readKeyFromFile(nodeName, userName, "privateKey")
-    deserializePrivate(buffer)
+  def readPrivateKey(nodeName: String, userName: String): String = {
+    keysFileOps.readKeyFromFile(nodeName, userName, "privateKey")
   }
 
-  def readPublicKey(nodeName: String, userName: String): PublicKey = {
-    val buffer = keysFileOps.readKeyFromFile(nodeName, userName, "publicKey")
-    deserializePublic(buffer)
+  def readPublicKey(nodeName: String, userName: String): String = {
+    keysFileOps.readKeyFromFile(nodeName, userName, "publicKey")
   }
 
   def writeKey(nodeName: String, userName: String, privateKey: PrivateKey): Unit = {

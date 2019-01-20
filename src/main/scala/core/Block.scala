@@ -43,6 +43,8 @@ case class Block(version: Byte, prevHash: Array[Byte], timestamp: LocalDateTime,
 
   lazy val hash: Array[Byte] = SHA256.hash(this)
 
+  lazy val factHash: String = bytesToBase64Str(SHA256.hash(data))
+
   override def toString: String = {
     s"$version|${bytesToBase64Str(prevHash)}|$timestamp|${bytesToBase64Str(data)}"
   }

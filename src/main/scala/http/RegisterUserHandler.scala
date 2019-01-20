@@ -46,7 +46,7 @@ class RegisterUserHandler(nodeName: String, override val bcHttpServer: BCHttpSer
   private def processUser(registerUserRequest: RegisterUserRequest, exchange: HttpExchange): Unit = {
     generateKeys(registerUserRequest.name, exchange) match {
       case Right(()) =>
-        val publicKey = serialize(readPublicKey(nodeName, registerUserRequest.name))
+        val publicKey = readPublicKey(nodeName, registerUserRequest.name)
         val registeredUser = createRegisteredUser(registerUserRequest, publicKey)
         val signedStatement = SignedStatementMessage(registeredUser, Seq(publicKey), nodeName, keysFileOps)
         processStatementAsFact(signedStatement, exchange)

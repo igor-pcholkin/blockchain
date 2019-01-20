@@ -28,6 +28,7 @@ class BCHttpServer(val localHost: LocalHost, bc: BlockChain, peerAccess: PeerAcc
     server.createContext("/getfacts", new GetFactsHandler(this, bc))
     server.createContext("/getstatements", new GetStatementsHandler(this, statementsCache))
     server.createContext("/registerUser", new RegisterUserHandler(nodeName, this, ProdKeysFileOps, peerAccess, bc, statementsCache))
+    server.createContext("/approveFact", new ApproveFactHandler(nodeName, this, ProdKeysFileOps, peerAccess, bc, statementsCache))
     server.start()
 
     scheduleSendingPullNewsMessage()
