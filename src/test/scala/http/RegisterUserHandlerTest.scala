@@ -41,7 +41,7 @@ class RegisterUserHandlerTest extends FlatSpec with org.scalatest.Matchers with 
     val is = new ByteArrayInputStream(registerUserRequest.getBytes)
 
     when(mockExchange.getRequestURI).thenReturn(new URI("/registerUser"))
-    when(mockExchange.getRequestMethod).thenReturn("POST")
+    when(mockExchange.getRequestMethod).thenReturn("PUT")
     when(mockExchange.getRequestBody).thenReturn(is)
 
     when(peerAccess.localHost).thenReturn(mockLocalHost)
@@ -105,7 +105,7 @@ class RegisterUserHandlerTest extends FlatSpec with org.scalatest.Matchers with 
     val is = new ByteArrayInputStream(registerUserRequest.getBytes)
 
     when(mockExchange.getRequestURI).thenReturn(new URI("/registerUser"))
-    when(mockExchange.getRequestMethod).thenReturn("POST")
+    when(mockExchange.getRequestMethod).thenReturn("PUT")
     when(mockExchange.getRequestBody).thenReturn(is)
 
     when(peerAccess.localHost).thenReturn(mockLocalHost)
@@ -143,7 +143,7 @@ class RegisterUserHandlerTest extends FlatSpec with org.scalatest.Matchers with 
       """.stripMargin
     val is = new ByteArrayInputStream(registerUserRequest.getBytes)
 
-    when(mockExchange.getRequestMethod).thenReturn("POST")
+    when(mockExchange.getRequestMethod).thenReturn("PUT")
     when(mockExchange.getRequestBody).thenReturn(is)
 
     new RegisterUserHandler("Riga", mockBcHttpServer, keysFileOps, peerAccess, blockChain, statementsCache).handle(mockExchange)
@@ -174,7 +174,7 @@ class RegisterUserHandlerTest extends FlatSpec with org.scalatest.Matchers with 
     val is = new ByteArrayInputStream(registerUserRequest.getBytes)
 
     when(mockExchange.getRequestURI).thenReturn(new URI("/registerUser"))
-    when(mockExchange.getRequestMethod).thenReturn("POST")
+    when(mockExchange.getRequestMethod).thenReturn("PUT")
     when(mockExchange.getRequestBody).thenReturn(is)
 
     when(keysFileOps.isKeysDirExists("Riga", userName)).thenReturn(true)
@@ -211,7 +211,7 @@ class RegisterUserHandlerTest extends FlatSpec with org.scalatest.Matchers with 
     val is = new ByteArrayInputStream(registerUserRequest.getBytes)
 
     when(mockExchange.getRequestURI).thenReturn(new URI("/registerUser?overwriteKeys=true"))
-    when(mockExchange.getRequestMethod).thenReturn("POST")
+    when(mockExchange.getRequestMethod).thenReturn("PUT")
     when(mockExchange.getRequestBody).thenReturn(is)
 
     when(peerAccess.localHost).thenReturn(mockLocalHost)
@@ -266,7 +266,7 @@ class RegisterUserHandlerTest extends FlatSpec with org.scalatest.Matchers with 
     val is = new ByteArrayInputStream(registerUserRequest.getBytes)
 
     when(mockExchange.getRequestURI).thenReturn(new URI("/registerUser?useExistingKeys=true"))
-    when(mockExchange.getRequestMethod).thenReturn("POST")
+    when(mockExchange.getRequestMethod).thenReturn("PUT")
     when(mockExchange.getRequestBody).thenReturn(is)
 
     when(peerAccess.localHost).thenReturn(mockLocalHost)

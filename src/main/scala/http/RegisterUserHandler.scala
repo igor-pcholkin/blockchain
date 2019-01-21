@@ -26,7 +26,7 @@ class RegisterUserHandler(nodeName: String, override val bcHttpServer: BCHttpSer
   extends HttpHandler with HttpUtil with KeysGenerator with KeysSerializator with MsgHandlerOps {
   @throws[IOException]
   def handle(exchange: HttpExchange): Unit = {
-    withHttpMethod ("POST", exchange, bcHttpServer) {
+    withHttpMethod ("PUT", exchange, bcHttpServer) {
       val s = Source.fromInputStream(exchange.getRequestBody)
       val inputAsString = s.getLines.mkString
       s.close()
