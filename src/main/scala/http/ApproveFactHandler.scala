@@ -44,15 +44,16 @@ class ApproveFactHandler(nodeName: String, override val bcHttpServer: BCHttpServ
   private def approveFact(approveFactRequest: ApproveFactRequest, exchange: HttpExchange): Unit = {
     if (!keysFileOps.isKeysDirExists(nodeName, approveFactRequest.approverUserName)) {
       bcHttpServer.sendHttpResponse (exchange, SC_BAD_REQUEST, s"User ${approveFactRequest.approverUserName} doesn't exist")
-    }
-    val approverPublicKey = readPublicKey(nodeName, approveFactRequest.approverUserName)
-    findFact(approveFactRequest.factHash) match {
-      case Some(block) =>
-        val statement = ApprovedFact(block.factHash, approverPublicKey)
-        val signedStatement = SignedStatementMessage(statement, Seq(approverPublicKey), nodeName, keysFileOps)
-        processStatementAsFact(signedStatement, exchange)
-      case None =>
-        bcHttpServer.sendHttpResponse (exchange, SC_BAD_REQUEST, s"Fact with given hash doesn't exist")
+    } else {
+      val approverPublicKey = readPublicKey(nodeName, approveFactRequest.approverUserName)
+      findFact(approveFactRequest.factHash) match {
+        case Some(block) =>
+          val statement = ApprovedFact(block.factHash, approverPublicKey)
+          val signedStatement = SignedStatementMessage(statement, Seq(approverPublicKey), nodeName, keysFileOps)
+          processStatementAsFact(signedStatement, exchange)
+        case None =>
+          bcHttpServer.sendHttpResponse(exchange, SC_BAD_REQUEST, s"Fact with given hash doesn't exist")
+      }
     }
   }
 
