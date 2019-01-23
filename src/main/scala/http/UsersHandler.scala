@@ -22,35 +22,45 @@ class UsersHandler(nodeName: String, bcHttpServer: BCHttpServer, bc: BlockChain,
   def handle(exchange: HttpExchange): Unit = {
 
     val mayBeQuery = Option(exchange.getRequestURI.getQuery)
-    getRequestParam(mayBeQuery, "trusted") match {
-      case Some(trusted) if trusted.toBoolean => respondWithTrustedUsers(exchange, getRequestParam(mayBeQuery, "forUser"))
-      case _ => respondWithAllUsers(exchange)
-    }
-
-  }
-
-  def respondWithAllUsers(exchange: HttpExchange) = {
-    val users = forEachBlock { (statement, hash) =>
-      statement match {
-        case user: RegisteredUser => Some(user)
-        case _ => None
+    (getRequestParam(mayBeQuery, "trusted") match {
+      case Some(trusted) if trusted.toBoolean => readTrustedUsersWithErrorCheck(exchange, getRequestParam(mayBeQuery, "forUser"))
+      case _ => Some(readAllUsers)
+    }).map { users =>
+      val userInURI = """/users/([A-Za-z\s]+)""".r
+      exchange.getRequestURI.toString match {
+        case userInURI(user) => filterByUser(user, users, exchange)
+        case _ => users
       }
+    } match {
+      case Some(users) => bcHttpServer.sendHttpResponse(exchange, combine(users))
+      case _ => // nothing, error returned
     }
-
-    bcHttpServer.sendHttpResponse(exchange, combine(users))
   }
 
-  def respondWithTrustedUsers(exchange: HttpExchange, mayBeForUser: Option[String]) = {
+  private def filterByUser(user: String, users: Seq[RegisteredUser], exchange: HttpExchange): Seq[RegisteredUser] = {
+    users.filter(_.name.contains(user))
+  }
+
+  private def readAllUsers: Seq[RegisteredUser] = forEachBlock  { (statement, hash) =>
+    statement match {
+      case user: RegisteredUser => Some(user)
+      case _ => None
+    }
+  }
+
+  def readTrustedUsersWithErrorCheck(exchange: HttpExchange, mayBeForUser: Option[String]): Option[Seq[RegisteredUser]] = {
     mayBeForUser match {
       case Some(forUser) =>
         if (!keysFileOps.isKeysDirExists(nodeName, forUser)) {
           bcHttpServer.sendHttpResponse(exchange, SC_BAD_REQUEST, s"User ${forUser} doesn't exist")
+          None
         } else {
           val approvedUsers = readApprovedUsers(forUser)
-          bcHttpServer.sendHttpResponse(exchange, combine(approvedUsers))
+          Some(approvedUsers)
         }
       case None =>
         bcHttpServer.sendHttpResponse(exchange, SC_BAD_REQUEST, "User name should be specified in request query (forUser)")
+        None
     }
   }
 
@@ -63,7 +73,7 @@ class UsersHandler(nodeName: String, bcHttpServer: BCHttpServer, bc: BlockChain,
       statement match {
         case user: RegisteredUser => users.put(registeredUserFactHash, user)
         case approvedFact: ApprovedFact if approvedFact.approverPublicKey == approverPublicKey => userApprovals.append(approvedFact)
-        case _ => // none
+        case _ => // nothing to do
       }
       None
     }

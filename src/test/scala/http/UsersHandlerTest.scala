@@ -8,6 +8,7 @@ import com.sun.net.httpserver.HttpExchange
 import core.{BlockChain, Statement, TestBlockChain}
 import keys.KeysFileOps
 import messages.SignedStatementMessage
+import org.apache.http.HttpStatus.SC_BAD_REQUEST
 import org.mockito.Matchers
 import org.mockito.Mockito.{times, verify, when}
 import org.scalatest.FlatSpec
@@ -61,6 +62,60 @@ class UsersHandlerTest extends FlatSpec with org.scalatest.Matchers with Mockito
 
   }
 
+  it should "refuse request when specifying trusted=true without forUser request parameter" in {
+    val mockExchange = mock[HttpExchange]
+    val mockBcHttpServer = mock[BCHttpServer]
+    val blockChain = new TestBlockChain
+    val keysFileOps = mock[KeysFileOps]
+
+    val (user1, user2, user3) = addTestData(blockChain)
+    blockChain.size shouldBe 9
+
+    when(mockExchange.getRequestURI).thenReturn(new URI("/users?trusted=true"))
+    when(keysFileOps.isKeysDirExists("Riga", "John")).thenReturn(false)
+
+    new UsersHandler("Riga", mockBcHttpServer, blockChain, keysFileOps).handle(mockExchange)
+
+    verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange), Matchers.eq(SC_BAD_REQUEST),
+      Matchers.eq("User name should be specified in request query (forUser)"))
+
+  }
+
+  it should "refuse request when referencing user with non-existing keys" in {
+    val mockExchange = mock[HttpExchange]
+    val mockBcHttpServer = mock[BCHttpServer]
+    val blockChain = new TestBlockChain
+    val keysFileOps = mock[KeysFileOps]
+
+    val (user1, user2, user3) = addTestData(blockChain)
+    blockChain.size shouldBe 9
+
+    when(mockExchange.getRequestURI).thenReturn(new URI("/users?trusted=true&forUser=John"))
+    when(keysFileOps.isKeysDirExists("Riga", "John")).thenReturn(false)
+
+    new UsersHandler("Riga", mockBcHttpServer, blockChain, keysFileOps).handle(mockExchange)
+
+    verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange), Matchers.eq(SC_BAD_REQUEST),
+      Matchers.eq("User John doesn't exist"))
+
+  }
+
+  it should "find existing user by name" in {
+    val mockExchange = mock[HttpExchange]
+    val mockBcHttpServer = mock[BCHttpServer]
+    val blockChain = new TestBlockChain
+    val keysFileOps = mock[KeysFileOps]
+
+    val (user1, user2, user3) = addTestData(blockChain)
+    blockChain.size shouldBe 9
+
+    when(mockExchange.getRequestURI).thenReturn(new URI("/users/Strauss"))
+
+    new UsersHandler("Riga", mockBcHttpServer, blockChain, keysFileOps).handle(mockExchange)
+
+    verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange), Matchers.eq(user3.toString))
+  }
+
   def addTestData(blockChain: BlockChain) = {
     val publicKey1 = "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEDibd8O5I928ZnTU7RYTy6Od3K3SrGlC+V8lkMYrdJuzT9Ig/Iq8JciaukxCYmVSO1mZuC65xMkxSb5Q0rNZ8og=="
     val publicKey2 = "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEp0qOMxie16K1oArb+FGKB6YSbl+Hz3pLsVI4r6zWMXmtuD6QFZxGDhbvPO6c969SFEW5VmOSelb8ck+2TysK/Q=="
@@ -91,6 +146,7 @@ class UsersHandlerTest extends FlatSpec with org.scalatest.Matchers with Mockito
 
     (user1, user2, user3)
   }
+
 
   def addSignedFact(statement: Statement, bc: BlockChain) = {
     val signedStatement1 = SignedStatementMessage(statement, Nil)
