@@ -14,7 +14,7 @@ import org.mockito.Mockito.{never, times, verify, when}
 import org.scalatest.FlatSpec
 import org.scalatest.mockito.MockitoSugar
 import peers.{PeerAccess, PeerTransport}
-import util.{DateTimeUtil, StringConverter}
+import util.{DateTimeUtil, FileOps, StringConverter}
 
 import scala.collection.JavaConverters._
 import org.apache.http.HttpStatus
@@ -52,7 +52,8 @@ class InitPaymentHandlerTest extends FlatSpec with org.scalatest.Matchers with M
     when(keysFileOps.readKeyFromFile("Riga", "Igor", "privateKey")).thenReturn("MEECAQAwEwYHKoZIzj0CAQYIKoZIzj0DAQcEJzAlAgEBBCC94HoY839pqOB/m2D00X4+8vsM6kzUby8gk7Eq8XVsgw==")
     when(keysFileOps.readKeyFromFile("Riga", "Igor", "publicKey")).thenReturn(fromPublicKey)
 
-    new InitPaymentHandler("Riga", mockBcHttpServer, statementsCache, keysFileOps, peerAccess, blockChain).handle(mockExchange)
+    val httpContext = HttpContext("Riga", mockBcHttpServer, blockChain, statementsCache, peerAccess, keysFileOps, mock[FileOps])
+    new InitPaymentHandler(httpContext).handle(mockExchange)
 
     statementsCache.size shouldBe 1
     blockChain.size shouldBe 1
@@ -110,7 +111,8 @@ class InitPaymentHandlerTest extends FlatSpec with org.scalatest.Matchers with M
     when(keysFileOps.readKeyFromFile("Riga", "John", "privateKey")).thenReturn("MEECAQAwEwYHKoZIzj0CAQYIKoZIzj0DAQcEJzAlAgEBBCAimtA53n1kVMdG1OleLJtfbFnjr1zU5smd04yfbdWpUw==")
     when(keysFileOps.readKeyFromFile("Riga", "John", "publicKey")).thenReturn(toPublicKey)
 
-    new InitPaymentHandler("Riga", mockBcHttpServer, statementsCache, keysFileOps, peerAccess, blockChain).handle(mockExchange)
+    val httpContext = HttpContext("Riga", mockBcHttpServer, blockChain, statementsCache, peerAccess, keysFileOps, mock[FileOps])
+    new InitPaymentHandler(httpContext).handle(mockExchange)
 
     statementsCache.size shouldBe 0
     verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange),
@@ -157,7 +159,9 @@ class InitPaymentHandlerTest extends FlatSpec with org.scalatest.Matchers with M
 
     when(keysFileOps.getUserByKey("Riga", fromPublicKey)).thenReturn(None)
     when(keysFileOps.getUserByKey("Riga", "(publicKeyTo)")).thenReturn(None)
-    new InitPaymentHandler("Riga", mockBcHttpServer, statementsCache, keysFileOps, peerAccess, blockChain).handle(mockExchange)
+    val httpContext = HttpContext("Riga", mockBcHttpServer, blockChain, statementsCache, peerAccess,
+      keysFileOps, mock[FileOps])
+    new InitPaymentHandler(httpContext).handle(mockExchange)
 
     statementsCache.size shouldBe 0
     blockChain.size shouldBe 1

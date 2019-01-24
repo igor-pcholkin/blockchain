@@ -5,9 +5,6 @@ import java.io.IOException
 import business.Money
 import com.sun.net.httpserver.{HttpExchange, HttpHandler}
 import messages.SignedStatementMessage
-import core.{BlockChain, StatementsCache}
-import keys.KeysFileOps
-import peers.PeerAccess
 
 import scala.io.Source
 import io.circe.generic.auto._
@@ -18,9 +15,13 @@ import util.HttpUtil
 
 case class InitPaymentRequest(from: String, to: String, currency: String, amount: Double)
 
-class InitPaymentHandler(nodeName: String, override val bcHttpServer: BCHttpServer, override val statementsCache: StatementsCache,
-                         implicit val keysFileOps: KeysFileOps, override val peerAccess: PeerAccess, override val bc: BlockChain)
-    extends HttpHandler with HttpUtil with MsgHandlerOps {
+class InitPaymentHandler(hc: HttpContext) extends HttpHandler with HttpUtil with MsgHandlerOps {
+
+  override val blockChain = hc.blockChain
+  override val bcHttpServer = hc.bcHttpServer
+  override val statementsCache = hc.statementsCache
+  override val peerAccess = hc.peerAccess
+
   @throws[IOException]
   def handle(exchange: HttpExchange): Unit = {
     withHttpMethod ("POST", exchange, bcHttpServer) {
@@ -42,17 +43,18 @@ class InitPaymentHandler(nodeName: String, override val bcHttpServer: BCHttpServ
 
   private def processPaymentRequest(initPaymentRequest: InitPaymentRequest, exchange: HttpExchange): Unit = {
     val asset = Money (initPaymentRequest.currency, (BigDecimal (initPaymentRequest.amount) * 100).toLong)
-    Payment.verifyAndCreate(nodeName, initPaymentRequest.from, initPaymentRequest.to, asset) match {
+    Payment.verifyAndCreate(hc.nodeName, initPaymentRequest.from, initPaymentRequest.to, asset) match {
       case Right(payment) =>
-        val signedStatement = SignedStatementMessage(payment, Seq(initPaymentRequest.from, initPaymentRequest.to), nodeName,
-          keysFileOps)
+        val signedStatement = SignedStatementMessage(payment,
+          Seq(initPaymentRequest.from, initPaymentRequest.to), hc.nodeName, hc.keysFileOps)
         processSignedStatement(signedStatement, initPaymentRequest.from, exchange)
       case Left(error) =>
         bcHttpServer.sendHttpResponse (exchange, SC_BAD_REQUEST, error)
     }
   }
 
-  private def processSignedStatement(signedStatement: SignedStatementMessage, fromPublicKey: String, exchange: HttpExchange): Unit = {
+  private def processSignedStatement(signedStatement: SignedStatementMessage,
+    fromPublicKey: String, exchange: HttpExchange): Unit = {
     signedStatement.providedSignaturesForKeys.find(_._1 == fromPublicKey) match {
       case Some(_) =>
         if (signedStatement.isSignedByAllKeys) {

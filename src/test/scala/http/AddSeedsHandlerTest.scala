@@ -4,7 +4,8 @@ import java.io.ByteArrayInputStream
 import java.util.concurrent.ConcurrentLinkedQueue
 
 import com.sun.net.httpserver.HttpExchange
-import core.TestBlockChain
+import core.{StatementsCache, TestBlockChain}
+import keys.KeysFileOps
 import messages.{AddPeersMessage, PullNewsMessage}
 import org.apache.http.HttpStatus
 import org.mockito.Matchers
@@ -33,6 +34,7 @@ class AddSeedsHandlerTest extends FlatSpec with org.scalatest.Matchers with Mock
 
     val peerAccess = mock[PeerAccess]
     val fileOps = mock[FileOps]
+    val keysFileOps = mock[KeysFileOps]
     val peers = Seq("blabla.com:6001", "lala.com:6002", "localhost:6001", "localhost:6002")
     val peersAsQueue = new ConcurrentLinkedQueue[String]()
     peersAsQueue.addAll(peers.asJava)
@@ -40,7 +42,8 @@ class AddSeedsHandlerTest extends FlatSpec with org.scalatest.Matchers with Mock
 
     when(peerAccess.localHost).thenReturn(mockLocalHost)
 
-    new AddSeedsHandler(mockBcHttpServer, peerAccess, "Riga", fileOps, bc).handle(mockExchange)
+    val httpContext = HttpContext("Riga", mockBcHttpServer, bc, new StatementsCache, peerAccess, keysFileOps, fileOps)
+    new AddSeedsHandler(httpContext).handle(mockExchange)
 
     verify(peerAccess, times(1)).addAll(peers)
     verify(fileOps, times(1)).createDirIfNotExists(Matchers.eq("Riga"))

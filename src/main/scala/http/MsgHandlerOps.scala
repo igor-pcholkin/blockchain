@@ -9,16 +9,16 @@ trait MsgHandlerOps {
 
   val bcHttpServer: BCHttpServer
   val peerAccess: PeerAccess
-  val bc: BlockChain
+  val blockChain: BlockChain
   val statementsCache: StatementsCache
 
   def processStatementAsFact(signedStatement: SignedStatementMessage, exchange: HttpExchange): Unit = {
-    if (bc.containsFactInside(signedStatement.statement)) {
+    if (blockChain.containsFactInside(signedStatement.statement)) {
       bcHttpServer.sendHttpResponse(exchange, "Refused new block creation - existing fact.")
     } else {
-      bc.addFactToNewBlock(signedStatement)
+      blockChain.addFactToNewBlock(signedStatement)
       statementsCache.remove(signedStatement.statement)
-      peerAccess.sendMsg(NewBlockMessage(bc.getLatestBlock, bc.size - 1))
+      peerAccess.sendMsg(NewBlockMessage(blockChain.getLatestBlock, blockChain.size - 1))
       bcHttpServer.sendHttpResponse(exchange, "New fact has been created and added to blockchain.")
     }
   }

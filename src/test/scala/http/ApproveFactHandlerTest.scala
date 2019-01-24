@@ -15,14 +15,16 @@ import org.scalatest.FlatSpec
 import org.scalatest.mockito.MockitoSugar
 import peers.PeerAccess
 import statements.ApprovedFact
-import util.{DateTimeUtil, StringConverter}
+import util.{DateTimeUtil, FileOps, StringConverter}
 
-class ApproveFactHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSugar with DateTimeUtil with KeysGenerator with StringConverter {
+class ApproveFactHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSugar with DateTimeUtil
+  with KeysGenerator with StringConverter {
   "ApproveFactHandler" should "create new fact (another fact approval) in a new block" in {
     val mockBcHttpServer = mock[BCHttpServer]
     val mockExchange = mock[HttpExchange]
     val mockLocalHost = mock[LocalHost]
     val keysFileOps = mock[KeysFileOps]
+    val fileOps = mock[FileOps]
     val peerAccess = mock[PeerAccess]
     val blockChain = new TestBlockChain
     val statementsCache = new StatementsCache
@@ -54,7 +56,9 @@ class ApproveFactHandlerTest extends FlatSpec with org.scalatest.Matchers with M
     when(keysFileOps.readKeyFromFile("Riga", userName, "publicKey")).thenReturn(publicKey)
     when(keysFileOps.getUserByKey("Riga", publicKey)).thenReturn(Some(userName))
 
-    new ApproveFactHandler("Riga", mockBcHttpServer, keysFileOps, peerAccess, blockChain, statementsCache).handle(mockExchange)
+    val httpContext = HttpContext("Riga", mockBcHttpServer, blockChain, statementsCache, peerAccess,
+      keysFileOps, fileOps)
+    new ApproveFactHandler(httpContext).handle(mockExchange)
 
     verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange),
       Matchers.eq("New fact has been created and added to blockchain."))
@@ -79,6 +83,7 @@ class ApproveFactHandlerTest extends FlatSpec with org.scalatest.Matchers with M
     val mockExchange = mock[HttpExchange]
     val mockLocalHost = mock[LocalHost]
     val keysFileOps = mock[KeysFileOps]
+    val fileOps = mock[FileOps]
     val peerAccess = mock[PeerAccess]
     val blockChain = new TestBlockChain
     val statementsCache = new StatementsCache
@@ -115,7 +120,9 @@ class ApproveFactHandlerTest extends FlatSpec with org.scalatest.Matchers with M
     when(keysFileOps.readKeyFromFile("Riga", userName, "publicKey")).thenReturn(publicKey)
     when(keysFileOps.getUserByKey("Riga", publicKey)).thenReturn(Some(userName))
 
-    new ApproveFactHandler("Riga", mockBcHttpServer, keysFileOps, peerAccess, blockChain, statementsCache).handle(mockExchange)
+    val httpContext = HttpContext("Riga", mockBcHttpServer, blockChain, statementsCache, peerAccess,
+      keysFileOps, fileOps)
+    new ApproveFactHandler(httpContext).handle(mockExchange)
 
     verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange),
       Matchers.eq("Refused new block creation - existing fact."))
@@ -130,6 +137,7 @@ class ApproveFactHandlerTest extends FlatSpec with org.scalatest.Matchers with M
     val mockExchange = mock[HttpExchange]
     val mockLocalHost = mock[LocalHost]
     val keysFileOps = mock[KeysFileOps]
+    val fileOps = mock[FileOps]
     val peerAccess = mock[PeerAccess]
     val blockChain = new TestBlockChain
     val statementsCache = new StatementsCache
@@ -154,7 +162,9 @@ class ApproveFactHandlerTest extends FlatSpec with org.scalatest.Matchers with M
     when(mockExchange.getRequestMethod).thenReturn("PUT")
     when(mockExchange.getRequestBody).thenReturn(is)
 
-    new ApproveFactHandler("Riga", mockBcHttpServer, keysFileOps, peerAccess, blockChain, statementsCache).handle(mockExchange)
+    val httpContext = HttpContext("Riga", mockBcHttpServer, blockChain, statementsCache, peerAccess,
+      keysFileOps, fileOps)
+    new ApproveFactHandler(httpContext).handle(mockExchange)
 
     verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange), Matchers.eq(SC_BAD_REQUEST),
       Matchers.eq("\"factHash\" field in approve request is missing."))
@@ -169,6 +179,7 @@ class ApproveFactHandlerTest extends FlatSpec with org.scalatest.Matchers with M
     val mockExchange = mock[HttpExchange]
     val mockLocalHost = mock[LocalHost]
     val keysFileOps = mock[KeysFileOps]
+    val fileOps = mock[FileOps]
     val peerAccess = mock[PeerAccess]
     val blockChain = new TestBlockChain
     val statementsCache = new StatementsCache
@@ -193,7 +204,8 @@ class ApproveFactHandlerTest extends FlatSpec with org.scalatest.Matchers with M
     when(mockExchange.getRequestMethod).thenReturn("PUT")
     when(mockExchange.getRequestBody).thenReturn(is)
 
-    new ApproveFactHandler("Riga", mockBcHttpServer, keysFileOps, peerAccess, blockChain, statementsCache).handle(mockExchange)
+    val httpContext = HttpContext("Riga", mockBcHttpServer, blockChain, statementsCache, peerAccess, keysFileOps, fileOps)
+    new ApproveFactHandler(httpContext).handle(mockExchange)
 
     verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange), Matchers.eq(SC_BAD_REQUEST),
       Matchers.eq("\"approverUserName\" field in approve request is missing."))
@@ -208,6 +220,7 @@ class ApproveFactHandlerTest extends FlatSpec with org.scalatest.Matchers with M
     val mockExchange = mock[HttpExchange]
     val mockLocalHost = mock[LocalHost]
     val keysFileOps = mock[KeysFileOps]
+    val fileOps = mock[FileOps]
     val peerAccess = mock[PeerAccess]
     val blockChain = new TestBlockChain
     val statementsCache = new StatementsCache
@@ -230,7 +243,8 @@ class ApproveFactHandlerTest extends FlatSpec with org.scalatest.Matchers with M
 
     when(keysFileOps.isKeysDirExists("Riga", userName)).thenReturn(true)
 
-    new ApproveFactHandler("Riga", mockBcHttpServer, keysFileOps, peerAccess, blockChain, statementsCache).handle(mockExchange)
+    val httpContext = HttpContext("Riga", mockBcHttpServer, blockChain, statementsCache, peerAccess, keysFileOps, fileOps)
+    new ApproveFactHandler(httpContext).handle(mockExchange)
 
     verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange), Matchers.eq(SC_BAD_REQUEST),
       Matchers.eq("Fact with given hash doesn't exist"))
@@ -245,6 +259,7 @@ class ApproveFactHandlerTest extends FlatSpec with org.scalatest.Matchers with M
     val mockExchange = mock[HttpExchange]
     val mockLocalHost = mock[LocalHost]
     val keysFileOps = mock[KeysFileOps]
+    val fileOps = mock[FileOps]
     val peerAccess = mock[PeerAccess]
     val blockChain = new TestBlockChain
     val statementsCache = new StatementsCache
@@ -271,7 +286,8 @@ class ApproveFactHandlerTest extends FlatSpec with org.scalatest.Matchers with M
 
     when(keysFileOps.isKeysDirExists("Riga", userName)).thenReturn(false)
 
-    new ApproveFactHandler("Riga", mockBcHttpServer, keysFileOps, peerAccess, blockChain, statementsCache).handle(mockExchange)
+    val httpContext = HttpContext("Riga", mockBcHttpServer, blockChain, statementsCache, peerAccess, keysFileOps, fileOps)
+    new ApproveFactHandler(httpContext).handle(mockExchange)
 
     verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange), Matchers.eq(SC_BAD_REQUEST),
       Matchers.eq(s"User $userName doesn't exist"))

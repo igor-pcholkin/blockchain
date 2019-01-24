@@ -1,27 +1,29 @@
 package http
 
 import java.io.IOException
-import java.time.LocalDateTime
 
 import com.sun.net.httpserver.{HttpExchange, HttpHandler}
 import messages.SignedStatementMessage
-import core.{BlockChain, SHA256, StatementsCache}
-import keys.{KeysFileOps, KeysGenerator, KeysSerializator}
-import peers.PeerAccess
+import keys.{KeysGenerator, KeysSerializator}
 
 import scala.io.Source
 import io.circe.generic.auto._
 import io.circe.parser._
 import org.apache.http.HttpStatus.SC_BAD_REQUEST
-import statements.{ApprovedFact, RegisteredUser}
-import user.Photo
+import statements.ApprovedFact
 import util.{HttpUtil, StringConverter}
 
 case class ApproveFactRequest(factHash: String, approverUserName: String)
 
-class ApproveFactHandler(nodeName: String, override val bcHttpServer: BCHttpServer, implicit val keysFileOps: KeysFileOps,
-    val peerAccess: PeerAccess, override val bc: BlockChain, override val statementsCache: StatementsCache)
+class ApproveFactHandler(hc: HttpContext)
   extends HttpHandler with HttpUtil with KeysGenerator with KeysSerializator with MsgHandlerOps with StringConverter {
+
+  override val blockChain = hc.blockChain
+  override val bcHttpServer = hc.bcHttpServer
+  override val keysFileOps = hc.keysFileOps
+  override val statementsCache = hc.statementsCache
+  override val peerAccess = hc.peerAccess
+
   @throws[IOException]
   def handle(exchange: HttpExchange): Unit = {
     withHttpMethod ("PUT", exchange, bcHttpServer) {
@@ -42,14 +44,15 @@ class ApproveFactHandler(nodeName: String, override val bcHttpServer: BCHttpServ
   }
 
   private def approveFact(approveFactRequest: ApproveFactRequest, exchange: HttpExchange): Unit = {
-    if (!keysFileOps.isKeysDirExists(nodeName, approveFactRequest.approverUserName)) {
-      bcHttpServer.sendHttpResponse (exchange, SC_BAD_REQUEST, s"User ${approveFactRequest.approverUserName} doesn't exist")
+    if (!keysFileOps.isKeysDirExists(hc.nodeName, approveFactRequest.approverUserName)) {
+      bcHttpServer.sendHttpResponse(exchange, SC_BAD_REQUEST,
+        s"User ${approveFactRequest.approverUserName} doesn't exist")
     } else {
-      val approverPublicKey = readPublicKey(nodeName, approveFactRequest.approverUserName)
+      val approverPublicKey = readPublicKey(hc.nodeName, approveFactRequest.approverUserName)
       findFact(approveFactRequest.factHash) match {
         case Some(block) =>
           val statement = ApprovedFact(block.factHash, approverPublicKey)
-          val signedStatement = SignedStatementMessage(statement, Seq(approverPublicKey), nodeName, keysFileOps)
+          val signedStatement = SignedStatementMessage(statement, Seq(approverPublicKey), hc.nodeName, keysFileOps)
           processStatementAsFact(signedStatement, exchange)
         case None =>
           bcHttpServer.sendHttpResponse(exchange, SC_BAD_REQUEST, s"Fact with given hash doesn't exist")
@@ -57,7 +60,7 @@ class ApproveFactHandler(nodeName: String, override val bcHttpServer: BCHttpServ
     }
   }
 
-  private def findFact(factHash: String) = bc.blocksFrom(0).find(_.factHash == factHash)
+  private def findFact(factHash: String) = blockChain.blocksFrom(0).find(_.factHash == factHash)
 
   private def correctValidationError(exchange: HttpExchange, error: String) = {
     Stream("factHash", "approverUserName").flatMap {

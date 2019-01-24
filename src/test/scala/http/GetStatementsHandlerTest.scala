@@ -11,7 +11,9 @@ import org.mockito.Matchers
 import org.mockito.Mockito.{times, verify, when}
 import org.scalatest.FlatSpec
 import org.scalatest.mockito.MockitoSugar
+import peers.PeerAccess
 import statements.Payment
+import util.FileOps
 
 class GetStatementsHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSugar {
   "GetStatementsHandler" should "return statements on request" in {
@@ -41,7 +43,9 @@ class GetStatementsHandlerTest extends FlatSpec with org.scalatest.Matchers with
     val signedStatement2 = SignedStatementMessage(payment2, Seq(toPublicKey, fromPublicKey), "Riga", keysFileOps)
     statementsCache.add(signedStatement2)
 
-    new GetStatementsHandler(mockBcHttpServer, statementsCache).handle(mockExchange)
+    val httpContext = HttpContext("Riga", mockBcHttpServer, new TestBlockChain, statementsCache, mock[PeerAccess],
+      keysFileOps, mock[FileOps])
+    new GetStatementsHandler(httpContext).handle(mockExchange)
 
     // signature check is skipped, as those could be different between invocations
 

@@ -5,9 +5,7 @@ import java.time.LocalDateTime
 
 import com.sun.net.httpserver.{HttpExchange, HttpHandler}
 import messages.SignedStatementMessage
-import core.{BlockChain, StatementsCache}
-import keys.{KeysFileOps, KeysGenerator, KeysSerializator}
-import peers.PeerAccess
+import keys.{KeysGenerator, KeysSerializator}
 
 import scala.io.Source
 import io.circe.generic.auto._
@@ -17,13 +15,19 @@ import statements.RegisteredUser
 import user.Photo
 import util.HttpUtil
 
-case class RegisterUserRequest(name: String, email: String, birthDate: Option[LocalDateTime] = None, phone: Option[String] = None,
-                address: Option[String] = None, linkedInURL: Option[String] = None, facebookURL: Option[String] = None,
-                githubURL: Option[String] = None, photo: Option[Photo] = None)
+case class RegisterUserRequest(name: String, email: String, birthDate: Option[LocalDateTime] = None,
+     phone: Option[String] = None, address: Option[String] = None, linkedInURL: Option[String] = None,
+     facebookURL: Option[String] = None, githubURL: Option[String] = None, photo: Option[Photo] = None)
 
-class RegisterUserHandler(nodeName: String, override val bcHttpServer: BCHttpServer, implicit val keysFileOps: KeysFileOps,
-    val peerAccess: PeerAccess, override val bc: BlockChain, override val statementsCache: StatementsCache)
-  extends HttpHandler with HttpUtil with KeysGenerator with KeysSerializator with MsgHandlerOps {
+class RegisterUserHandler(hc: HttpContext) extends HttpHandler with HttpUtil with KeysGenerator with KeysSerializator
+  with MsgHandlerOps {
+
+  override val blockChain = hc.blockChain
+  override val bcHttpServer = hc.bcHttpServer
+  override val statementsCache = hc.statementsCache
+  override val peerAccess = hc.peerAccess
+  override val keysFileOps = hc.keysFileOps
+
   @throws[IOException]
   def handle(exchange: HttpExchange): Unit = {
     withHttpMethod ("PUT", exchange, bcHttpServer) {
@@ -46,9 +50,9 @@ class RegisterUserHandler(nodeName: String, override val bcHttpServer: BCHttpSer
   private def processUser(registerUserRequest: RegisterUserRequest, exchange: HttpExchange): Unit = {
     generateKeys(registerUserRequest.name, exchange) match {
       case Right(()) =>
-        val publicKey = readPublicKey(nodeName, registerUserRequest.name)
+        val publicKey = readPublicKey(hc.nodeName, registerUserRequest.name)
         val registeredUser = createRegisteredUser(registerUserRequest, publicKey)
-        val signedStatement = SignedStatementMessage(registeredUser, Seq(publicKey), nodeName, keysFileOps)
+        val signedStatement = SignedStatementMessage(registeredUser, Seq(publicKey), hc.nodeName, keysFileOps)
         processStatementAsFact(signedStatement, exchange)
       case Left(error) =>
         bcHttpServer.sendHttpResponse (exchange, SC_BAD_REQUEST, error)
@@ -56,23 +60,25 @@ class RegisterUserHandler(nodeName: String, override val bcHttpServer: BCHttpSer
   }
 
   private def createRegisteredUser(ru: RegisterUserRequest, publicKey: String) = {
-    RegisteredUser(ru.name, ru.email, publicKey, ru.birthDate, ru.phone, ru.address, ru.linkedInURL, ru.facebookURL, ru.githubURL, ru.photo)
+    RegisteredUser(ru.name, ru.email, publicKey, ru.birthDate, ru.phone, ru.address, ru.linkedInURL,
+      ru.facebookURL, ru.githubURL, ru.photo)
   }
 
   private def generateKeys(userName: String, exchange: HttpExchange) = {
     val mayBeQuery = Option(exchange.getRequestURI.getQuery)
     val overwriteKeys = getRequestParam(mayBeQuery, "overwriteKeys").getOrElse("false").toBoolean
     val useExistingKeys = getRequestParam(mayBeQuery, "useExistingKeys").getOrElse("false").toBoolean
-    val isUserKeysDirExists = keysFileOps.isKeysDirExists(nodeName, userName)
+    val isUserKeysDirExists = keysFileOps.isKeysDirExists(hc.nodeName, userName)
     if (!isUserKeysDirExists || overwriteKeys) {
       val keyPair = generateKeyPair()
-      writeKey(nodeName, userName, keyPair.getPrivate)
-      writeKey(nodeName, userName, keyPair.getPublic)
+      writeKey(hc.nodeName, userName, keyPair.getPrivate)
+      writeKey(hc.nodeName, userName, keyPair.getPublic)
       Right()
     } else if (isUserKeysDirExists && useExistingKeys) {
       Right()
     } else {
-      Left("Public or private key already exists, use overwriteKeys=true to overwrite, useExistingKeys=true to attach existing keys.")
+      Left(
+        """Public or private key already exists, use overwriteKeys=true to overwrite, useExistingKeys=true to attach existing keys.""".stripMargin)
     }
   }
 

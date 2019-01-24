@@ -3,12 +3,11 @@ package http
 import java.io.IOException
 
 import com.sun.net.httpserver.{HttpExchange, HttpHandler}
-import core.BlockChain
 
-class GetChainHandler(bcHttpServer: BCHttpServer, bc: BlockChain) extends HttpHandler {
+class GetChainHandler(hc: HttpContext) extends HttpHandler {
   @throws[IOException]
   def handle(exchange: HttpExchange): Unit = {
-    bcHttpServer.sendHttpResponse(exchange, bc.serialize)
+    hc.bcHttpServer.sendHttpResponse(exchange, hc.blockChain.serialize)
   }
 }
 

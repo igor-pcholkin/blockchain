@@ -3,20 +3,18 @@ package http
 import java.io.IOException
 
 import com.sun.net.httpserver.{HttpExchange, HttpHandler}
-import core.{BlockChain, StatementsCache}
 import keys.KeysGenerator
 import util.StringConverter
-import peers.PeerAccess
 
-class NodeInfoHandler(nodeName: String, bcHttpServer: BCHttpServer, peerAccess: PeerAccess, statementsCache: StatementsCache, bc: BlockChain)
+class NodeInfoHandler(hc: HttpContext)
   extends HttpHandler with KeysGenerator with StringConverter {
   @throws[IOException]
   def handle(exchange: HttpExchange): Unit = {
-    val response = s"""Node name: $nodeName
-                      |Peers: ${peerAccess.peers}
-                      |Blocks in blockchain: ${bc.size}
-                      |Size of statements cache: ${statementsCache.size}""".stripMargin
-    bcHttpServer.sendHttpResponse(exchange, response)
+    val response = s"""Node name: ${hc.nodeName}
+                      |Peers: ${hc.peerAccess.peers}
+                      |Blocks in blockchain: ${hc.blockChain.size}
+                      |Size of statements cache: ${hc.statementsCache.size}""".stripMargin
+    hc.bcHttpServer.sendHttpResponse(exchange, response)
   }
 }
 

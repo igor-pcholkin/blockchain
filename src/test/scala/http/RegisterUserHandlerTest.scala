@@ -16,9 +16,10 @@ import org.scalatest.FlatSpec
 import org.scalatest.mockito.MockitoSugar
 import peers.PeerAccess
 import statements.RegisteredUser
-import util.{DateTimeUtil, StringConverter}
+import util.{DateTimeUtil, FileOps, StringConverter}
 
-class RegisterUserHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSugar with DateTimeUtil with KeysGenerator with StringConverter {
+class RegisterUserHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSugar with DateTimeUtil
+  with KeysGenerator with StringConverter {
   "RegisterUserHandler" should "create new fact (registered user) in a new block" in {
     val mockBcHttpServer = mock[BCHttpServer]
     val mockExchange = mock[HttpExchange]
@@ -52,12 +53,16 @@ class RegisterUserHandlerTest extends FlatSpec with org.scalatest.Matchers with 
     when(keysFileOps.readKeyFromFile("Riga", userName, "privateKey")).thenReturn(privateKey)
     when(keysFileOps.readKeyFromFile("Riga", userName, "publicKey")).thenReturn(publicKey)
 
-    new RegisterUserHandler("Riga", mockBcHttpServer, keysFileOps, peerAccess, blockChain, statementsCache).handle(mockExchange)
+    val httpContext = HttpContext("Riga", mockBcHttpServer, blockChain, statementsCache, peerAccess,
+      keysFileOps, mock[FileOps])
+    new RegisterUserHandler(httpContext).handle(mockExchange)
 
     verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange),
       Matchers.eq("New fact has been created and added to blockchain."))
-    verify(keysFileOps, times(1)).writeKeyToFile(Matchers.eq("Riga"), Matchers.eq("Igor"), Matchers.eq("privateKey"), Matchers.any[String])
-    verify(keysFileOps, times(1)).writeKeyToFile(Matchers.eq("Riga"), Matchers.eq("Igor"), Matchers.eq("publicKey"), Matchers.any[String])
+    verify(keysFileOps, times(1)).writeKeyToFile(Matchers.eq("Riga"), Matchers.eq("Igor"), Matchers.eq("privateKey"),
+      Matchers.any[String])
+    verify(keysFileOps, times(1)).writeKeyToFile(Matchers.eq("Riga"), Matchers.eq("Igor"), Matchers.eq("publicKey"),
+      Matchers.any[String])
     verify(peerAccess, times(1)).sendMsg(Matchers.any[NewBlockMessage])
     verify(blockChain.chainFileOps, times(1)).writeBlock(Matchers.eq(1), Matchers.any[Block], Matchers.any[String])
 
@@ -116,12 +121,16 @@ class RegisterUserHandlerTest extends FlatSpec with org.scalatest.Matchers with 
     when(keysFileOps.readKeyFromFile("Riga", userName, "privateKey")).thenReturn(privateKey)
     when(keysFileOps.readKeyFromFile("Riga", userName, "publicKey")).thenReturn(publicKey)
 
-    new RegisterUserHandler("Riga", mockBcHttpServer, keysFileOps, peerAccess, blockChain, statementsCache).handle(mockExchange)
+    val httpContext = HttpContext("Riga", mockBcHttpServer, blockChain, statementsCache, peerAccess,
+      keysFileOps, mock[FileOps])
+    new RegisterUserHandler(httpContext).handle(mockExchange)
 
     verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange),
       Matchers.eq("Refused new block creation - existing fact."))
-    verify(keysFileOps, times(1)).writeKeyToFile(Matchers.eq("Riga"), Matchers.eq("Igor"), Matchers.eq("privateKey"), Matchers.any[String])
-    verify(keysFileOps, times(1)).writeKeyToFile(Matchers.eq("Riga"), Matchers.eq("Igor"), Matchers.eq("publicKey"), Matchers.any[String])
+    verify(keysFileOps, times(1)).writeKeyToFile(Matchers.eq("Riga"), Matchers.eq("Igor"),
+      Matchers.eq("privateKey"), Matchers.any[String])
+    verify(keysFileOps, times(1)).writeKeyToFile(Matchers.eq("Riga"), Matchers.eq("Igor"),
+      Matchers.eq("publicKey"), Matchers.any[String])
     verify(peerAccess, never).sendMsg(Matchers.any[NewBlockMessage])
     verify(blockChain.chainFileOps, never).writeBlock(Matchers.eq(1), Matchers.any[Block], Matchers.any[String])
 
@@ -146,7 +155,9 @@ class RegisterUserHandlerTest extends FlatSpec with org.scalatest.Matchers with 
     when(mockExchange.getRequestMethod).thenReturn("PUT")
     when(mockExchange.getRequestBody).thenReturn(is)
 
-    new RegisterUserHandler("Riga", mockBcHttpServer, keysFileOps, peerAccess, blockChain, statementsCache).handle(mockExchange)
+    val httpContext = HttpContext("Riga", mockBcHttpServer, blockChain, statementsCache, peerAccess,
+      keysFileOps, mock[FileOps])
+    new RegisterUserHandler(httpContext).handle(mockExchange)
 
     verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange), Matchers.eq(SC_BAD_REQUEST),
       Matchers.eq("\"name\" field in user registration is missing."))
@@ -179,7 +190,9 @@ class RegisterUserHandlerTest extends FlatSpec with org.scalatest.Matchers with 
 
     when(keysFileOps.isKeysDirExists("Riga", userName)).thenReturn(true)
 
-    new RegisterUserHandler("Riga", mockBcHttpServer, keysFileOps, peerAccess, blockChain, statementsCache).handle(mockExchange)
+    val httpContext = HttpContext("Riga", mockBcHttpServer, blockChain, statementsCache, peerAccess,
+      keysFileOps, mock[FileOps])
+    new RegisterUserHandler(httpContext).handle(mockExchange)
 
     verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange), Matchers.eq(SC_BAD_REQUEST),
       Matchers.eq("Public or private key already exists, use overwriteKeys=true to overwrite, useExistingKeys=true to attach existing keys."))
@@ -222,12 +235,16 @@ class RegisterUserHandlerTest extends FlatSpec with org.scalatest.Matchers with 
     when(keysFileOps.readKeyFromFile("Riga", userName, "privateKey")).thenReturn(privateKey)
     when(keysFileOps.readKeyFromFile("Riga", userName, "publicKey")).thenReturn(publicKey)
 
-    new RegisterUserHandler("Riga", mockBcHttpServer, keysFileOps, peerAccess, blockChain, statementsCache).handle(mockExchange)
+    val httpContext = HttpContext("Riga", mockBcHttpServer, blockChain, statementsCache, peerAccess, keysFileOps,
+      mock[FileOps])
+    new RegisterUserHandler(httpContext).handle(mockExchange)
 
     verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange),
       Matchers.eq("New fact has been created and added to blockchain."))
-    verify(keysFileOps, times(1)).writeKeyToFile(Matchers.eq("Riga"), Matchers.eq("Igor"), Matchers.eq("privateKey"), Matchers.any[String])
-    verify(keysFileOps, times(1)).writeKeyToFile(Matchers.eq("Riga"), Matchers.eq("Igor"), Matchers.eq("publicKey"), Matchers.any[String])
+    verify(keysFileOps, times(1)).writeKeyToFile(Matchers.eq("Riga"), Matchers.eq("Igor"), Matchers.eq("privateKey"),
+      Matchers.any[String])
+    verify(keysFileOps, times(1)).writeKeyToFile(Matchers.eq("Riga"), Matchers.eq("Igor"), Matchers.eq("publicKey"),
+      Matchers.any[String])
     verify(peerAccess, times(1)).sendMsg(Matchers.any[NewBlockMessage])
     verify(blockChain.chainFileOps, times(1)).writeBlock(Matchers.eq(1), Matchers.any[Block], Matchers.any[String])
 
@@ -277,12 +294,16 @@ class RegisterUserHandlerTest extends FlatSpec with org.scalatest.Matchers with 
     when(keysFileOps.readKeyFromFile("Riga", userName, "privateKey")).thenReturn(privateKey)
     when(keysFileOps.readKeyFromFile("Riga", userName, "publicKey")).thenReturn(publicKey)
 
-    new RegisterUserHandler("Riga", mockBcHttpServer, keysFileOps, peerAccess, blockChain, statementsCache).handle(mockExchange)
+    val httpContext = HttpContext("Riga", mockBcHttpServer, blockChain, statementsCache, peerAccess, keysFileOps,
+      mock[FileOps])
+    new RegisterUserHandler(httpContext).handle(mockExchange)
 
     verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange),
       Matchers.eq("New fact has been created and added to blockchain."))
-    verify(keysFileOps, never).writeKeyToFile(Matchers.eq("Riga"), Matchers.eq("Igor"), Matchers.eq("privateKey"), Matchers.any[String])
-    verify(keysFileOps, never).writeKeyToFile(Matchers.eq("Riga"), Matchers.eq("Igor"), Matchers.eq("publicKey"), Matchers.any[String])
+    verify(keysFileOps, never).writeKeyToFile(Matchers.eq("Riga"), Matchers.eq("Igor"), Matchers.eq("privateKey"),
+      Matchers.any[String])
+    verify(keysFileOps, never).writeKeyToFile(Matchers.eq("Riga"), Matchers.eq("Igor"), Matchers.eq("publicKey"),
+      Matchers.any[String])
     verify(peerAccess, times(1)).sendMsg(Matchers.any[NewBlockMessage])
     verify(blockChain.chainFileOps, times(1)).writeBlock(Matchers.eq(1), Matchers.any[Block], Matchers.any[String])
 

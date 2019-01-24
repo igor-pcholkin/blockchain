@@ -5,7 +5,7 @@ import java.time.LocalDateTime
 
 import business.Money
 import com.sun.net.httpserver.HttpExchange
-import core.{BlockChain, Statement, TestBlockChain}
+import core.{BlockChain, Statement, StatementsCache, TestBlockChain}
 import keys.KeysFileOps
 import messages.SignedStatementMessage
 import org.apache.http.HttpStatus.SC_BAD_REQUEST
@@ -13,8 +13,9 @@ import org.mockito.Matchers
 import org.mockito.Mockito.{times, verify, when}
 import org.scalatest.FlatSpec
 import org.scalatest.mockito.MockitoSugar
+import peers.PeerAccess
 import statements.{ApprovedFact, Payment, RegisteredUser}
-import util.StringConverter
+import util.{FileOps, StringConverter}
 
 class UsersHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSugar with StringConverter {
   "UsersHandler" should "return all users on request" in {
@@ -28,7 +29,9 @@ class UsersHandlerTest extends FlatSpec with org.scalatest.Matchers with Mockito
 
     when(mockExchange.getRequestURI).thenReturn(new URI("/users"))
 
-    new UsersHandler("Riga", mockBcHttpServer, blockChain, keysFileOps).handle(mockExchange)
+    val httpContext = HttpContext("Riga", mockBcHttpServer, blockChain, new StatementsCache, mock[PeerAccess],
+      keysFileOps, mock[FileOps])
+    new UsersHandler(httpContext).handle(mockExchange)
 
     verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange), Matchers.eq(
       s"""$user1
@@ -53,7 +56,9 @@ class UsersHandlerTest extends FlatSpec with org.scalatest.Matchers with Mockito
     when(keysFileOps.isKeysDirExists("Riga", "John")).thenReturn(true)
     when(keysFileOps.readKeyFromFile("Riga", "John", "publicKey")).thenReturn(publicKey2)
 
-    new UsersHandler("Riga", mockBcHttpServer, blockChain, keysFileOps).handle(mockExchange)
+    val httpContext = HttpContext("Riga", mockBcHttpServer, blockChain, new StatementsCache, mock[PeerAccess],
+      keysFileOps, mock[FileOps])
+    new UsersHandler(httpContext).handle(mockExchange)
 
     verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange), Matchers.eq(
       s"""$user1
@@ -74,7 +79,9 @@ class UsersHandlerTest extends FlatSpec with org.scalatest.Matchers with Mockito
     when(mockExchange.getRequestURI).thenReturn(new URI("/users?trusted=true"))
     when(keysFileOps.isKeysDirExists("Riga", "John")).thenReturn(false)
 
-    new UsersHandler("Riga", mockBcHttpServer, blockChain, keysFileOps).handle(mockExchange)
+    val httpContext = HttpContext("Riga", mockBcHttpServer, blockChain, new StatementsCache, mock[PeerAccess],
+      keysFileOps, mock[FileOps])
+    new UsersHandler(httpContext).handle(mockExchange)
 
     verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange), Matchers.eq(SC_BAD_REQUEST),
       Matchers.eq("User name should be specified in request query (forUser)"))
@@ -93,7 +100,9 @@ class UsersHandlerTest extends FlatSpec with org.scalatest.Matchers with Mockito
     when(mockExchange.getRequestURI).thenReturn(new URI("/users?trusted=true&forUser=John"))
     when(keysFileOps.isKeysDirExists("Riga", "John")).thenReturn(false)
 
-    new UsersHandler("Riga", mockBcHttpServer, blockChain, keysFileOps).handle(mockExchange)
+    val httpContext = HttpContext("Riga", mockBcHttpServer, blockChain, new StatementsCache, mock[PeerAccess],
+      keysFileOps, mock[FileOps])
+    new UsersHandler(httpContext).handle(mockExchange)
 
     verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange), Matchers.eq(SC_BAD_REQUEST),
       Matchers.eq("User John doesn't exist"))
@@ -111,7 +120,9 @@ class UsersHandlerTest extends FlatSpec with org.scalatest.Matchers with Mockito
 
     when(mockExchange.getRequestURI).thenReturn(new URI("/users/Strauss"))
 
-    new UsersHandler("Riga", mockBcHttpServer, blockChain, keysFileOps).handle(mockExchange)
+    val httpContext = HttpContext("Riga", mockBcHttpServer, blockChain, new StatementsCache, mock[PeerAccess],
+      keysFileOps, mock[FileOps])
+    new UsersHandler(httpContext).handle(mockExchange)
 
     verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange), Matchers.eq(user3.toString))
   }
@@ -133,9 +144,11 @@ class UsersHandlerTest extends FlatSpec with org.scalatest.Matchers with Mockito
 
     blockChain.add(blockChain.genNextBlock("randomFact2".getBytes))
 
-    addSignedFact(Payment.verifyAndCreate("Riga", publicKey1, publicKey2, Money("EUR", 2025), LocalDateTime.of(2018, 12, 1, 15, 0)).right.get, blockChain)
+    addSignedFact(Payment.verifyAndCreate("Riga", publicKey1, publicKey2, Money("EUR", 2025),
+      LocalDateTime.of(2018, 12, 1, 15, 0)).right.get, blockChain)
 
-    addSignedFact(Payment.verifyAndCreate("Riga", publicKey1, publicKey2, Money("EUR", 3035), LocalDateTime.of(2019, 1, 6, 12, 5)).right.get, blockChain)
+    addSignedFact(Payment.verifyAndCreate("Riga", publicKey1, publicKey2, Money("EUR", 3035),
+      LocalDateTime.of(2019, 1, 6, 12, 5)).right.get, blockChain)
 
     val user3 = RegisteredUser("Levi Strauss", "levis@gmail.com", publicKey3)
     addSignedFact(user3, blockChain)

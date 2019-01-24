@@ -4,7 +4,7 @@ import java.time.LocalDateTime
 
 import business.Money
 import com.sun.net.httpserver.HttpExchange
-import core.{SHA256, TestBlockChain}
+import core.{StatementsCache, TestBlockChain}
 import keys.KeysFileOps
 import messages.SignedStatementMessage
 import org.mockito.Matchers
@@ -12,8 +12,9 @@ import org.mockito.Mockito.{times, verify, when}
 import org.scalatest.FlatSpec
 import org.scalatest.mockito.MockitoSugar
 import org.slf4j.Logger
+import peers.PeerAccess
 import statements.Payment
-import util.StringConverter
+import util.{FileOps, StringConverter}
 
 class GetFactsHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSugar with StringConverter {
   "GetFactsHandler" should "return facts on request" in {
@@ -35,12 +36,14 @@ class GetFactsHandlerTest extends FlatSpec with org.scalatest.Matchers with Mock
     when(keysFileOps.readKeyFromFile("Riga", "John", "privateKey")).thenReturn("MEECAQAwEwYHKoZIzj0CAQYIKoZIzj0DAQcEJzAlAgEBBCAimtA53n1kVMdG1OleLJtfbFnjr1zU5smd04yfbdWpUw==")
     when(keysFileOps.readKeyFromFile("Riga", "John", "publicKey")).thenReturn(toPublicKey)
 
-    val payment1 = Payment.verifyAndCreate("Riga", fromPublicKey, toPublicKey, Money("EUR", 2025), LocalDateTime.of(2018, 12, 1, 15, 0)).right.get
+    val payment1 = Payment.verifyAndCreate("Riga", fromPublicKey, toPublicKey, Money("EUR", 2025),
+      LocalDateTime.of(2018, 12, 1, 15, 0)).right.get
     val signedStatement1 = SignedStatementMessage(payment1, Seq(fromPublicKey, toPublicKey), "Riga", keysFileOps)
     blockChain.addFactToNewBlock(signedStatement1)
     val paymentHash1 = blockChain.getLatestBlock.factHash
 
-    val payment2 = Payment.verifyAndCreate("Riga", toPublicKey, fromPublicKey, Money("EUR", 3035), LocalDateTime.of(2019, 1, 6, 12, 5)).right.get
+    val payment2 = Payment.verifyAndCreate("Riga", toPublicKey, fromPublicKey, Money("EUR", 3035),
+      LocalDateTime.of(2019, 1, 6, 12, 5)).right.get
     val signedStatement2 = SignedStatementMessage(payment2, Seq(toPublicKey, fromPublicKey), "Riga", keysFileOps)
     blockChain.addFactToNewBlock(signedStatement2)
     val paymentHash2 = blockChain.getLatestBlock.factHash
@@ -48,7 +51,9 @@ class GetFactsHandlerTest extends FlatSpec with org.scalatest.Matchers with Mock
     val newBlock = blockChain.genNextBlock("brokenFact".getBytes)
     blockChain.add(newBlock)
 
-    val getFactsHandler = new GetFactsHandler(mockBcHttpServer, blockChain) {
+    val httpContext = HttpContext("Riga", mockBcHttpServer, blockChain, new StatementsCache, mock[PeerAccess],
+      keysFileOps, mock[FileOps])
+    val getFactsHandler = new GetFactsHandler(httpContext) {
       override val logger = mock[Logger]
     }
     getFactsHandler.handle(mockExchange)
