@@ -42,6 +42,7 @@ Uses of application present in the project is determined only by a current (core
 For now it is possible:
 - register users and create "chains of trust" between them
 - register ad-hoc money transfers between users
+
 When introducing new facts and creating new http endpoints supporting them a scope of the application uses could be extended almost infinitely.
 
 ## Running the app
