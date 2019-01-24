@@ -18,8 +18,9 @@ object SignedStatementMessage {
   * SignedStatement is a wrapper which attaches signatures to statements.
   * As opposed to facts, statements are not stored in blockchain.
   */
-case class SignedStatementMessage(statement: Statement, publicKeysRequiredToSignEncoded: Seq[String], providedSignaturesForKeys: Seq[(String, String)] = Nil)
-  extends Message with StringConverter {
+case class SignedStatementMessage(override val statement: Statement, publicKeysRequiredToSignEncoded: Seq[String],
+                                  override val providedSignaturesForKeys: Seq[(String, String)] = Nil)
+  extends SignedStatementLike with Message with StringConverter {
 
   def addSignature(publicKey: String, signature: String): SignedStatementMessage = {
     copy(providedSignaturesForKeys = providedSignaturesForKeys :+ (publicKey, signature))

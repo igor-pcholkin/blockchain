@@ -87,9 +87,9 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
 
     val payment = Payment.verifyAndCreate("Riga", fromPublicKey, toPublicKey, Money("EUR", 2025)).right.get
     val signedStatement = SignedStatementMessage(payment, Seq(fromPublicKey, toPublicKey), "Riga", keysFileOps)
-    val tamperedMessage = payment.copy(money = Money("EUR", 202500))
-    val tamperedStatement = signedStatement.copy(statement = tamperedMessage)
-    val messageEnvelope = MessageEnvelope(tamperedStatement, "localhost")
+    val tamperedPayment = payment.copy(money = Money("EUR", 202500))
+    val tamperedSignedStatement = signedStatement.copy(statement = tamperedPayment)
+    val messageEnvelope = MessageEnvelope(tamperedSignedStatement, "localhost")
     val is = new ByteArrayInputStream(JsonSerializer.serialize(messageEnvelope).getBytes)
 
     when(mockExchange.getRequestMethod).thenReturn("PUT")
@@ -100,11 +100,11 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
     new MsgHandler(httpContext).handle(mockExchange)
 
     verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange),
-      Matchers.eq(HttpStatus.SC_BAD_REQUEST), Matchers.eq("Initial payment message validation failed."))
+      Matchers.eq(HttpStatus.SC_BAD_REQUEST), Matchers.eq("Statement validation failed."))
     verify(peerAccess, never).sendMsg(Matchers.any[NewBlockMessage])
     verify(peerAccess, times(1)).add(Matchers.eq("localhost"))
 
-    statementsCache.contains(tamperedStatement) shouldBe false
+    statementsCache.contains(tamperedSignedStatement) shouldBe false
     blockChain.size shouldBe 1
 
   }
@@ -292,8 +292,22 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
     val keysFileOps = mock[KeysFileOps]
     val peerAccess = mock[PeerAccess]
 
-    val payment = Payment.verifyAndCreate("Riga", "fromPublicKey", "toPublicKey", Money("EUR", 2025)).right.get
-    val signedStatement = SignedStatementMessage(payment, Nil)
+    val fromPublicKey = "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEDibd8O5I928ZnTU7RYTy6Od3K3SrGlC+V8lkMYrdJuzT9Ig/Iq8JciaukxCYmVSO1mZuC65xMkxSb5Q0rNZ8og=="
+    val toPublicKey = "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEp0qOMxie16K1oArb+FGKB6YSbl+Hz3pLsVI4r6zWMXmtuD6QFZxGDhbvPO6c969SFEW5VmOSelb8ck+2TysK/Q=="
+
+    when(keysFileOps.getUserByKey("Riga", fromPublicKey)).thenReturn(Some("Igor"))
+    // needed to sign payment request message by public key of creator
+    when(keysFileOps.readKeyFromFile("Riga", "Igor", "privateKey")).thenReturn("MEECAQAwEwYHKoZIzj0CAQYIKoZIzj0DAQcEJzAlAgEBBCC94HoY839pqOB/m2D00X4+8vsM6kzUby8gk7Eq8XVsgw==")
+    when(keysFileOps.readKeyFromFile("Riga", "Igor", "publicKey")).thenReturn(fromPublicKey)
+    // whether payment transaction could be created and signed
+    when(keysFileOps.getUserByKey("Riga", toPublicKey)).thenReturn(Some("John"))
+    // needed to sign payment transaction by public key of local node's owner
+    when(keysFileOps.readKeyFromFile("Riga", "John", "privateKey")).thenReturn("MEECAQAwEwYHKoZIzj0CAQYIKoZIzj0DAQcEJzAlAgEBBCAimtA53n1kVMdG1OleLJtfbFnjr1zU5smd04yfbdWpUw==")
+    when(keysFileOps.readKeyFromFile("Riga", "John", "publicKey")).thenReturn(toPublicKey)
+
+    val payment = Payment.verifyAndCreate("Riga", fromPublicKey, toPublicKey, Money("EUR", 2025)).right.get
+    val signedStatement = SignedStatementMessage(payment, Seq(fromPublicKey, toPublicKey), "Riga", keysFileOps)
+
     val fact = Fact(signedStatement.statement, signedStatement.providedSignaturesForKeys)
     val serializedFact = JsonSerializer.serialize(fact).getBytes
     val block = Block(CURRENT_BLOCK_VERSION, blockChain.getLatestBlock.hash, LocalDateTime.of(2018, 12, 21, 15, 0, 0),
@@ -326,6 +340,62 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
     verify(peerAccess, times(1)).add(Matchers.eq("localhost"))
     verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange),
       Matchers.eq("New block received and added to blockchain."))
+  }
+
+  it should "refuse to add a new block to blockchain when it arrives from another node and fails verification" in {
+    val mockExchange = mock[HttpExchange]
+    val mockBcHttpServer = mock[BCHttpServer]
+    val blockChain = new TestBlockChain
+    val statementsCache = new StatementsCache()
+    val keysFileOps = mock[KeysFileOps]
+    val peerAccess = mock[PeerAccess]
+
+    val fromPublicKey = "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEDibd8O5I928ZnTU7RYTy6Od3K3SrGlC+V8lkMYrdJuzT9Ig/Iq8JciaukxCYmVSO1mZuC65xMkxSb5Q0rNZ8og=="
+    val toPublicKey = "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEp0qOMxie16K1oArb+FGKB6YSbl+Hz3pLsVI4r6zWMXmtuD6QFZxGDhbvPO6c969SFEW5VmOSelb8ck+2TysK/Q=="
+
+    when(keysFileOps.getUserByKey("Riga", fromPublicKey)).thenReturn(Some("Igor"))
+    // needed to sign payment request message by public key of creator
+    when(keysFileOps.readKeyFromFile("Riga", "Igor", "privateKey")).thenReturn("MEECAQAwEwYHKoZIzj0CAQYIKoZIzj0DAQcEJzAlAgEBBCC94HoY839pqOB/m2D00X4+8vsM6kzUby8gk7Eq8XVsgw==")
+    when(keysFileOps.readKeyFromFile("Riga", "Igor", "publicKey")).thenReturn(fromPublicKey)
+    // whether payment transaction could be created and signed
+    when(keysFileOps.getUserByKey("Riga", toPublicKey)).thenReturn(Some("John"))
+    // needed to sign payment transaction by public key of local node's owner
+    when(keysFileOps.readKeyFromFile("Riga", "John", "privateKey")).thenReturn("MEECAQAwEwYHKoZIzj0CAQYIKoZIzj0DAQcEJzAlAgEBBCAimtA53n1kVMdG1OleLJtfbFnjr1zU5smd04yfbdWpUw==")
+    when(keysFileOps.readKeyFromFile("Riga", "John", "publicKey")).thenReturn(toPublicKey)
+
+    val payment = Payment.verifyAndCreate("Riga", fromPublicKey, toPublicKey, Money("EUR", 2025)).right.get
+    val signedStatement = SignedStatementMessage(payment, Seq(fromPublicKey, toPublicKey), "Riga", keysFileOps)
+    val tamperedPayment = payment.copy(money = Money("EUR", 202500))
+
+    val invalidFact = Fact(tamperedPayment, signedStatement.providedSignaturesForKeys)
+    val serializedFact = JsonSerializer.serialize(invalidFact).getBytes
+    val block = Block(CURRENT_BLOCK_VERSION, blockChain.getLatestBlock.hash, LocalDateTime.of(2018, 12, 21, 15, 0, 0),
+      serializedFact)
+    val newBlockMessage = NewBlockMessage(block, 1)
+    val messageEnvelope = MessageEnvelope(newBlockMessage, "localhost")
+    val is = new ByteArrayInputStream(JsonSerializer.serialize(messageEnvelope).getBytes)
+
+    when(mockExchange.getRequestMethod).thenReturn("PUT")
+    when(mockExchange.getRequestBody).thenReturn(is)
+
+    when(blockChain.chainFileOps.getChainDir("Riga")).thenReturn("Riga/chain")
+    when(blockChain.chainFileOps.isChainDirExists("Riga")).thenReturn(true)
+
+    blockChain.size shouldBe 1
+
+    val httpContext = HttpContext("Riga", mockBcHttpServer, blockChain, statementsCache, peerAccess,
+      keysFileOps, mock[FileOps])
+    new MsgHandler(httpContext).handle(mockExchange)
+
+    blockChain.size shouldBe 1
+
+    verify(blockChain.chainFileOps, never).writeBlock(Matchers.eq(0), Matchers.any[Block], Matchers.any[String])
+    verify(blockChain.chainFileOps, never).writeBlock(Matchers.eq(1), Matchers.any[Block], Matchers.any[String])
+    verify(peerAccess, never).sendMsg(Matchers.eq(newBlockMessage))
+    verify(peerAccess, times(1)).add(Matchers.eq("localhost"))
+    verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange),
+      Matchers.eq(HttpStatus.SC_BAD_REQUEST),
+      Matchers.eq("Verification of signatures failed for fact in received block."))
   }
 
   it should "add new block with new index to blockchain when it arrives from another node and it's date is newer than of existing block with the same index" in {
@@ -471,7 +541,7 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
     verify(blockChain.chainFileOps, never).writeBlock(Matchers.anyInt, Matchers.any[Block], Matchers.any[String])
     verify(peerAccess, never).sendMsg(Matchers.any[NewBlockMessage])
     verify(peerAccess, times(1)).add(Matchers.eq("localhost"))
-    verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange),
+    verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange), Matchers.eq(HttpStatus.SC_BAD_REQUEST),
       Matchers.eq("New block refused - contains existing fact."))
   }
 
@@ -509,7 +579,7 @@ class MsgHandlerTest extends FlatSpec with org.scalatest.Matchers with MockitoSu
     verify(blockChain.chainFileOps, never).writeBlock(Matchers.anyInt, Matchers.any[Block], Matchers.any[String])
     verify(peerAccess, never).sendMsg(Matchers.any[NewBlockMessage])
     verify(peerAccess, times(1)).add(Matchers.eq("localhost"))
-    verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange),
+    verify(mockBcHttpServer, times(1)).sendHttpResponse(Matchers.eq(mockExchange), Matchers.eq(HttpStatus.SC_BAD_REQUEST),
       Matchers.eq("Invalid block received - rejected."))
   }
 

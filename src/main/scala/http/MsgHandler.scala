@@ -52,7 +52,7 @@ class MsgHandler(hc: HttpContext) extends HttpHandler with HttpUtil with MsgHand
       bcHttpServer.sendHttpResponse(exchange, SC_BAD_REQUEST, "The statement has been received before.")
     } else if (blockChain.containsFactInside(signedStatement.statement)) {
       bcHttpServer.sendHttpResponse(exchange, "The statement refused: blockchain alrady contains it as a fact.")
-    } else if (verifySignatures(signedStatement)) {
+    } else if (signedStatement.verifySignatures(this)) {
       val newSignatures = signedStatement.signByLocalPublicKeys(hc.nodeName, keysFileOps)
       val enhancedStatement = signedStatement.addSignatures(newSignatures)
       statementsCache.add(enhancedStatement)
@@ -63,18 +63,20 @@ class MsgHandler(hc: HttpContext) extends HttpHandler with HttpUtil with MsgHand
         bcHttpServer.sendHttpResponse(exchange, "Statement has been verified and added to cache.")
       }
     } else {
-      bcHttpServer.sendHttpResponse(exchange, SC_BAD_REQUEST, "Initial payment message validation failed.")
+      bcHttpServer.sendHttpResponse(exchange, SC_BAD_REQUEST, "Statement validation failed.")
     }
   }
 
   private def handle(newBlockMessage: NewBlockMessage, exchange: HttpExchange): Unit = {
     if (blockChain.containsFactInside(newBlockMessage.block)) {
-      bcHttpServer.sendHttpResponse(exchange, "New block refused - contains existing fact.")
+      bcHttpServer.sendHttpResponse(exchange, SC_BAD_REQUEST, "New block refused - contains existing fact.")
     } else {
       val newBlock = newBlockMessage.block
       blockChain.extractFact(newBlock) match {
         case Right(fact) =>
-          if (blockChain.isValid(newBlock)) {
+          if (!fact.verifySignatures(this)) {
+            bcHttpServer.sendHttpResponse(exchange, SC_BAD_REQUEST, "Verification of signatures failed for fact in received block.")
+          } else if (blockChain.isValid(newBlock)) {
             appendBlock(newBlockMessage, fact.statement, exchange)
           } else if (blockChain.isValid(newBlock, newBlockMessage.blockNo)) {
             if (newBlock.isNewerThan(blockChain.getLatestBlock)) {
@@ -83,10 +85,10 @@ class MsgHandler(hc: HttpContext) extends HttpHandler with HttpUtil with MsgHand
               replaceChainTailWithNewBlock(newBlockMessage, fact.statement, exchange)
             }
           } else {
-            bcHttpServer.sendHttpResponse(exchange, "Invalid block received - rejected.")
+            bcHttpServer.sendHttpResponse(exchange, SC_BAD_REQUEST, "Invalid block received - rejected.")
           }
         case Left(_) =>
-          bcHttpServer.sendHttpResponse(exchange, "Invalid block received - rejected.")
+          bcHttpServer.sendHttpResponse(exchange, SC_BAD_REQUEST, "Invalid block received - rejected.")
       }
     }
   }
@@ -150,19 +152,6 @@ class MsgHandler(hc: HttpContext) extends HttpHandler with HttpUtil with MsgHand
     blockChain.blocksFrom(fromBlockNo).zipWithIndex foreach { case (block, i) =>
       peerAccess.sendMsg(NewBlockMessage(block, fromBlockNo + i), sentFromIPAddress)
     }
-  }
-
-  private def verifySignatures(signedStatement: SignedStatementMessage): Boolean = {
-    signedStatement.providedSignaturesForKeys.forall {
-      case (encodedPublicKey, signature) => verifySignature(signedStatement, encodedPublicKey, signature)
-    }
-  }
-
-  private def verifySignature(signedStatement: SignedStatementMessage, publicKeyEncoded: String,
-                              encodedSignature: String): Boolean = {
-    val decodedSignature = base64StrToBytes(encodedSignature)
-    val decodedPublicKey = deserializePublic(publicKeyEncoded)
-    Signer.verify(decodedSignature, signedStatement.statement.dataToSign, decodedPublicKey)
   }
 
 }
