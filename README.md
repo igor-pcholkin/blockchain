@@ -36,6 +36,14 @@ It also contains a sample application (client) based on the framework and which 
 - exchange blocks and another service messages with another nodes - instances of the same application running on the same physical computer or another one. For simplicity that communication is done via HTTP.
 - remote control and basic monitoring via http server endpoints
 
+## Current application uses
+
+Uses of application present in the project is determined only by a current (core) set of fact types. 
+For now it is possible:
+- register users and create "chains of trust" between them
+- register ad-hoc money transfers between users
+When introducing new facts and creating new http endpoints supporting them a scope of the application uses could be extended almost infinitely.
+
 ## Running the app
 
 - Download sbt:
