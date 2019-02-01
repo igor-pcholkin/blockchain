@@ -1,4 +1,4 @@
-# blockchain
+# EasyChain
 
 A lightweight general-purpose blockchain solution for storing arbitrary facts which could be agreed upon by participants of the blockchain.
 The facts include (but not restricted to) financial transactions.
